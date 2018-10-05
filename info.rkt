@@ -6,10 +6,8 @@
 
 (define deps
   '("base"
-    "rackunit-lib"
     "brag"
     "beautiful-racket-lib"
-    "web-server-lib"
     "http"
     "argo"
     "dotenv"
@@ -19,7 +17,6 @@
 
 (define build-deps
   '("scribble-lib"
-    "racket-doc"
     "rackunit-lib"
     "beautiful-racket-lib"))
 
