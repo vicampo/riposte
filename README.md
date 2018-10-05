@@ -54,7 +54,7 @@ We also extract data from the response. Riposte builds on JSON Pointer, which is
 
 After making a request, you can make assertions about it. Here, with `exists`, we're asserting that (1) the response is a JSON object, and (2) it has a property, `"tax_total"`. We don't care what that value is. (Riposte comes with a ton of assertions; `exists` is just one.)
 
-Here's another Riposte script that logs in to our iOS API:
+Here's another Riposte script that logs in to an API by `POST`ing credentials (a JSON array) to a certain endpoint, which is supposed to give us back a key that we will attach to later requests:
 
     $loginPayload := {
         "email": @EMAIL,
