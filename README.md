@@ -106,6 +106,6 @@ Use a shebang. Start your Riposte script like this:
 	 #
 	 GET whatever responds with 2XX
 
-Make sure your Riposte script is executable. Then—assuming that Riposte really is at `/usr/local/bin/riposte`—you ought to be able to just to do
+Make sure your Riposte script is executable. Then—assuming that Riposte really is at `/usr/local/bin/riposte`—the following should suffice:
 
     $ ./let-er.rip
