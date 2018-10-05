@@ -6,6 +6,6 @@
 
 # set a base URL; we will merge all URIs going forward
 # with this
-%base := "https://api.vicampo.test:8441/v1/"
+%base := "https://api.mydomain.test:8441/v1/"
 
 $uuid := "5" # @ is how you access environment variables
