@@ -12,7 +12,7 @@ Examples:
 
 	# set a base URL; we will merge all URIs going forward
 	# with this
-    %base := "https://api.vicampo.test:8441/v1/"
+    %base := "https://api.mydomain.test:8441/v1/"
 
     $uuid := @UUID # @ is how you access environment variables
 
@@ -34,11 +34,9 @@ Riposte supports `GET`, `HEAD`, `POST`, `PATCH` and `DELETE` as HTTP request met
 
     $productId := 41966
     $qty := 5
-    $campaignId := 1
 
     $payload := {
       "product_id": $productId, # we extend the JSON syntax here
-      "campaign_id": $campaignId, # in that you can use Riposte variables
       "qty": $qty # and you can add comments to JSON, too
     }
 
@@ -46,7 +44,7 @@ Riposte supports `GET`, `HEAD`, `POST`, `PATCH` and `DELETE` as HTTP request met
 
     $itemId := /vendors/0/items/0/cart_item_id # extract the item ID
 
-Here, we define some data and build a JSON object with three properties. We then submit that to (what works out to) `https://api.vicampo.de/v1/checkout/cart/28f896e6-98df-497b-b95f-c34d39c2a368/items`. (I just picked a random UUID.) Notice that we expect a concrete response code here. The response had better be 200. Anything else would be an error.
+Here, we define some data and build a JSON object with three properties. We then submit that to (what works out to) `https://api.mydomain.test/v1/checkout/cart/28f896e6-98df-497b-b95f-c34d39c2a368/items`. (I just picked a random UUID.) Notice that we expect a concrete response code here. The response had better be 200. Anything else would be an error.
 
 We also extract data from the response. Riposte builds on JSON Pointer, which is an IETF standard notation for referring to parts of JSON documents.
 
