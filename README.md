@@ -1,4 +1,4 @@
-Riposte—A Scripting Language for JSON-based HTTP APIs
+Riposte—Scripting Language for JSON-based HTTP APIs
 ==========
 
 Riposte is a scripting language for evaluating JSON-bearing HTTP responses. The intended use case is a JSON-based HTTP API. It comes with a commandline tool, `riposte`, which executes Riposte scripts. Using Riposte, one writes a sequence of commands—which amount to HTTP requests—and assertions, which require that the response meets certain conditions.
