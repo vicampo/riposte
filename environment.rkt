@@ -48,8 +48,6 @@
   (cond ((number? v)
          (cond ((integer? v)
                 (format "~a" v))
-               ((flonum? v)
-                (format "~a" v))
                ((rational? v)
                 (format "~a" (exact->inexact v)))
                (else
@@ -68,16 +66,15 @@
                  (value->assignment-value (hash-ref v k)))))))
 
 (define (convertible-value? x)
-  (with-handlers ([exn:fail:contract? (const #f)]
-                  [exn:fail? (const #f)])
+  (with-handlers ([exn:fail? (const #f)])
     (begin0
         #t
       (value->assignment-value x))))
 
 (module+ test
   (check-true (convertible-value? 4))
-  (check-true (convertible-value? -1.32))
-  (check-false (convertible-value? 1/3))
+  (check-false (convertible-value? -1.32))
+  (check-true (convertible-value? 1/3))
   (check-false (convertible-value? #t))
   (check-false (convertible-value? #f))
   (check-true (convertible-value? 'null))
@@ -86,7 +83,7 @@
   (check-false (convertible-value? #""))
   (check-true (convertible-value? (list)))
   (check-true (convertible-value? (list "what" " the" "frack!")))
-  (check-true (convertible-value? (hash 'hi "there"))))
+  (check-true (convertible-value? (hasheq 'hi "there"))))
 
 (define/contract (environment->assignment env)
   ((hash/c symbol? value?) . -> . uri-template:assignment?)
