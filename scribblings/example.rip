@@ -1,0 +1,11 @@
+#lang riposte
+# set a header, to be added to all requests going forward
+# the # character is the to-end-of-line comment character
+
+^Content-Type := "application/json"
+
+# set a base URL; we will merge all URIs going forward
+# with this
+%base := "https://api.vicampo.test:8441/v1/"
+
+$uuid := "5" # @ is how you access environment variables
