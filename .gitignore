@@ -1,1 +1,4 @@
 /riposte
+compiled/*
+doc/*
+scribblings/*
