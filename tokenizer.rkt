@@ -208,19 +208,20 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
     (riposte-lexer port))
   ;; here we need to have the two tokenizers cooperate with each
   (define (next-token)
-    (define t
-      (cond (expecting-uri?
-             (next-uri-token))
-            (else
-             (define tok (next-riposte-token))
-             (when (and (position-token? tok)
-                        (token-struct? (position-token-token tok))
-                        (eq? 'HTTP-METHOD
-                             (token-struct-type
-                              (position-token-token tok))))
-               (set! expecting-uri? #t))
-             tok)))
-    t)
+    (cond [expecting-uri?
+           (next-uri-token)]
+          [else
+           (define tok (next-riposte-token))
+           (when (and (position-token? tok)
+                      (token-struct? (position-token-token tok))
+                      (or (eq? 'HTTP-METHOD
+                               (token-struct-type
+                                (position-token-token tok)))
+                          (list? (member (token-struct-val
+                                          (position-token-token tok))
+                                         (list "in" "at")))))
+             (set! expecting-uri? #t))
+           tok]))
   (define counting? (port-counts-lines? port))
   next-token)
 
