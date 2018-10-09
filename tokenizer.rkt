@@ -232,4 +232,23 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
   (with-input-from-file path lex-it #:mode 'text))
 
 (module+ main
-  (tokenize-file "/Users/jessealama/riposte/examples/big.rip"))
+
+  (require racket/cmdline)
+
+  (define (lex-it filename)
+    (unless (file-exists? filename)
+      (displayln (format "No such file: ~a" filename))
+      (exit 1))
+    (tokenize-file filename))
+
+  (define file-to-process
+    (command-line
+     #:args args
+     args))
+
+  (match file-to-process
+    [(list (? string? filename))
+     (lex-it filename)]
+    [else
+     (displayln "Call me with exactly one argument (a filename).")
+     (exit 1)]))
