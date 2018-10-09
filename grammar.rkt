@@ -58,7 +58,7 @@ satisfies: ("satisfies" | ("does" "not" "satisfy")) "schema" schema-ref
 
 schema-ref: id
   | ("at" (URI | URI-TEMPLATE) )
-  | ("in" DOUBLE-QUOTED-STRING)
+  | ("in" URI)
 
 expression : json-pointer
   | json-expression
