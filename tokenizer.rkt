@@ -243,12 +243,11 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
   (define file-to-process
     (command-line
-     #:args args
-     args))
+     #:args (filename)
+     filename))
 
-  (match file-to-process
-    [(list (? string? filename))
-     (lex-it filename)]
-    [else
-     (displayln "Call me with exactly one argument (a filename).")
-     (exit 1)]))
+  (unless (file-exists? file-to-process)
+    (displayln (format "No such file: ~a" file-to-process))
+    (exit 1))
+
+  (tokenize-file file-to-process))
