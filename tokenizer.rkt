@@ -254,12 +254,6 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
   (require racket/cmdline)
 
-  (define (lex-it filename)
-    (unless (file-exists? filename)
-      (displayln (format "No such file: ~a" filename))
-      (exit 1))
-    (tokenize-file filename))
-
   (define file-to-process
     (command-line
      #:args (filename)
