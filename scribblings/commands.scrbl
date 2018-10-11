@@ -2,11 +2,18 @@
 
 @title{Commands}
 
-With commands, you send out your HTTP requests.
+With @emph{commands}, you send out your HTTP requests.
 
-Optionally, you can check that the responses have a certain code (200, 204, 404, etc.) and that the whole response body satisfies a JSON schema. Those two parts are optional; you can check the response code without specifying a schema, and you can specify a schema without saying anything about the response code.
+Optionally, you can check that
 
-(The Riposte langauge has a concept of assertion, which is all about checking things. When a command includes a response code check, or a schema check, then commands has the effect of performing an assertion.)
+@itemlist[
+  @item{the responses have a certain response code (200, 204, 404, etc.), and}
+  @item{that the whole response body satisfies a JSON Schema.}
+]
+
+Those two parts are optional; you can check the response code without specifying a schema, and you can specify a schema without saying anything about the response code. You can leave out both, or supply both.
+
+(The Riposte langauge has a concept of an assertion, which is all about checking things. When a command includes a response code check, or a schema check, then commands has the effect of performing an assertion.)
 
 Formally, a command has one of these these structures, depending on whether you want to check the response code and assert that the response satisfies a schema.
 
@@ -99,9 +106,9 @@ There are two forms that SCHEMA can take:
 
 @itemlist[
 
-@item{A variable reference, or}
+@item{a variable reference, or}
 
-@item{A string}
+@item{an unquoted string.}
 
 ]
 
@@ -120,5 +127,5 @@ Example of using a schema specified in a file:
 
 @codeblock[#:keep-lang-line? #f #:line-numbers #f]|{
 #lang riposte
-GET $payload api/flub satisfies schema in "schema.json"
+GET $payload api/flub satisfies schema in schema.json
 }|
