@@ -13,6 +13,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 |#
 
 (define expecting-uri? #f)
+(define parsed-base-url-parameter? #f)
 
 (define (make-tokenizer port)
   (define (next-uri-token)
@@ -57,7 +58,8 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                (token-struct? (position-token-token tok))
                (member (token-struct-type (position-token-token tok))
                        (list 'URI 'URI-TEMPLATE)))
-      (set! expecting-uri? #f))
+      (set! expecting-uri? #f)
+      (set! parsed-base-url-parameter? #f))
     tok)
   (define (next-riposte-token)
     (define riposte-lexer
@@ -83,7 +85,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                        "_")))
         (token 'IDENTIFIER
                (substring lexeme 1))]
-       ;; global identifiers
+       ;; parameter identifiers
        [(:: "%"
             (:+ (union (:/ "A" "Z" "a" "z" "0" "9")
                        "_")))
@@ -127,6 +129,9 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
        [(:: "at"
             (union #\newline #\tab #\space))
         (token 'AT "at")]
+       [(:: "import"
+            (union #\newline #\tab #\space))
+        (token 'IMPORT "import")]
        [(union ":="
                "!="
                "="
@@ -161,7 +166,6 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                "exists"
                "absent"
                "length"
-               "import"
                "unset")
         (token lexeme lexeme)]
        ;; JSON keywords
@@ -180,6 +184,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                                  "PUT"
                                  "POST"
                                  "PATCH"
+                                 "OPTIONS"
                                  "DELETE")
          (union #\newline #\tab #\space))
         (token 'HTTP-METHOD lexeme)]
@@ -206,7 +211,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
         ;;        lexeme)
         ]))
     (riposte-lexer port))
-  ;; here we need to have the two tokenizers cooperate with each
+  ;; here we need to have the two tokenizers cooperate
   (define (next-token)
     (cond [expecting-uri?
            (next-uri-token)]
@@ -214,12 +219,26 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
            (define tok (next-riposte-token))
            (when (and (position-token? tok)
                       (token-struct? (position-token-token tok))
-                      (or (eq? 'HTTP-METHOD
-                               (token-struct-type
-                                (position-token-token tok)))
+                      (eq? 'PARAMETER-IDENTIFIER
+                           (token-struct-type
+                            (position-token-token tok)))
+                      (string=? "base"
+                                (token-struct-val
+                                 (position-token-token tok))))
+             (set! parsed-base-url-parameter? #t))
+           (when (and (position-token? tok)
+                      (token-struct? (position-token-token tok))
+                      (or (list? (member (token-struct-type
+                                          (position-token-token tok))
+                                         (list 'HTTP-METHOD
+                                               'IMPORT)))
                           (list? (member (token-struct-val
                                           (position-token-token tok))
-                                         (list "in" "at")))))
+                                         (list "in" "at")))
+                          (and parsed-base-url-parameter?
+                               (string=? ":="
+                                         (token-struct-val
+                                          (position-token-token tok))))))
              (set! expecting-uri? #t))
            tok]))
   (define counting? (port-counts-lines? port))
