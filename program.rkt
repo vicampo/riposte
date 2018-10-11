@@ -182,11 +182,11 @@
      (make-header-assignment (parse-tree->identifier id)
                              (parse-tree->expression expr))]
     [(list 'parameter-assignment
-           id
+           (? string? id)
            ":="
-           expr)
-     (make-parameter-assignment (parse-tree->identifier id)
-                                (parse-tree->expression expr))]))
+           (? string? expr))
+     (make-parameter-assignment id
+                                expr)]))
 
 (define/contract (parse-tree->response-code-matches response-code-expr)
   ((or/c string? list?) . -> . response-code-matches-expression?)

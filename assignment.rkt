@@ -88,11 +88,11 @@
     (define/override (evaluate env)
       (log-error "evaluating an assignment: ~a to ~a" rhs lhs)
       (extend-environment/global env
-                                 (send lhs get-name)
+                                 lhs
                                  (ensure-ejsexpr rhs env)))
     (define/override (render)
       (format "~a := ~a"
-              (send lhs render)
+              lhs
               (render-ejsexprish rhs)))))
 
 (define/contract (parameter-assignment? x)
@@ -101,7 +101,7 @@
        (is-a? x parameter-assignment%)))
 
 (define/contract (make-parameter-assignment id val)
-  (parameter-identifier-expression?
+  (string?
    (or/c ejsexpr? expression?) . -> .
    parameter-assignment?)
   (new parameter-assignment%

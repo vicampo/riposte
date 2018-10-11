@@ -8,7 +8,7 @@ program-step: assignment
   | import
   | unset
 
-import: "import" DOUBLE-QUOTED-STRING
+import: IMPORT URI
 
 unset: "unset" HEADER-IDENTIFIER
 
@@ -47,7 +47,7 @@ assignment : normal-assignment | parameter-assignment | header-assignment
 
 normal-assignment: normal-identifier ":=" expression [ "(" json-type  ")" ]
 
-parameter-assignment: parameter-identifier ":=" expression
+parameter-assignment: PARAMETER-IDENTIFIER ":=" (URI | expression)
 
 header-assignment: head-id ":=" expression
 

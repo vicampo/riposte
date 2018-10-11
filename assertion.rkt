@@ -274,7 +274,10 @@
                s]))
       (unless (json-schema? loaded-schema)
         (error (format "JSON content of ~a is not really a JSON Schema."
-                       (send schema render))))
+                       (cond [(expression? schema)
+                              (send schema render)]
+                             [else
+                              schema]))))
       (log-error "loaded schema: ~a" loaded-schema)
       (define data (environment-response env))
       (log-error "data: ~a" data)
