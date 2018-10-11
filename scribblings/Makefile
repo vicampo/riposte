@@ -1,7 +1,7 @@
 .PHONY: all clean
 
-all:
-	# unclear what is to be done here
+all: $(wildcard *.scrbl)
+	scribble riposte.scrbl
 
 clean:
 	rm -Rf compiled
