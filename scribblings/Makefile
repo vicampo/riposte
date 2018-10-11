@@ -5,5 +5,5 @@ all: $(wildcard *.scrbl)
 
 clean:
 	rm -Rf compiled
-	find . -mindepth 1 -maxdepth 1 -type f -name '*~' -delete
-	find . -mindepth 1 -maxdepth 1 -type d | xargs -J '{}' $(MAKE) -C {} clean
+	rm -Rf doc
+	find . -mindepth 1 -maxdepth 1 -type f  \( -name '*.css' -o -name '*.js' -o -name '*.html' -o -name '*~' \) -delete
