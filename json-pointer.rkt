@@ -22,11 +22,8 @@
     (init-field expr)
     (define/override (evaluate env)
       (define env/jsexpr (ejsexpr->jsexpr (environment-response env)))
-      (define x (json-pointer-value expr
-                                    env/jsexpr))
-      (define x/ejsexpr (jsexpr->ejsexpr x))
-      (log-error "evaluated JSON Pointer ~a and got ~a" expr x)
-      x/ejsexpr)
+      (json-pointer-value expr
+                          env/jsexpr))
     (define/override (render)
       expr)))
 
