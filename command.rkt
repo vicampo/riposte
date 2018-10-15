@@ -123,7 +123,6 @@
            (hasheq)]
           [else
            headers]))
-  (log-error "payload: ~a" payload)
   (with-handlers ([exn:fail:network? (lambda (e)
                                        (error (format "Failed to connect to ~a!" url)))])
     (call/output-request "1.1"
@@ -200,7 +199,6 @@
                                                            (log-error "response body is busted as JSON: ~a" response/bytes)
                                                            #f)])
                                 (bytes->ejsexpr response/bytes)))
-      (log-error "response as jsexpr: ~a" response/jsexpr)
       (struct-copy environment
                    env
                    [response response/jsexpr]
