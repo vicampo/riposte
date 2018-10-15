@@ -229,7 +229,3 @@
   (when (variable-identifier-expression? h)
     (send c set-headers! h))
   c)
-
-(define (command? x)
-  (and (object? x)
-       (is-a? x command-expression%)))
