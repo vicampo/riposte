@@ -180,9 +180,10 @@
         (unless (hash? h)
           (error (format "Evaluating ~a yielded a non-hash: ~a" headers h)))
         (set! hs (hash-union headers h)))
-      (displayln (format "~a ~a ..."
+      (display (format "~a ~a ..."
                          method
                          uri))
+      (flush-output)
       (define code+headers+response
         (cond [(expression? payload)
                (request/payload method
