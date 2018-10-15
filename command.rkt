@@ -67,22 +67,22 @@
 
 (define/contract (response-code-matches-pattern received-code expected-code)
   (string? string? . -> . boolean?)
-  (cond ((string=? "" received-code)
-         (string=? "" expected-code))
-        ((string=? "" expected-code)
-         #f)
-        (else
+  (cond [(string=? "" received-code)
+         (string=? "" expected-code)]
+        [(string=? "" expected-code)
+         #f]
+        [else
          (define c1 (string-ref received-code 0))
          (define c2 (string-ref expected-code 0))
-         (cond ((or (char=? c2 #\X)
+         (cond [(or (char=? c2 #\X)
                     (char=? c2 #\x))
                 (response-code-matches-pattern (substring received-code 1)
-                                               (substring expected-code 1)))
-               ((char=? c1 c2)
+                                               (substring expected-code 1))]
+               [(char=? c1 c2)
                 (response-code-matches-pattern (substring received-code 1)
-                                               (substring expected-code 1)))
-               (else
-                #f)))))
+                                               (substring expected-code 1))]
+               [else
+                #f])]))
 
 (define/contract (read-entity/bytes+response-code in h)
   (input-port? string? . -> . (list/c exact-integer? string? bytes?))
