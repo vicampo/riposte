@@ -197,7 +197,9 @@
       (define response-headers (second code+headers+response))
       (define response/bytes (third code+headers+response))
       (define response/jsexpr (with-handlers ([exn:fail? (lambda (e)
-                                                           (log-error "response body is busted as JSON: ~a" response/bytes)
+                                                           (unless (bytes=? #"" response/bytes)
+                                                             (log-error "response body is busted as JSON: ~a" response/bytes))
+
                                                            #f)])
                                 (bytes->ejsexpr response/bytes)))
       (struct-copy environment
