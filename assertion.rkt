@@ -87,7 +87,7 @@
       (match c
         [#f
          (error "No response has been received; cannot evaluate!")]
-        [(? exact-integer?)
+        [(? exact-nonnegative-integer?)
          (unless (code-matches? c code)
            (error (format "Received code ~a does not match expected code ~a."
                           c
