@@ -18,6 +18,8 @@
          uri-template
          json-pointer
          argo
+         (only-in racket/format
+                  ~a)
          (file "step.rkt")
          (file "util.rkt")
          (file "environment.rkt")
@@ -191,6 +193,7 @@
               [else
                (request method url hs)]))
       (define code (first code+headers+response))
+      (displayln (~a code))
       (define response-headers (second code+headers+response))
       (define response/bytes (third code+headers+response))
       (define response/jsexpr (with-handlers ([exn:fail? (lambda (e)
