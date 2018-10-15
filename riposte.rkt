@@ -20,7 +20,7 @@
 
 (define/contract version
   string?
-  "0.0.6")
+  ((get-info (list "riposte")) 'version))
 
 (define/contract opt-version
   parameter?
