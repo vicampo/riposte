@@ -1,3 +1,4 @@
 /riposte
 compiled/*
 doc/*
+/scribblings/compiled/*
