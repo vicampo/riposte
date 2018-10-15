@@ -100,10 +100,6 @@
 
 (define/contract (extend-environment env var val)
   (environment? symbol? value? . -> . environment?)
-  (log-error "extending environment ~a for variable ~a with value ~a"
-             env
-             var
-             val)
   (struct-copy environment
                env
                [table (hash-set (environment-table env)

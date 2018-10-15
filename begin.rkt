@@ -16,7 +16,6 @@
     (define/override (evaluate env)
       (define/contract (f step env)
         (step? environment? . -> . environment?)
-        (log-error "in a block; evaluating step ~a" (send step render))
         (send step evaluate env))
       (foldl f
              env

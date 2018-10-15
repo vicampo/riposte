@@ -36,7 +36,6 @@
     (super-new)
     (inherit-field lhs rhs)
     (define/override (evaluate env)
-      (log-error "evaluating a header assignment: rhs is ~a" rhs)
       (extend-environment/header env
                                  (string->symbol (send lhs get-name))
                                  (ensure-ejsexpr rhs env)))
@@ -86,7 +85,6 @@
     (super-new)
     (inherit-field lhs rhs)
     (define/override (evaluate env)
-      (log-error "evaluating an assignment: ~a to ~a" rhs lhs)
       (extend-environment/global env
                                  lhs
                                  (ensure-ejsexpr rhs env)))
