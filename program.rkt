@@ -347,11 +347,8 @@
 
 (define/contract (parse-tree->program program)
   (list? . -> . program?)
-  (log-error "working on program: ~a" program)
   (match program
     [(cons 'riposte-program (? list? steps))
      (flatten-program (map parse-tree->step steps))]
     [(list 'program-step (? list? more))
-     (flatten-program (parse-tree->step more))]
-    [else
-     (error (format "wtf is this program (2)? ~a" program))]))
+     (flatten-program (parse-tree->step more))]))
