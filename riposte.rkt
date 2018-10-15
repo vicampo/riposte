@@ -1,6 +1,7 @@
 #lang racket/base
 
-(require racket/cmdline
+(require (for-syntax racket/base)
+         racket/cmdline
          dotenv
          (file "util.rkt")
          (only-in (file "evaluator.rkt")
@@ -15,8 +16,6 @@
          racket/contract
          brag/support
          racket/match)
-
-(require (for-syntax racket/base))
 
 (define/contract version
   string?
