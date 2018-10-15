@@ -109,4 +109,5 @@
   (run! (dotenv-load! (opt-dotenvs)))
 
   (parameterize ([param-cwd dir])
-    (eval-program (file->program file-to-process))))
+    (with-handlers ([exn? (lambda (e) (exit 1))])
+      (eval-program (file->program file-to-process)))))
