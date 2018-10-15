@@ -109,5 +109,7 @@
   (run! (dotenv-load! (opt-dotenvs)))
 
   (parameterize ([param-cwd dir])
-    (with-handlers ([exn? (lambda (e) (exit 1))])
+    (with-handlers ([exn? (lambda (e)
+                            (displayln (format "FAIL: ~a" (exn-message e)))
+                            (exit 1))])
       (eval-program (file->program file-to-process)))))
