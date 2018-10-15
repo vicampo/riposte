@@ -100,8 +100,6 @@
   (define-values (dir base is-directory?)
     (split-path file-to-process))
 
-  (displayln (format "dir = ~a" dir))
-
   (when is-directory?
     (displayln (format "Given file is actually a directory: ~a" file-to-process))
     (exit 1))
