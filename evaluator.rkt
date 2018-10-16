@@ -15,7 +15,8 @@
                   const)
          (only-in racket/list
                   empty?)
-
+         (only-in ejs
+                  equal-ejsexprs?)
          racket/class
          racket/hash
          brag/support
@@ -219,11 +220,11 @@
     [(list 'equality lhs "=" rhs)
      (define lhs-val (eval-expression lhs env))
      (define rhs-val (eval-expression rhs env))
-     (json-equal? lhs-val rhs-val)]
+     (equal-ejsexprs? lhs-val rhs-val)]
     [(list 'disequality lhs "!=" rhs)
      (define lhs-val (eval-expression lhs env))
      (define rhs-val (eval-expression rhs env))
-     (not (json-equal? lhs-val rhs-val))]
+     (not (equal-ejsexprs? lhs-val rhs-val))]
     [(list 'predication header-name "is" "absent")
      (not (hash-has-key? (environment-response-headers env)
                          (string->symbol header-name)))]
