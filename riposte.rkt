@@ -39,11 +39,6 @@
   (log-error "~a" (exn-message e))
   (exit 1))
 
-(define/contract (eval-program-error-handler e)
-  (exn? . -> . any)
-  (log-error "FAIL ~a" (exn-message e))
-  (exit 1))
-
 (define-syntax (run! stx)
   (syntax-case stx ()
     [(_ #:error-handler handler steps ...)
