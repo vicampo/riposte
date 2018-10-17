@@ -87,7 +87,7 @@
                  (opt-lint #t)]
      #:multi
      [("--env") f
-                "Specify an environment file to use (can be specified multiple times"
+                "Specify an environment file to use (can be specified multiple times)"
                 (opt-dotenvs (cons f (opt-dotenvs)))]
      #:args args
      args))
