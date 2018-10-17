@@ -27,7 +27,7 @@
         (error "Respond body is either missing or is malformed JSON."))
       (when (and (not (ejs-object? res))
                  (not (ejs-array? res)))
-        (error "Respond is well-formed JSON, but is neither an array nor an object."))
+        (error (format "Respond is neither an array nor an object; cannot evaluate JSON Pointer expression \"~a\"." expr)))
       (json-pointer-value expr res))
     (define/override (render)
       expr)))
