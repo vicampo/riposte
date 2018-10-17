@@ -66,7 +66,6 @@
       (exit 1))))
 
 (define (fail-program e)
-  (flush-output)
   (displayln (format "FAIL: ~a" (exn-message e)))
   (exit 1))
 
