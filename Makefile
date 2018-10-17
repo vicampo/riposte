@@ -1,6 +1,6 @@
 .PHONY: all clean check
 
-all: riposte
+all: check riposte
 
 clean:
 	rm -Rf compiled
