@@ -179,7 +179,8 @@
       (when (global-variable-set? env 'base-url)
         (set! url (url->string (combine-url/relative (string->url (lookup-global-variable env 'base-url))
                                                      url))))
-      (define hs (environment-header-table env))
+      (define hs (hash-union default-headers
+                             (environment-header-table env)))
       (when (expression? headers)
         (define h (send headers evaluate env))
         (unless (hash? h)
