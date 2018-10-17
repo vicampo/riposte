@@ -11,3 +11,6 @@ clean:
 
 riposte: $(wildcard *.rkt)
 	raco exe riposte.rkt
+
+check:
+	raco test *.rkt
