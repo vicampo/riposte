@@ -7,6 +7,7 @@
          (only-in (file "evaluator.rkt")
                   eval-program)
          (only-in (file "environment.rkt")
+                  environment?
                   make-fresh-environment)
          (file "check.rkt")
          (only-in (file "program.rkt")
@@ -46,12 +47,12 @@
 (define-syntax (run! stx)
   (syntax-case stx ()
     [(_ #:error-handler handler steps ...)
-     #'(with-handlers ([exn:fail? handler])
+     #'(with-handlers ([exn? handler])
          (begin0
              (void)
            `@(list steps ...)))]
     [(_ steps ...)
-     #'(with-handlers ([exn:fail? default-error-handler])
+     #'(with-handlers ([exn? default-error-handler])
          (begin0
              (void)
            `@(list steps ...)))]))
@@ -63,6 +64,16 @@
     (unless (file-exists? p)
       (error "Cannot read environment file ~a" (path->string p))
       (exit 1))))
+
+(define (fail-program e)
+  (flush-output)
+  (displayln (format "FAIL: ~a" (exn-message e)))
+  (exit 1))
+
+(define/contract (eval-program-in-dir dir file-to-process)
+  (path? path-string? . -> . environment?)
+  (parameterize ([param-cwd dir])
+    (eval-program (file->program file-to-process))))
 
 (module+ main
 
@@ -108,8 +119,5 @@
 
   (run! (dotenv-load! (opt-dotenvs)))
 
-  (parameterize ([param-cwd dir])
-    (with-handlers ([exn? (lambda (e)
-                            (displayln (format "FAIL: ~a" (exn-message e)))
-                            (exit 1))])
-      (eval-program (file->program file-to-process)))))
+  (run! #:error-handler fail-program
+        (eval-program-in-dir dir file-to-process)))
