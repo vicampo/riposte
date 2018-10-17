@@ -14,3 +14,4 @@ riposte: $(wildcard *.rkt)
 
 check:
 	raco test *.rkt
+	raco setup --check-pkg-deps --fix-pkg-deps --unused-pkg-deps --pkgs riposte
