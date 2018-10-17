@@ -7,6 +7,14 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 (or at least intends to).
 
+## [0.3.0]
+
+### Changed
+
+- The arithmetic operator `+` no longer works when one argument is a
+  string and the other an integer. Either both are numbers or both are
+  strings.
+
 ## [0.2.0]
 
 ### Added
