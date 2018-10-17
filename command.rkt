@@ -31,6 +31,11 @@
 (module+ test
   (require rackunit))
 
+(define opt-version "0.2.0")
+
+(define default-headers
+  (hash 'User-Agent (format "Riposte/~a (https://riposte.in)" opt-version)))
+
 (define/contract (render-code code)
   (any/c . -> . string?)
   (match code
