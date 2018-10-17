@@ -20,12 +20,12 @@
          argo
          (only-in racket/format
                   ~a)
-         (file "step.rkt")
-         (file "util.rkt")
-         (file "environment.rkt")
-         (only-in (file "expression.rkt")
+         (file "./step.rkt")
+         (file "./util.rkt")
+         (file "./environment.rkt")
+         (only-in (file "./expression.rkt")
                   expression?)
-         (only-in (file "identifier.rkt")
+         (only-in (file "./identifier.rkt")
                   variable-identifier-expression?))
 
 (module+ test
