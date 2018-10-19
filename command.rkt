@@ -151,7 +151,7 @@
       (set! payload p))
     (define/public (set-headers! h)
       (unless (variable-identifier-expression? h)
-        (error "Headers should be either a variable!"))
+        (error "Headers should be a variable!"))
       (set! headers h))
     (define/override (render)
       (cond [(variable-identifier-expression? payload)
