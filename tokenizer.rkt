@@ -148,6 +148,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                "not"
                "non"
                "does"
+               "relative"
                "to"
                "satisfy"
                "satisfies"

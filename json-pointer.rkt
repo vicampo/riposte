@@ -14,21 +14,31 @@
          (only-in (file "expression.rkt")
                   expression?
                   expression%)
+         (only-in (file "./identifier.rkt")
+                  identifier-expression?)
          (only-in (file "environment.rkt")
                   environment-response))
 
 (define json-pointer-expression%
   (class expression%
     (super-new)
-    (init-field expr)
+    (init-field expr base)
     (define/override (evaluate env)
-      (define res (environment-response env))
-      (unless (ejsexpr? res)
-        (error "Respond body is either missing or is malformed JSON."))
-      (when (and (not (ejs-object? res))
-                 (not (ejs-array? res)))
-        (error (format "Respond is neither an array nor an object; cannot evaluate JSON Pointer expression \"~a\"." expr)))
-      (json-pointer-value expr res))
+      (define doc
+        (cond [(identifier-expression? base)
+               (send base evaluate env)]
+              [else
+               (environment-response env)]))
+      (when (and (not (ejs-object? doc))
+                 (not (ejs-array? doc)))
+        (error (cond [(identifier-expression? base)
+                (format "~a is neither an array nor an object; cannot evaluate JSON Pointer expression \"~a\"."
+                        (send base render)
+                        expr)]
+               [else
+                (format "The previous response is neither an array nor an object; cannot evaluate JSON Pointer expression \"~a\"."
+                        expr)])))
+      (json-pointer-value expr doc))
     (define/override (render)
       expr)))
 
@@ -37,7 +47,10 @@
   (and (object? x)
        (is-a? x json-pointer-expression%)))
 
-(define/contract (make-json-pointer-expression jp)
-  (string? . -> . json-pointer-expression?)
+(define/contract (make-json-pointer-expression jp [base #f])
+  (->* (string?)
+       ((or/c false/c identifier-expression?))
+       json-pointer-expression?)
   (new json-pointer-expression%
-       [expr jp]))
+       [expr jp]
+       [base base]))

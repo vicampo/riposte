@@ -126,6 +126,8 @@
      (parse-tree->identifier ident)]
     [(list 'json-pointer jp)
      (make-json-pointer-expression jp)]
+    [(list 'json-pointer jp "relative" "to" identifier)
+     (make-json-pointer-expression jp (parse-tree->identifier identifier))]
     [(list 'head-id (? string? name))
      (make-header-identifier-expression name)]
     [(list 'expression expr1 "+" expr2)
