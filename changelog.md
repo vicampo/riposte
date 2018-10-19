@@ -22,6 +22,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [0.4.1]
 
+No user visible changes.
+
 ### Changed
 
 - Removed some debug output that you shouldn't have seen.
