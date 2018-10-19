@@ -28,13 +28,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [0.4.0]
 
-## [0.3.1]
-
 ### Added
 
 - Relative JSON Pointers are now supported. By default, when one uses
   a JSON Pointer, it is evaluated with respect to the previously
   received response body.
+
+## [0.3.1]
 
 ## [0.3.0]
 
