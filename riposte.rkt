@@ -20,7 +20,7 @@
 
 (define/contract version
   string?
-  "0.3.0")
+  "0.4.0")
 
 (define/contract opt-version
   parameter?

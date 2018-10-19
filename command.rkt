@@ -31,7 +31,7 @@
 (module+ test
   (require rackunit))
 
-(define opt-version "0.3.0")
+(define opt-version "0.4.0")
 
 (define default-headers
   (hash 'User-Agent (format "Riposte/~a (https://riposte.in)" opt-version)))
