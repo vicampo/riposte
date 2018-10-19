@@ -278,19 +278,18 @@
                               (send schema render)]
                              [else
                               schema]))))
-      (log-error "loaded schema: ~a" loaded-schema)
       (define data (environment-response env))
-      (log-error "data: ~a" data)
       (define ok? (adheres-to-schema? data loaded-schema))
       (unless ok?
-        (cond [(expression? schema)
-               (error (format "Response does not satisfy schema contained in ~a! Response is: ~a"
-                              (send schema render)
-                              data))]
-              [else
-               (error (format "Response does not satisfy schema in file \"~a\". response was: ~a"
-                              schema
-                              data))]))
+        (error
+         (cond [(expression? schema)
+                (format "Response does not satisfy schema contained in ~a! Response was: ~a"
+                        (send schema render)
+                        data)]
+               [else
+                (format "Response does not satisfy schema in file \"~a\". Response was: ~a"
+                        schema
+                        data)])))
       env)
     (define/override (render)
       (error "Cannot render response-satisfies-schema assertion!"))))
