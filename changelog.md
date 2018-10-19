@@ -20,6 +20,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Make a build script so that releases can be uploaded easily.
 
+## [0.4.1]
+
+### Changed
+
+- Removed some debug output that you shouldn't have seen.
+
+## [0.4.0]
+
 ## [0.3.1]
 
 ### Added
