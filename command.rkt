@@ -26,15 +26,15 @@
          (only-in (file "./expression.rkt")
                   expression?)
          (only-in (file "./identifier.rkt")
-                  variable-identifier-expression?))
+                  variable-identifier-expression?)
+         (only-in (file "./version.rkt")
+                  riposte-version))
 
 (module+ test
   (require rackunit))
 
-(define opt-version "0.4.0")
-
 (define default-headers
-  (hash 'User-Agent (format "Riposte/~a (https://riposte.in)" opt-version)))
+  (hash 'User-Agent (format "Riposte/~a (https://riposte.in)" riposte-version)))
 
 (define/contract (render-code code)
   (any/c . -> . string?)

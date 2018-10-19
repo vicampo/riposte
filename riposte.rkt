@@ -14,13 +14,11 @@
                   file->program)
          (only-in (file "parameters.rkt")
                   param-cwd)
+         (only-in (file "./version.rkt")
+                  riposte-version)
          racket/contract
          brag/support
          racket/match)
-
-(define/contract version
-  string?
-  "0.4.0")
 
 (define/contract opt-version
   parameter?
@@ -87,7 +85,7 @@
      args))
 
   (when (opt-version)
-    (displayln (format "~a" version))
+    (displayln (format "~a" riposte-version))
     (exit 0))
 
   (match file-to-process
