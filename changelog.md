@@ -7,6 +7,27 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 (or at least intends to).
 
+## Unreleased
+
+- Support arbitrary HTTP methods, not just GET, PUT, POST, PATCH,
+  DELETE, and OPTIONS. (But don't allow CONNECT. For now.)
+
+- Implement JSON Pointer relative to certain documents. Example:
+
+    /a/b/c relative to $foo
+
+  would mean: evaluate /a/b/c with the document $foo.
+
+- Make a build script so that releases can be uploaded easily.
+
+## [0.3.1]
+
+### Added
+
+- Relative JSON Pointers are now supported. By default, when one uses
+  a JSON Pointer, it is evaluated with respect to the previously
+  received response body.
+
 ## [0.3.0]
 
 ### Changed
