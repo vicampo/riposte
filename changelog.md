@@ -14,6 +14,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Make a build script so that releases can be uploaded easily.
 
+## [0.4.2]
+
+### Added
+
+- A little program to print our own dependencies (`dependencies.rkt`)
+
 ## [0.4.1]
 
 No user visible changes.
