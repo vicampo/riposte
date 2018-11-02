@@ -194,12 +194,12 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                (trim-ends "\"" lexeme "\""))]
        [(:: (union "1" "2" "3" "4" "5")
             (union "1" "2" "3" "4" "5")
-            "X")
+            (union "X" "x"))
         (token 'HTTP-RESPONSE-CODE-PATTERN
                lexeme)]
        [(:: (union "1" "2" "3" "4" "5")
-            "X"
-            "X")
+            (union "X" "x")
+            (union "X" "x"))
         (token 'HTTP-RESPONSE-CODE-PATTERN
                lexeme)]
        [(:/ "0" "9")
