@@ -194,7 +194,6 @@
 
 (define/contract (known-global-variable? var)
   (string? . -> . boolean?)
-  (log-error "known? ~a" var)
   (list? (member var global-variables)))
 
 (provide
