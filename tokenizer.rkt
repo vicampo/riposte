@@ -6,6 +6,9 @@
 (require brag/support
          racket/contract)
 
+(module+ test
+  (require rackunit))
+
 #|
 
 Identifiers: $ followed by a sequence of letters, numbers, and '_'
@@ -244,6 +247,27 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
            tok]))
   (define counting? (port-counts-lines? port))
   next-token)
+
+(define/contract (tokenize-string str)
+  (string? . -> . list?)
+  (define (lex-it)
+    (apply-tokenizer-maker make-tokenizer (current-input-port)))
+  (with-input-from-string str lex-it))
+
+(module+ test
+  (test-case "Support big X and little x"
+    (check-not-exn
+     (lambda ()
+       (tokenize-string "GET foo responds with 2xx")))
+    (check-not-exn
+     (lambda ()
+       (tokenize-string "GET foo responds with 20x")))
+    (check-not-exn
+     (lambda ()
+       (tokenize-string "GET foo responds with 2Xx")))
+    (check-not-exn
+     (lambda ()
+       (tokenize-string "GET foo responds with 2xX")))))
 
 (define/contract (tokenize-file path)
   (path-string? . -> . list?)
