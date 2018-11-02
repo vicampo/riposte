@@ -111,8 +111,6 @@
   (new response-code-matches-expression%
        [code (string-upcase response-code)]))
 
-
-
 (define adjective-assertion%
   (class assertion%
     (init-field term
