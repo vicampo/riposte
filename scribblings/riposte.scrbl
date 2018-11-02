@@ -1,8 +1,6 @@
 #lang scribble/manual
 
-@require[@for-label[racket/base riposte]]
-
-@title[#:style "toc"]{Riposte—Scripting Language for JSON-based HTTP APIs}
+@title[#:style 'toc]{Riposte—Scripting Language for JSON-based HTTP APIs}
 @author[(author+email "Jesse Alama" "jesse@lisp.sh")]
 
 @defmodulelang[riposte]
