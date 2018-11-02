@@ -1,13 +1,6 @@
 #lang racket/base
 
-(provide environment?
-         environment
-         environment-response-headers
-         environment-response
-         environment-response-code
-         environment-table
-         environment-header-table
-         environment->assignment
+(provide environment->assignment
          extend-environment/global
          extend-environment/header
          extend-environment
@@ -24,8 +17,9 @@
          racket/contract
          racket/function
          racket/match
+         ejs
          net/url
-         (file "value.rkt"))
+         (file "./value.rkt"))
 
 (module+ test
   (require rackunit))
@@ -202,3 +196,20 @@
   (string? . -> . boolean?)
   (log-error "known? ~a" var)
   (list? (member var global-variables)))
+
+(provide
+ (contract-out
+  [struct environment
+    ([header-table
+      (hash/c symbol? string?)]
+     [table
+      (hash/c symbol? ejsexpr?)]
+     [response
+      (or/c false/c ejsexpr?)]
+     [response-headers
+      (or/c false/c (hash/c symbol? string?))]
+     [response-code
+      (or/c false/c
+            (integer-in 100 599))]
+     [global-table
+      (hash/c symbol? ejsexpr?)])]))
