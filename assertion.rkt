@@ -44,6 +44,9 @@
                   render-ejsexprish
                   ensure-ejsexpr))
 
+(module+ test
+  (require rackunit))
+
 (define assertion%
   (class step%
     (super-new)))
@@ -106,7 +109,9 @@
 (define/contract (make-response-code-matches-expression response-code)
   (string? . -> . response-code-matches-expression?)
   (new response-code-matches-expression%
-       [code response-code]))
+       [code (string-upcase response-code)]))
+
+
 
 (define adjective-assertion%
   (class assertion%
