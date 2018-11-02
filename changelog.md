@@ -14,6 +14,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Make a build script so that releases can be uploaded easily.
 
+## [0.5.0]
+
+### Added
+
+- Response code patterns can use a little x as well as a big X.
+
 ## [0.4.2]
 
 ### Added

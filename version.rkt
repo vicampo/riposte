@@ -2,4 +2,4 @@
 
 (provide riposte-version)
 
-(define riposte-version "0.4.2")
+(define riposte-version "0.5.0")
