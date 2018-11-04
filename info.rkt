@@ -18,6 +18,7 @@
 (define build-deps
   '("scribble-lib"
     "rackunit-lib"
+    "racket-doc"
     "beautiful-racket-lib"))
 
 (define pkg-desc "Riposte is a scripting language for testing JSON-based HTTP APIs.")
