@@ -12,7 +12,7 @@ Examples:
 
 	# set a base URL; we will merge all URIs going forward
 	# with this
-    %base := "https://api.mydomain.test:8441/v1/"
+    %base := https://api.mydomain.test/v1/
 
     $uuid := @UUID # @ is how you access environment variables
 
