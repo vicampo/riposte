@@ -45,7 +45,8 @@
                [else
                 (displayln "# (empty response)")])]
         [(? expression?)
-         (render-commented-out (send expr evalutate env))])
+         (displayln (format "# ~a = " (send expr render)))
+         (render-commented-out (send expr evaluate env))])
       env)
     (define/override (render)
       (cond [(eq? #f expr)

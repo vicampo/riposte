@@ -321,6 +321,10 @@
   (match to-be-echoed
     [#f
      (make-echo-step #f)]
+    [(list 'normal-identifier id)
+     (make-echo-step (parse-tree->identifier to-be-echoed))]
+    [(list 'head-id id)
+     (make-echo-step (parse-tree->identifier to-be-echoed))]
     [else
      (error (format "parse-tree->echo: Cannot make sense of ~a" to-be-echoed))]))
 

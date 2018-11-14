@@ -11,7 +11,7 @@ program-step: assignment
 
 import: IMPORT URI
 
-echo: "echo" [ JSON-POINTER | NORMAL-IDENTIFIER | HEADER-REF ]
+echo: "echo" [ JSON-POINTER | normal-identifier | head-id ]
 
 unset: "unset" HEADER-IDENTIFIER
 
