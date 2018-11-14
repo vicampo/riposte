@@ -28,6 +28,7 @@
   (header-table
    table
    response
+   has-body?
    response-headers
    response-code
    global-table)
@@ -186,6 +187,7 @@
                #f
                #f
                #f
+               #f
                (hash 'timeout default-timeout)))
 
 (define global-variables
@@ -205,6 +207,8 @@
       (hash/c symbol? ejsexpr?)]
      [response
       (or/c false/c ejsexpr?)]
+     [has-body?
+      boolean?]
      [response-headers
       (or/c false/c (hash/c symbol? string?))]
      [response-code
