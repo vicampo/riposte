@@ -217,6 +217,8 @@
   (match cmd-expr
     [(list-rest 'command (? string? method) more)
      (match more
+       [(list (? string? uri))
+        (make-command-expression method uri)]
        [(list id
               (? string? uri)
               "responds" "with" code)
