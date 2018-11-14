@@ -303,7 +303,9 @@
             type-ass
             adjective)])]
        [(list (list 'json-pointer (? string? jp)) "exists")
-        (make-json-pointer-exists-predication jp)]
+        (make-json-pointer-exists-predication jp #f)]
+       [(list (list 'json-pointer (? string? jp)) "exists" "relative" "to" id)
+        (make-json-pointer-exists-predication jp (parse-tree->identifier id))]
        [else
         (error (format "cannot handle predication ~a" assert-expr))])]))
 

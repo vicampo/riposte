@@ -8,11 +8,14 @@
 
 (require racket/class
          racket/contract
+         racket/match
          (only-in json-pointer
                   json-pointer-value)
          (only-in (file "assertion.rkt")
                   assertion%)
          (only-in (file "identifier.rkt")
+                  identifier-expression?
+                  header-identifier-expression?
                   make-header-identifier-expression)
          (only-in (file "environment.rkt")
                   environment-response
@@ -76,13 +79,18 @@
 (define json-pointer-exists-predication%
   (class predication%
     (super-new)
-    (init-field jp-expr)
+    (init-field jp-expr base)
     (define/override (evaluate env)
-      (define env/jsexpr (ejsexpr->jsexpr (environment-response env)))
+      (define doc
+        (match base
+          [#f
+           (ejsexpr->jsexpr (environment-response env))]
+          [(? identifier-expression?)
+           (send base evaluate env)]))
       (with-handlers ([exn:fail? (lambda (exn)
                                    (error (format "JSON Pointer ~a does not refer!" jp-expr)))])
         (json-pointer-value jp-expr
-                            env/jsexpr))
+                            doc))
       env)
     (define/override (render)
       (format "~a exists" jp-expr))))
@@ -92,7 +100,11 @@
   (and (object? x)
        (is-a? x json-pointer-exists-predication%)))
 
-(define/contract (make-json-pointer-exists-predication jp)
-  (string? . -> . json-pointer-exists-predication?)
+(define/contract (make-json-pointer-exists-predication jp base)
+  (string?
+   (or/c false/c identifier-expression? header-identifier-expression?)
+   . -> .
+   json-pointer-exists-predication?)
   (new json-pointer-exists-predication%
-       [jp-expr jp]))
+       [jp-expr jp]
+       [base base]))
