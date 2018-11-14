@@ -3,12 +3,15 @@
 riposte-program : program-step*
 
 program-step: assignment
+  | echo
   | command
   | assertion
   | import
   | unset
 
 import: IMPORT URI
+
+echo: "echo" [ JSON-POINTER | NORMAL-IDENTIFIER | HEADER-REF ]
 
 unset: "unset" HEADER-IDENTIFIER
 

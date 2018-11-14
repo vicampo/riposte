@@ -170,7 +170,8 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                "exists"
                "absent"
                "length"
-               "unset")
+               "unset"
+               "echo")
         (token lexeme lexeme)]
        ;; JSON keywords
        [(union "true"

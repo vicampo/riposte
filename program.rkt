@@ -60,7 +60,10 @@
          (only-in (file "arithmetic.rkt")
                   make-sum)
          (only-in (file "parameters.rkt")
-                  param-cwd))
+                  param-cwd)
+         (only-in (file "./echo.rkt")
+                  make-echo-step
+                  echo-step?))
 
 (define (program? x)
   (and (list? x)
@@ -311,6 +314,14 @@
     (define parse-tree (parse path (make-tokenizer port)))
     (syntax->datum parse-tree)))
 
+(define/contract (parse-tree->echo to-be-echoed)
+  ((or/c false/c list?) . -> . echo-step?)
+  (match to-be-echoed
+    [#f
+     (make-echo-step #f)]
+    [else
+     (error (format "parse-tree->echo: Cannot make sense of ~a" to-be-echoed))]))
+
 (define/contract (parse-tree->step step-expr)
   (list? . -> . (or/c step?
                       (listof step?)
@@ -320,6 +331,10 @@
      (parse-tree->step step)]
     [(list 'assignment (? list? ass))
      (parse-tree->assignment ass)]
+    [(list 'echo "echo")
+     (parse-tree->echo #f)]
+    [(list 'echo "echo" more)
+     (parse-tree->echo more)]
     [(cons 'command more)
      (parse-tree->command step-expr)]
     [(list 'import "import" (? string? to-import))

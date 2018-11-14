@@ -187,8 +187,8 @@
           (error (format "Evaluating ~a yielded a non-hash: ~a" headers h)))
         (set! hs (hash-union headers h)))
       (display (format "~a ~a ..."
-                         method
-                         uri))
+                       method
+                       uri))
       (flush-output)
       (define code+headers+response
         (cond [(expression? payload)
@@ -213,6 +213,7 @@
                    env
                    [response response/jsexpr]
                    [response-headers (heads-string->dict response-headers)]
+                   [has-body? (not (bytes=? #"" response/bytes))]
                    [response-code code]))))
 
 (define/contract (command-expression? x)
