@@ -1,9 +1,9 @@
 #lang scribble/manual
 
-@require[@for-label[racket/base riposte]]
-
-@title[#:style "toc"]{Riposte—Scripting Language for JSON-based HTTP APIs}
+@title[#:style 'toc]{Riposte—Scripting Language for JSON-based HTTP APIs}
 @author[(author+email "Jesse Alama" "jesse@lisp.sh")]
+
+@defmodulelang[riposte]
 
 Riposte is a scripting language for evaluating JSON-bearing HTTP responses. The intended use case is a JSON-based HTTP API. It comes with a commandline tool, @tt{riposte}, which executes Riposte scripts. Using Riposte, one writes a sequence of commands—which amount to HTTP requests—and assertions, which require that the response meets certain conditions.
 
