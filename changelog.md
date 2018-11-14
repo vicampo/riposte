@@ -18,8 +18,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- New echo command for echoing the value of a variable. With no
-  arguments, echo the body of the previously received HTTP response.
+- New echo command for echoing the value of a variable or response
+  header. There are three variants:
+	  + `echo` (no arguments) will echo the body of the previously
+        received HTTP response;
+	  + `echo $foo` will echo the value of `$foo`
+	  + `echo ^Location` will echo the value of the `Location`
+        response header.
+- `exists` can now be combined with relative JSON Pointers. This now
+  works: `/hi exists relative to $foo`.
 
 ## [0.5.0]
 
