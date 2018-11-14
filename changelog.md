@@ -14,6 +14,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Make a build script so that releases can be uploaded easily.
 
+## [0.6.0] - 2018-11-14
+
+### Added
+
+- New echo command for echoing the value of a variable. With no
+  arguments, echo the body of the previously received HTTP response.
+
 ## [0.5.0]
 
 ### Added
