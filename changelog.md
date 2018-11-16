@@ -13,6 +13,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   DELETE, and OPTIONS. (But don't allow CONNECT. For now.)
 - Make a build script so that releases can be uploaded easily.
 
+## [0.8.0] - 2018-11-16
+
+### Added
+
+- When called with --lint, Riposte now parses its argument and reports
+  whether it is well-formed. (And does no further work.)
+
 ## [0.7.0] - 2018-11-16
 
 ### Added
