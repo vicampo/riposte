@@ -196,12 +196,12 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
        [(from/to #\" #\")
         (token 'DOUBLE-QUOTED-STRING
                (trim-ends "\"" lexeme "\""))]
-       [(:: (union "1" "2" "3" "4" "5")
-            (union "1" "2" "3" "4" "5")
+       [(:: (union "1" "2" "3" "4" "5" "x" "X")
+            (union "1" "2" "3" "4" "5" "x" "X")
             (union "X" "x"))
         (token 'HTTP-RESPONSE-CODE-PATTERN
                lexeme)]
-       [(:: (union "1" "2" "3" "4" "5")
+       [(:: (union "1" "2" "3" "4" "5" "x" "X")
             (union "X" "x")
             (union "X" "x"))
         (token 'HTTP-RESPONSE-CODE-PATTERN
