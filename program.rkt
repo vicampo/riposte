@@ -223,6 +223,11 @@
        [(list (? string? uri))
         (make-command-expression method uri)]
        [(list id
+              (? string? uri))
+        (make-command-expression method
+                                 uri
+                                 #:payload (parse-tree->identifier id))]
+       [(list id
               (? string? uri)
               "responds" "with" code)
         (list
