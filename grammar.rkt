@@ -5,11 +5,14 @@ riposte-program : program-step*
 program-step: assignment
   | echo
   | command
+  | exec
   | assertion
   | import
   | unset
 
 import: IMPORT URI
+
+exec: EXEC URI
 
 echo: "echo" [ JSON-POINTER | normal-identifier | head-id ]
 
