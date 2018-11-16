@@ -135,6 +135,9 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
        [(:: "import"
             (union #\newline #\tab #\space))
         (token 'IMPORT "import")]
+       [(:: "exec"
+            (union #\newline #\tab #\space))
+        (token 'EXEC "exec")]
        [(union ":="
                "!="
                "="
@@ -236,7 +239,8 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                       (or (list? (member (token-struct-type
                                           (position-token-token tok))
                                          (list 'HTTP-METHOD
-                                               'IMPORT)))
+                                               'IMPORT
+                                               'EXEC)))
                           (list? (member (token-struct-val
                                           (position-token-token tok))
                                          (list "in" "at")))

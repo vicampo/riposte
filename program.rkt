@@ -63,7 +63,10 @@
                   param-cwd)
          (only-in (file "./echo.rkt")
                   make-echo-step
-                  echo-step?))
+                  echo-step?)
+         (only-in (file "./exec.rkt")
+                  make-exec-step
+                  exec-step?))
 
 (define (program? x)
   (and (list? x)
@@ -330,6 +333,19 @@
     [else
      (error (format "parse-tree->echo: Cannot make sense of ~a" to-be-echoed))]))
 
+(define/contract (parse-tree->exec to-exec)
+  (string? . -> . exec-step?)
+  (define cwd (param-cwd))
+  (unless (path? cwd)
+    (error "Current working directory not set!"))
+  (define p (build-path cwd to-exec))
+  (unless (file-exists? p)
+    (error (format "No such file: ~a" (path->string p))))
+  (define permissions (file-or-directory-permissions p))
+  (unless (list? (member 'execute permissions))
+    (error (format "File is not executable: ~a" (path->string p))))
+  (make-exec-step p))
+
 (define/contract (parse-tree->step step-expr)
   (list? . -> . (or/c step?
                       (listof step?)
@@ -356,6 +372,8 @@
       (unless (list? imported-program)
         (error (format "Malformed Riposte file: ~a" (path->string p))))
       (parse-tree->program imported-program)]
+    [(list 'exec "exec" (? string? to-exec))
+      (parse-tree->exec to-exec)]
     [(list 'assertion ass)
      (parse-tree->assertion ass)]))
 
