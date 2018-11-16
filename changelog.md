@@ -11,8 +11,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Support arbitrary HTTP methods, not just GET, PUT, POST, PATCH,
   DELETE, and OPTIONS. (But don't allow CONNECT. For now.)
-
 - Make a build script so that releases can be uploaded easily.
+
+## [0.7.0] - 2018-11-16
+
+### Added
+
+- Support "XXX" as an HTTP response code pattern.
+- New command, `exec`, for executing an arbitrary program. Useful for
+  doing test setup & teardown.
+
+### Fixed
+
+- Support commands with a payload but without response code check
+  (e.g., `POST $foo /whatever`).
 
 ## [0.6.0] - 2018-11-14
 
