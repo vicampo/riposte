@@ -107,6 +107,17 @@
     (displayln (format "Given file is actually a directory: ~a" file-to-process))
     (exit 1))
 
+  (define (lint-complain-and-die! e)
+    (displayln (format "~a is a malformed Riposte script.")
+               (current-error-port))
+    (exit 1))
+
+  (when (opt-lint)
+    (with-handlers ([exn:fail? lint-complain-and-die!])
+      (file->program file-to-process)
+      (displayln (format "~a is a well-formed Riposte script." file-to-process))
+      (exit 0)))
+
   (run! (check-dotenvs (opt-dotenvs)))
 
   (run! (dotenv-load! (opt-dotenvs)))
