@@ -2,7 +2,7 @@
 
 (define collection "riposte")
 
-(define version "0.7.1")
+(define version "0.8.0")
 
 (define deps
   '("base"

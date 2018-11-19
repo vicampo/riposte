@@ -63,8 +63,13 @@
   (exit 1))
 
 (define/contract (eval-program-in-dir dir file-to-process)
-  (path? path-string? . -> . environment?)
-  (parameterize ([param-cwd dir])
+  ((or/c path? (one-of/c 'relative)) path-string? . -> . environment?)
+  (define cwd
+    (cond [(path? dir)
+           dir]
+          [else
+           (current-directory)]))
+  (parameterize ([param-cwd cwd])
     (eval-program (file->program file-to-process))))
 
 (module+ main
