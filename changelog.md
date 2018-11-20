@@ -27,6 +27,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.8.2] - 2018-11-20
+
+### Added
+
+- Better error reporting when a JSON Pointer error occurs.
+
 ## [0.8.1] - 2018-11-20
 
 ### Added
