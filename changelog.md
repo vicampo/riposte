@@ -27,11 +27,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
-## [0.8.2] - 2018-11-20
+## [0.9.0] - 2018-11-20
 
 ### Added
 
 - Better error reporting when a JSON Pointer error occurs.
+- "non empty" support: `GET /foo is non empty`. Combines with other
+  assertions that are glommed onto commands. Examples: `GET /foo
+  responds with 4XX and is empty`; `POST $whatever /a/b satisfies
+  schema in file.json and is non empty`.
 
 ## [0.8.1] - 2018-11-20
 
