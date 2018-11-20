@@ -12,6 +12,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Support arbitrary HTTP methods, not just GET, PUT, POST, PATCH,
   DELETE, and OPTIONS. (But don't allow CONNECT. For now.)
 
+## [0.8.1] - 2018-11-20
+
+### Added
+
+- Better error reporting when responses do not adhere to a JSON
+  Schema.
+
 ## [0.8.0] - 2018-11-19
 
 ### Added

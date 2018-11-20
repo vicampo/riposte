@@ -25,6 +25,8 @@
                   empty?
                   first
                   rest)
+         (only-in racket/port
+                  with-output-to-string)
          (only-in argo
                   json-schema?
                   adheres-to-schema?)
@@ -33,7 +35,8 @@
          (only-in (file "environment.rkt")
                   environment?
                   environment-response
-                  environment-response-code)
+                  environment-response-code
+                  environment-has-body?)
          (only-in (file "expression.rkt")
                   expression?)
          (only-in (file "identifier.rkt")
@@ -257,6 +260,12 @@
     (super-new)
     (init-field schema)
     (define/override (evaluate env)
+      (unless (environment-has-body? env)
+        (error
+         (with-output-to-string
+           (lambda ()
+             (displayln "The body of the previous response is empty!")
+             (displayln "(Or we haven't received any response yet.)")))))
       (define loaded-schema
         (cond [(expression? schema)
                (send schema evaluate env)]
@@ -276,23 +285,29 @@
                (close-input-port port)
                s]))
       (unless (json-schema? loaded-schema)
-        (error (format "JSON content of ~a is not really a JSON Schema."
-                       (cond [(expression? schema)
-                              (send schema render)]
-                             [else
-                              schema]))))
+        (error
+         (format "JSON content of ~a is not really a JSON Schema."
+                 (cond [(expression? schema)
+                        (send schema render)]
+                       [else
+                        schema]))))
       (define data (environment-response env))
       (define ok? (adheres-to-schema? data loaded-schema))
+      (define (flame-out)
+        (cond [(expression? schema)
+               (displayln
+                (format "Response does not satisfy schema contained in ~a!"
+                        (send schema render)))
+               (displayln "The value of ~a is:")
+               (displayln (ejsexpr->string (send schema evaluate env)))]
+              [else
+               (displayln
+                (format "Response does not satisfy schema in file \"~a\"."
+                        schema))])
+        (displayln "Response was:")
+        (displayln (ejsexpr->string data)))
       (unless ok?
-        (error
-         (cond [(expression? schema)
-                (format "Response does not satisfy schema contained in ~a! Response was: ~a"
-                        (send schema render)
-                        data)]
-               [else
-                (format "Response does not satisfy schema in file \"~a\". Response was: ~a"
-                        schema
-                        data)])))
+        (error (with-output-to-string flame-out)))
       env)
     (define/override (render)
       (error "Cannot render response-satisfies-schema assertion!"))))
