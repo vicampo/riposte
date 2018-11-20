@@ -9,8 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## Unreleased
 
-- Support arbitrary HTTP methods, not just GET, PUT, POST, PATCH,
-  DELETE, and OPTIONS. (But don't allow CONNECT. For now.)
+- Respect `Connection: keep-alive` in responses. (Don't close the
+  connection.)
 
 ## [0.8.1] - 2018-11-20
 
