@@ -134,7 +134,7 @@
     [(list 'id ident)
      (parse-tree->identifier ident)]
     [(list 'json-pointer jp)
-     (make-json-pointer-expression jp)]
+     (make-json-pointer-expression jp #f)]
     [(list 'json-pointer jp "relative" "to" identifier)
      (make-json-pointer-expression jp (parse-tree->identifier identifier))]
     [(list 'head-id (? string? name))
@@ -418,9 +418,13 @@
             type-ass
             adjective)])]
        [(list (list 'json-pointer (? string? jp)) "exists")
-        (make-json-pointer-exists-predication jp #f)]
+        (make-json-pointer-exists-predication jp #f #t)]
+       [(list (list 'json-pointer (? string? jp)) "does" "not" "exist")
+        (make-json-pointer-exists-predication jp #f #f)]
        [(list (list 'json-pointer (? string? jp)) "exists" "relative" "to" id)
-        (make-json-pointer-exists-predication jp (parse-tree->identifier id))]
+        (make-json-pointer-exists-predication jp (parse-tree->identifier id) #t)]
+       [(list (list 'json-pointer (? string? jp)) "does" "not" "exist" "relative" "to" id)
+        (make-json-pointer-exists-predication jp (parse-tree->identifier id) #f)]
        [else
         (error (format "cannot handle predication ~a" assert-expr))])]))
 

@@ -53,10 +53,8 @@
   (and (object? x)
        (is-a? x json-pointer-expression%)))
 
-(define/contract (make-json-pointer-expression jp [base #f])
-  (->* (string?)
-       ((or/c false/c identifier-expression?))
-       json-pointer-expression?)
+(define/contract (make-json-pointer-expression jp base)
+  (string? (or/c false/c identifier-expression?) . -> . json-pointer-expression?)
   (new json-pointer-expression%
        [expr jp]
        [base base]))

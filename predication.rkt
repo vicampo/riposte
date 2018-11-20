@@ -9,6 +9,8 @@
 (require racket/class
          racket/contract
          racket/match
+         (only-in racket/function
+                  const)
          (only-in json-pointer
                   json-pointer-value)
          (only-in (file "assertion.rkt")
@@ -79,7 +81,7 @@
 (define json-pointer-exists-predication%
   (class predication%
     (super-new)
-    (init-field jp-expr base)
+    (init-field jp-expr base sense)
     (define/override (evaluate env)
       (define doc
         (match base
@@ -87,13 +89,24 @@
            (environment-response env)]
           [(? identifier-expression?)
            (send base evaluate env)]))
-      (define (flame-out e)
-        (displayln (format "JSON Pointer ~a does not refer!" jp-expr))
-        (displayln (format "We evaluated the JSON Pointer relative to:"))
-        (displayln (ejsexpr->string doc)))
-      (with-handlers ([exn? flame-out])
-        (json-pointer-value jp-expr doc))
-      env)
+      (match sense
+        [#t
+         (define (flame-out e)
+           (displayln (format "JSON Pointer ~a does not refer!" jp-expr))
+           (displayln (format "We evaluated the JSON Pointer relative to:"))
+           (displayln (ejsexpr->string doc)))
+         (with-handlers ([exn? flame-out])
+           (json-pointer-value jp-expr doc))
+         env]
+        [#f
+         (define (flame-out e)
+           (displayln (format "JSON Pointer ~a does refer to something!" jp-expr))
+           (displayln (format "We evaluated the JSON Pointer relative to:"))
+           (displayln (ejsexpr->string doc)))
+         (with-handlers ([exn:fail:contract? (const env)]
+                         [exn:fail:user? flame-out])
+           (json-pointer-value jp-expr doc)
+           (raise-user-error "JSON Pointer unexpectedly does refer!"))]))
     (define/override (render)
       (format "~a exists" jp-expr))))
 
@@ -102,11 +115,13 @@
   (and (object? x)
        (is-a? x json-pointer-exists-predication%)))
 
-(define/contract (make-json-pointer-exists-predication jp base)
+(define/contract (make-json-pointer-exists-predication jp base sense)
   (string?
    (or/c false/c identifier-expression? header-identifier-expression?)
+   boolean?
    . -> .
    json-pointer-exists-predication?)
   (new json-pointer-exists-predication%
        [jp-expr jp]
-       [base base]))
+       [base base]
+       [sense sense]))

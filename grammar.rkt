@@ -33,7 +33,7 @@ predication : (expression "is" [ "not" ] json-type)
   | (expression "has" "length" expression)
   | (expression "has" "at" [ "least" | "most" ] expression | ( "properties" | "elements" | "characters"))
   | (HEADER-REF "is" ("absent" | "present"))
-  | (json-pointer "exists" [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER) ] )
+  | (json-pointer ("exists" | "does" "not" "exist") [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER) ] )
 
 json-type : "boolean" | json-number-type | "null" | json-sequence-type | json-object-type
 

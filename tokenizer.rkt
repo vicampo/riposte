@@ -170,6 +170,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                "in"
                "*"
                "present"
+               "exist"
                "exists"
                "absent"
                "length"
