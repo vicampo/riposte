@@ -11,8 +11,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Respect `Connection: keep-alive` in responses. (Don't close the
   connection.)
-- Respect `Set-Cookie` in responses. Simple approach: accept all
-  cookies. More complicated options can be imagined:
+- Respect `Set-Cookie` in responses. Currently, it is entirely ignored
+  (!). Simple approach: accept all cookies. More complicated options
+  can be imagined:
 	  - Permit an option for disallowing all cookies (command line?
         parameter?)
 	  - Add notation for removing a cookie from the cookie jar (won't
