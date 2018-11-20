@@ -17,11 +17,11 @@
                   identifier-expression?
                   header-identifier-expression?
                   make-header-identifier-expression)
+         (only-in ejs
+                  ejsexpr->string)
          (only-in (file "environment.rkt")
                   environment-response
-                  environment-response-headers)
-         (only-in (file "util.rkt")
-                  ejsexpr->jsexpr))
+                  environment-response-headers))
 
 (define predication%
   (class assertion%
@@ -84,13 +84,15 @@
       (define doc
         (match base
           [#f
-           (ejsexpr->jsexpr (environment-response env))]
+           (environment-response env)]
           [(? identifier-expression?)
            (send base evaluate env)]))
-      (with-handlers ([exn:fail? (lambda (exn)
-                                   (error (format "JSON Pointer ~a does not refer!" jp-expr)))])
-        (json-pointer-value jp-expr
-                            doc))
+      (define (flame-out e)
+        (displayln (format "JSON Pointer ~a does not refer!" jp-expr))
+        (displayln (format "We evaluated the JSON Pointer relative to:"))
+        (displayln (ejsexpr->string doc)))
+      (with-handlers ([exn? flame-out])
+        (json-pointer-value jp-expr doc))
       env)
     (define/override (render)
       (format "~a exists" jp-expr))))
