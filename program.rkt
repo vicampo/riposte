@@ -66,7 +66,10 @@
                   echo-step?)
          (only-in (file "./exec.rkt")
                   make-exec-step
-                  exec-step?))
+                  exec-step?)
+         (only-in (file "./empty.rkt")
+                  make-emptyness-expression
+                  make-nonemptyness-expression))
 
 (define (program? x)
   (and (list? x)
@@ -222,6 +225,12 @@
      (match more
        [(list (? string? uri))
         (make-command-expression method uri)]
+       [(list (? string? uri) (list 'empty "is" "empty"))
+        (list (make-command-expression method uri)
+              (make-emptyness-expression))]
+       [(list (? string? uri) (list 'empty "is" "non" "empty"))
+        (list (make-command-expression method uri)
+              (make-nonemptyness-expression))]
        [(list id
               (? string? uri))
         (make-command-expression method
@@ -229,26 +238,98 @@
                                  #:payload (parse-tree->identifier id))]
        [(list id
               (? string? uri)
-              "responds" "with" code)
+              (list 'empty "is" "empty"))
+        (list
+         (make-command-expression method
+                                  uri
+                                  #:payload (parse-tree->identifier id))
+         (make-emptyness-expression))]
+       [(list id
+              (? string? uri)
+              (list 'empty "is" "non" "empty"))
+        (list
+         (make-command-expression method
+                                  uri
+                                  #:payload (parse-tree->identifier id))
+         (make-nonemptyness-expression))]
+       [(list id
+              (? string? uri)
+              (list 'responds-with "responds" "with" code))
         (list
          (make-command-expression method
                                  uri
                                  #:payload (parse-tree->identifier id))
          (parse-tree->response-code-matches code))]
+       [(list id
+              (? string? uri)
+              (list 'responds-with "responds" "with" code)
+              "and"
+              (list 'empty "is" "empty"))
+        (list
+         (make-command-expression method
+                                  uri
+                                  #:payload (parse-tree->identifier id))
+         (parse-tree->response-code-matches code)
+         (make-emptyness-expression))]
+       [(list id
+              (? string? uri)
+              (list 'responds-with "responds" "with" code)
+              "and"
+              (list 'empty "is" "non" "empty"))
+        (list
+         (make-command-expression method
+                                  uri
+                                  #:payload (parse-tree->identifier id))
+         (parse-tree->response-code-matches code)
+         (make-nonemptyness-expression))]
        [(list (? string? uri)
               (list 'satisfies "satisfies" "schema" schema))
         (list (make-command-expression method uri)
               (parse-tree->satisfies-schema-expr schema))]
        [(list (? string? uri)
-              "responds" "with" code
+              (list 'satisfies "satisfies" "schema" schema)
+              "and"
+              (list 'empty "is" "empty"))
+        (list (make-command-expression method uri)
+              (make-emptyness-expression)
+              (parse-tree->satisfies-schema-expr schema))]
+       [(list (? string? uri)
+              (list 'satisfies "satisfies" "schema" schema)
+              "and"
+              (list 'empty "is" "non" "empty"))
+        (list (make-command-expression method uri)
+              (make-nonemptyness-expression)
+              (parse-tree->satisfies-schema-expr schema))]
+       [(list (? string? uri)
+              (list 'responds-with "responds" "with" code)
               "and"
               (list 'satisfies "satisfies" "schema" schema))
         (list (make-command-expression method uri)
               (parse-tree->response-code-matches code)
               (parse-tree->satisfies-schema-expr schema))]
+       [(list (? string? uri)
+              (list 'responds-with "responds" "with" code)
+              "and"
+              (list 'satisfies "satisfies" "schema" schema)
+              "and"
+              (list 'empty "is" "empty"))
+        (list (make-command-expression method uri)
+              (parse-tree->response-code-matches code)
+              (make-emptyness-expression)
+              (parse-tree->satisfies-schema-expr schema))]
+       [(list (? string? uri)
+              (list 'responds-with "responds" "with" code)
+              "and"
+              (list 'satisfies "satisfies" "schema" schema)
+              "and"
+              (list 'empty "is" "non" "empty"))
+        (list (make-command-expression method uri)
+              (parse-tree->response-code-matches code)
+              (make-nonemptyness-expression)
+              (parse-tree->satisfies-schema-expr schema))]
        [(list id
               (? string? uri)
-              "responds" "with" code
+              (list 'responds-with "responds" "with" code)
               "and"
               (list 'satisfies "satisfies" "schema" schema))
         (list (make-command-expression method
@@ -256,8 +337,34 @@
                                        #:payload (parse-tree->identifier id))
               (parse-tree->response-code-matches code)
               (parse-tree->satisfies-schema-expr schema))]
+       [(list id
+              (? string? uri)
+              (list 'responds-with "responds" "with" code)
+              "and"
+              (list 'satisfies "satisfies" "schema" schema)
+              "and"
+              (list 'empty "is" "empty"))
+        (list (make-command-expression method
+                                       uri
+                                       #:payload (parse-tree->identifier id))
+              (parse-tree->response-code-matches code)
+              (make-emptyness-expression)
+              (parse-tree->satisfies-schema-expr schema))]
+       [(list id
+              (? string? uri)
+              (list 'responds-with "responds" "with" code)
+              "and"
+              (list 'satisfies "satisfies" "schema" schema)
+              "and"
+              (list 'empty "is" "non" "empty"))
+        (list (make-command-expression method
+                                       uri
+                                       #:payload (parse-tree->identifier id))
+              (parse-tree->response-code-matches code)
+              (make-nonemptyness-expression)
+              (parse-tree->satisfies-schema-expr schema))]
        [(list (? string? uri)
-              "responds" "with" code)
+              (list 'responds-with "responds" "with" code))
         (list
          (make-command-expression method uri)
          (parse-tree->response-code-matches code))])]))

@@ -57,10 +57,19 @@ parameter-assignment: PARAMETER-IDENTIFIER ":=" (URI | expression)
 
 header-assignment: head-id ":=" expression
 
-command : ( HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ "with" "headers" ( normal-identifier | json-array ) ] [ "responds" "with" http-response-code [ "and" satisfies ] ] )
- | HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ "with" "headers" ( normal-identifier | json-array ) ] [ satisfies ]
+command:
+   HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ with-headers ] [ empty | satisfies | responds-with ]
+ | HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ with-headers ] (responds-with | satisfies) [ "and" empty ]
+ | HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ with-headers ] responds-with "and" (satisfies | empty)
+ | HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ with-headers ] responds-with "and" satisfies "and" empty
+
+with-headers: "with" "headers" ( normal-identifier | json-object )
 
 satisfies: ("satisfies" | ("does" "not" "satisfy")) "schema" schema-ref
+
+empty: "is" [ "non" ] "empty"
+
+responds-with: "responds" "with" http-response-code
 
 schema-ref: id
   | ("at" (URI | URI-TEMPLATE) )
