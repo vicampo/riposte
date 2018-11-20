@@ -9,6 +9,7 @@
                   json-pointer-value)
          (only-in ejs
                   ejsexpr?
+                  ejsexpr->string
                   ejs-object?
                   ejs-array?)
          (only-in (file "expression.rkt")
@@ -38,7 +39,12 @@
                [else
                 (format "The previous response is neither an array nor an object; cannot evaluate JSON Pointer expression \"~a\"."
                         expr)])))
-      (json-pointer-value expr doc))
+      (define (flame-out e)
+        (displayln (exn-message e))
+        (displayln (format "We evaluated the JSON Pointer relative to:"))
+        (displayln (ejsexpr->string doc)))
+      (with-handlers ([exn? flame-out])
+        (json-pointer-value expr doc)))
     (define/override (render)
       expr)))
 
