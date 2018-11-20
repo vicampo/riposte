@@ -15,13 +15,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   (!). Simple approach: accept all cookies. More complicated options
   can be imagined:
 	  - Permit an option for disallowing all cookies (command line?
-        parameter?)
+        parameter?) `%cookies = false`, `%cookies = true`
 	  - Add notation for removing a cookie from the cookie jar (won't
-        be included in any future requests)
-	  - Add notation for setting a cookie
+        be included in any future requests). Perhaps: `remove
+        ^Cookies[session]`.
+	  - Add notation for setting a cookie `^Cookies[foo] := "whatever"`
 	  - Add notation for adding a cookie for a single request,
-        analogous to the way we can add a header to a single request:
-        `GET /foo with headers { "bar": "no" }`
+        analogous to the way we can add a header to a single
+        request. Something like: `GET /foo with cookies { "session":
+        "no" } responds with 2XX`, `GET /foo with additional cookies {
+        "session": "whatever" } responds with 2XX` and `GET /foo
+        without cookie "session" responds with 2XX`.
 
 ## [0.8.1] - 2018-11-20
 
