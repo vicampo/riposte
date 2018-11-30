@@ -11,7 +11,7 @@
     "http"
     "argo"
     "dotenv"
-    "json-pointer"
+    ("json-pointer" #:version "0.6.0")
     "uri-template"
     "ejs"))
 
