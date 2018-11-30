@@ -4,6 +4,8 @@
 
 (require racket/class
          racket/contract
+         (only-in racket/hash
+                  hash-union)
          (only-in ejs
                   ejsexpr?)
          (only-in (file "expression.rkt")
@@ -33,9 +35,14 @@
                     (format "~a~a" l r)]
                    [else
                     (error "Cannot add: the left-hand side is a number, but the right-hand side isn't.")])]
+            [(hash? l)
+             (cond [(hash? r)
+                    (hash-union l r)]
+                   [else
+                    (error "Cannot add: the left-hand side is an object, but the right-hand side isn't.")])]
             [else
              (cond [(expression? l)
-                    (error (format "Cannot add: ~a works out to ~a, which is neither a string nor a number."
+                    (error (format "Cannot add: ~a works out to ~a, which is neither a string, nor a number, nor an object."
                                    (send lhs render)
                                    (render-ejsexprish l)))]
                    [else
