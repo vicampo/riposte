@@ -11,8 +11,11 @@
          racket/match
          (only-in racket/function
                   const)
+         (only-in racket/port
+                  with-output-to-string)
          (only-in json-pointer
-                  json-pointer-value)
+                  json-pointer-value
+                  json-pointer-refers?)
          (only-in (file "assertion.rkt")
                   assertion%)
          (only-in (file "identifier.rkt")
@@ -89,24 +92,27 @@
            (environment-response env)]
           [(? identifier-expression?)
            (send base evaluate env)]))
+      (define refers? (json-pointer-refers? jp-expr doc))
       (match sense
         [#t
-         (define (flame-out e)
-           (displayln (format "JSON Pointer ~a does not refer!" jp-expr))
-           (displayln (format "We evaluated the JSON Pointer relative to:"))
-           (displayln (ejsexpr->string doc)))
-         (with-handlers ([exn? flame-out])
-           (json-pointer-value jp-expr doc))
+         (unless refers?
+           (define new-message
+             (with-output-to-string
+               (lambda ()
+                 (displayln (format "JSON Pointer ~a does not refer!" jp-expr))
+                 (displayln (format "We evaluated the JSON Pointer relative to:"))
+                 (displayln (ejsexpr->string doc)))))
+           (error new-message))
          env]
         [#f
-         (define (flame-out e)
-           (displayln (format "JSON Pointer ~a does refer to something!" jp-expr))
-           (displayln (format "We evaluated the JSON Pointer relative to:"))
-           (displayln (ejsexpr->string doc)))
-         (with-handlers ([exn:fail:contract? (const env)]
-                         [exn:fail:user? flame-out])
-           (json-pointer-value jp-expr doc)
-           (raise-user-error "JSON Pointer unexpectedly does refer!"))]))
+         (when refers?
+           (define new-message
+             (with-output-to-string
+               (lambda ()
+                 (displayln (format "JSON Pointer ~a does refer to something!" jp-expr))
+                 (displayln (format "We evaluated the JSON Pointer relative to:"))
+                 (displayln (ejsexpr->string doc)))))
+           (error new-message))]))
     (define/override (render)
       (format "~a exists" jp-expr))))
 

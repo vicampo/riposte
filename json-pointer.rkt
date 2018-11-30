@@ -6,7 +6,10 @@
 (require racket/class
          racket/contract
          (only-in json-pointer
-                  json-pointer-value)
+                  json-pointer-value
+                  json-pointer-refers?)
+         (only-in racket/port
+                  with-output-to-string)
          (only-in ejs
                   ejsexpr?
                   ejsexpr->string
@@ -39,12 +42,15 @@
                [else
                 (format "The previous response is neither an array nor an object; cannot evaluate JSON Pointer expression \"~a\"."
                         expr)])))
-      (define (flame-out e)
-        (displayln (exn-message e))
-        (displayln (format "We evaluated the JSON Pointer relative to:"))
-        (displayln (ejsexpr->string doc)))
-      (with-handlers ([exn? flame-out])
-        (json-pointer-value expr doc)))
+      (unless (json-pointer-refers? expr doc)
+        (define new-message
+          (with-output-to-string
+            (lambda ()
+              (displayln (format "JSON Pointer \"~a\" does not refer!" expr))
+              (displayln (format "We evaluated the JSON Pointer relative to:"))
+              (displayln (ejsexpr->string doc)))))
+        (error new-message))
+      (json-pointer-value expr doc))
     (define/override (render)
       expr)))
 

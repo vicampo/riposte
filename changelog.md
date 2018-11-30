@@ -27,6 +27,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.10.0] - 2018-10-30
+
+### Added
+
+- Support for emptiness for JSON Pointers: `/foo/bar is empty`,
+  `/bar/food is non empty`. Can be combined with `exists`: `/foo/bar
+  exists and is empty` and `/bar/food exists and is non empty`. The
+  concept of "emptiness", as currently defined, makes sense only for
+  arrays, lists, and strings. Numbers, booleans, and the null value
+  cannot be empty (that is, an error will be raised when evaluating
+  emptiness for such values).
+- Support for adding objects: `$foo + $bar` will work when both
+  variables refer to hashes.
+
 ## [0.9.0] - 2018-11-20
 
 ### Added

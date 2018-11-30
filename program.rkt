@@ -68,8 +68,10 @@
                   make-exec-step
                   exec-step?)
          (only-in (file "./empty.rkt")
-                  make-emptyness-expression
-                  make-nonemptyness-expression))
+                  make-response-emptiness-expression
+                  make-response-nonemptiness-expression
+                  make-json-pointer-empty-expression
+                  make-json-pointer-nonempty-expression))
 
 (define (program? x)
   (and (list? x)
@@ -227,10 +229,10 @@
         (make-command-expression method uri)]
        [(list (? string? uri) (list 'empty "is" "empty"))
         (list (make-command-expression method uri)
-              (make-emptyness-expression))]
+              (make-response-emptiness-expression))]
        [(list (? string? uri) (list 'empty "is" "non" "empty"))
         (list (make-command-expression method uri)
-              (make-nonemptyness-expression))]
+              (make-response-nonemptiness-expression))]
        [(list id
               (? string? uri))
         (make-command-expression method
@@ -243,7 +245,7 @@
          (make-command-expression method
                                   uri
                                   #:payload (parse-tree->identifier id))
-         (make-emptyness-expression))]
+         (make-response-emptiness-expression))]
        [(list id
               (? string? uri)
               (list 'empty "is" "non" "empty"))
@@ -251,7 +253,7 @@
          (make-command-expression method
                                   uri
                                   #:payload (parse-tree->identifier id))
-         (make-nonemptyness-expression))]
+         (make-response-nonemptiness-expression))]
        [(list id
               (? string? uri)
               (list 'responds-with "responds" "with" code))
@@ -260,6 +262,20 @@
                                  uri
                                  #:payload (parse-tree->identifier id))
          (parse-tree->response-code-matches code))]
+       [(list (? string? uri)
+              (list 'responds-with "responds" "with" code)
+              "and"
+              (list 'empty "is" "empty"))
+        (list (make-command-expression method uri)
+              (parse-tree->response-code-matches code)
+              (make-response-emptiness-expression))]
+       [(list (? string? uri)
+              (list 'responds-with "responds" "with" code)
+              "and"
+              (list 'empty "is" "non" "empty"))
+        (list (make-command-expression method uri)
+              (parse-tree->response-code-matches code)
+              (make-response-nonemptiness-expression))]
        [(list id
               (? string? uri)
               (list 'responds-with "responds" "with" code)
@@ -270,7 +286,7 @@
                                   uri
                                   #:payload (parse-tree->identifier id))
          (parse-tree->response-code-matches code)
-         (make-emptyness-expression))]
+         (make-response-emptiness-expression))]
        [(list id
               (? string? uri)
               (list 'responds-with "responds" "with" code)
@@ -281,7 +297,7 @@
                                   uri
                                   #:payload (parse-tree->identifier id))
          (parse-tree->response-code-matches code)
-         (make-nonemptyness-expression))]
+         (make-response-nonemptiness-expression))]
        [(list (? string? uri)
               (list 'satisfies "satisfies" "schema" schema))
         (list (make-command-expression method uri)
@@ -291,14 +307,14 @@
               "and"
               (list 'empty "is" "empty"))
         (list (make-command-expression method uri)
-              (make-emptyness-expression)
+              (make-response-emptiness-expression)
               (parse-tree->satisfies-schema-expr schema))]
        [(list (? string? uri)
               (list 'satisfies "satisfies" "schema" schema)
               "and"
               (list 'empty "is" "non" "empty"))
         (list (make-command-expression method uri)
-              (make-nonemptyness-expression)
+              (make-response-nonemptiness-expression)
               (parse-tree->satisfies-schema-expr schema))]
        [(list (? string? uri)
               (list 'responds-with "responds" "with" code)
@@ -315,7 +331,7 @@
               (list 'empty "is" "empty"))
         (list (make-command-expression method uri)
               (parse-tree->response-code-matches code)
-              (make-emptyness-expression)
+              (make-response-emptiness-expression)
               (parse-tree->satisfies-schema-expr schema))]
        [(list (? string? uri)
               (list 'responds-with "responds" "with" code)
@@ -325,7 +341,7 @@
               (list 'empty "is" "non" "empty"))
         (list (make-command-expression method uri)
               (parse-tree->response-code-matches code)
-              (make-nonemptyness-expression)
+              (make-response-nonemptiness-expression)
               (parse-tree->satisfies-schema-expr schema))]
        [(list id
               (? string? uri)
@@ -348,7 +364,7 @@
                                        uri
                                        #:payload (parse-tree->identifier id))
               (parse-tree->response-code-matches code)
-              (make-emptyness-expression)
+              (make-response-emptiness-expression)
               (parse-tree->satisfies-schema-expr schema))]
        [(list id
               (? string? uri)
@@ -361,7 +377,7 @@
                                        uri
                                        #:payload (parse-tree->identifier id))
               (parse-tree->response-code-matches code)
-              (make-nonemptyness-expression)
+              (make-response-nonemptiness-expression)
               (parse-tree->satisfies-schema-expr schema))]
        [(list (? string? uri)
               (list 'responds-with "responds" "with" code))
@@ -421,8 +437,26 @@
         (make-json-pointer-exists-predication jp #f #t)]
        [(list (list 'json-pointer (? string? jp)) "does" "not" "exist")
         (make-json-pointer-exists-predication jp #f #f)]
+       [(list (list 'json-pointer (? string? jp)) "exists" "and" "is" "empty")
+        (list (make-json-pointer-exists-predication jp #f #t)
+              (make-json-pointer-empty-expression jp #f))]
+       [(list (list 'json-pointer (? string? jp)) "exists" "and" "is" "non" "empty")
+        (list (make-json-pointer-exists-predication jp #f #t)
+              (make-json-pointer-nonempty-expression jp #f))]
+       [(list (list 'json-pointer (? string? jp)) "does" "not" "exist" "and" "is" "empty")
+        (list (make-json-pointer-exists-predication jp #f #t)
+              (make-json-pointer-empty-expression jp #f))]
+       [(list (list 'json-pointer (? string? jp)) "does" "not" "exist" "and" "is" "non" "empty")
+        (list (make-json-pointer-exists-predication jp #f #t)
+              (make-json-pointer-nonempty-expression jp #f))]
        [(list (list 'json-pointer (? string? jp)) "exists" "relative" "to" id)
         (make-json-pointer-exists-predication jp (parse-tree->identifier id) #t)]
+       [(list (list 'json-pointer (? string? jp)) "exists" "relative" "to" id "and" "is" "empty")
+        (list (make-json-pointer-exists-predication jp (parse-tree->identifier id) #t)
+              (make-json-pointer-empty-expression jp #f))]
+       [(list (list 'json-pointer (? string? jp)) "exists" "relative" "to" id "and" "is" "non" "empty")
+        (list (make-json-pointer-exists-predication jp (parse-tree->identifier id) #t)
+              (make-json-pointer-nonempty-expression jp #f))]
        [(list (list 'json-pointer (? string? jp)) "does" "not" "exist" "relative" "to" id)
         (make-json-pointer-exists-predication jp (parse-tree->identifier id) #f)]
        [else
