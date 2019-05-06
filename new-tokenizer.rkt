@@ -18,6 +18,11 @@
          (only-in (file "util.rkt")
                   port->chars))
 
+(define-struct/contract lexer-result
+  ([end-position position?]
+   [tokens (listof position-token?)]
+   [characters (listof char?)]))
+
 (module+ test
   (require rackunit))
 
@@ -54,27 +59,24 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                           already-peeked))]))
   (reverse (peek-me num-to-peek (list))))
 
-(define/contract (import-filename)
-  (-> (or/c false/c position-token?))
-  (define-values (l1 c1 p1)
-    (port-next-location (current-input-port)))
-  (define (read-non-whitespace-chars)
-    (match (peek-char)
-      [(or (? char-whitespace?)
-           (? eof-object?))
-       (list)]
-      [(? char?)
-       (cons (read-char) (read-non-whitespace-chars))]))
-  (define filename (read-non-whitespace-chars))
-  (define-values (l2 c2 p2)
-    (port-next-location (current-input-port)))
-  (match filename
-    [(list)
-     #f]
-    [else
-     (position-token (list->string filename)
-                     (position p1 l1 c1)
-                     (position p2 l2 c2))]))
+(define/contract (import-filename chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define (read-non-whitespace-chars read-so-far remaining)
+    (match remaining
+      [(list)
+       read-so-far]
+      [(cons (? char-whitespace?) _)
+       read-so-far]
+      [(cons (? char? c) _)
+       (read-non-whitespace-chars (cons c read-so-far) (cdr remaining))]))
+  (define filename-chars (read-non-whitespace-chars (list) chars))
+  (define end-position (add-position start filename-chars))
+  (define token (position-token (cons 'filename (list->string (reverse filename-chars)))
+                                start
+                                end-position))
+  (lexer-result end-position
+                (list token)
+                (drop chars (length filename-chars))))
 
 (define/contract (after-import)
   (-> (or/c false/c position-token?))
@@ -89,55 +91,68 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
     [else
      (import-filename)]))
 
-(define/contract (import)
-  (-> (listof position-token?))
-  (define peeked (peek-chars (string-length "import")))
-  (match (peek-chars (string-length "import"))
+(define/contract (import chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (log-error "import: ~a" chars)
+  (match chars
     [(list #\i #\m #\p #\o #\r #\t)
-     (define-values (l1 c1 p1)
-       (port-next-location (current-input-port)))
-     (for ([c (string->list "import")])
-       (read-char))
-     (define-values (l2 c2 p2)
-       (port-next-location (current-input-port)))
-     (define toke (position-token 'import
-                                  (position p1 l1 c1)
-                                  (position p2 l2 c2)))
-     (match (after-import)
-       [#f
-        (list toke)]
-       [(? position-token? pt)
-        (list toke pt)])]))
+     (define end-position (add-position start (string->list "import")))
+     (lexer-result end-position
+                   (list (position-token 'import)
+                         start
+                         end-position)
+                   (list))]
+    [(list-rest #\i #\m #\p #\o #\r #\t (? char-whitespace?) more)
+     (define end-position (add-position start (string->list "import")))
+     (define import/token (position-token 'import
+                                          start
+                                          end-position))
+     (define chars-of-keyword (take chars (string-length "import")))
+     (define remaining-chars (drop chars (string-length "import")))
+     (define-values (chars-after-whitespace pos-after-whitespate)
+       (eat-whitespace (drop chars (string-length "import"))
+                       end-position))
+     (define filename/result (import-filename chars-after-whitespace
+                                              pos-after-whitespate))
+     (lexer-result (lexer-result-end-position filename/result)
+                   (cons import/token
+                         (lexer-result-tokens filename/result))
+                   (lexer-result-characters filename/result))]))
 
-(define/contract (identifier)
-  (-> position-token?)
-  (define-values (l1 c1 p1)
-    (port-next-location (current-input-port)))
-  (define (read-identifier-chars)
-    (match (peek-char)
-      [(or (? char-whitespace?)
-           (? eof-object?))
+(define/contract (identifier chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define (read-identifier-chars cs)
+    (match cs
+      [(list)
        (list)]
-      [(? char-alphabetic?)
-       (cons (read-char) (read-identifier-chars))]
-      [(? char? c)
-       (error (format "Unexpected non-alphabetic character \"~a\" encountered while reading an identifier (line ~a column ~a)."
+      [(cons (? char-whitespace?) _)
+       (list)]
+      [(cons (? char-alphabetic? c) _)
+       (cons c (read-identifier-chars (cdr cs)))]
+      [(cons (? char? c) _)
+       (error (format "Unexpected non-alphabetic character \"~a\" encountered while reading an identifier starting at line ~a column ~a)."
                       c
-                      l1
-                      c1))]))
-  (define first-char (read-char))
-  (unless (eq? first-char #\$)
-    (error (format "Expected a dollar sign ($) to begin an identifier; found ~a instead." first-char)))
-  (define ident (read-identifier-chars))
-  (define-values (l2 c2 p2)
-    (port-next-location (current-input-port)))
-  (match ident
+                      (position-line start)
+                      (position-col start)))]))
+  (match chars
     [(list)
-     (error "Bare dollar sign ($) encountered.")]
-    [else
-     (position-token (cons 'identifier (list->string ident))
-                     (position p1 l1 c1)
-                     (position p2 l2 c2))]))
+     (error "Unexpected end-of-file found!")]
+    [(cons #\$ cs)
+     (define ident-chars (read-identifier-chars cs))
+     (log-error "read ~a identifier chars: ~a" (length ident-chars) ident-chars)
+     (define token-content (cons 'identifier (list->string ident-chars)))
+     (define end-position (add-position start (cons #\$ ident-chars)))
+     (define token (position-token token-content
+                                   start
+                                   end-position))
+     (lexer-result end-position
+                   (list token)
+                   (drop chars (add1 (length ident-chars))))]
+    [(cons c _)
+     (error (format "Unexpected character (~a) encountered while lexing an identifier at line ~a column ~a."
+                    c
+                    (position-line start)
+                    (position-col start)))]))
 
 (define/contract (comment)
   (-> position-token?)
@@ -159,27 +174,56 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                   (position p1 l1 c2)
                   (position p2 l2 c2)))
 
-(define/contract (uri-template)
-  (-> position-token?)
-  (log-error "uri-template...")
-  (define-values (l1 c1 p1)
-    (port-next-location (current-input-port)))
-  (define (read-url-chars)
-    (match (read-char)
-      [(? eof-object?)
-       (list)]
-      [(? char-whitespace?)
-       (list)]
-      [(? char? c)
-       (cons c (read-url-chars))]))
-  (define chars (read-url-chars))
-  (define-values (l2 c2 p2)
-    (port-next-location (current-input-port)))
-  (define template (list->string chars))
-  (log-error "template = ~a" template)
-  (position-token (cons 'uri-template template)
-                  (position p1 l1 c2)
-                  (position p2 l2 c2)))
+(define/contract (read-uri-template-text cs)
+  ((listof char?) . -> . (listof char?))
+  (match cs
+    [(list)
+     (list)]
+    [(cons (? char-whitespace?) _)
+     (list)]
+    [(cons #\{ _)
+     (list)]
+    [(cons c _)
+     (cons c (read-uri-template-text (cdr cs)))]))
+
+(define/contract (uri-template:text chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define text-chars (read-uri-template-text chars))
+  (define end-position (add-position start text-chars))
+  (define token (position-token (cons 'uri-template-text (list->string text-chars))
+                                start
+                                end-position))
+  (lexer-result end-position
+                (list token)
+                (drop chars (length text-chars))))
+
+(define/contract (uri-template:template chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (error "not implemented yet"))
+
+(define/contract (uri-template chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list)
+     (lexer-result start
+                   (list)
+                   (list))]
+    [(cons #\{ _)
+     (define template/result (uri-template:template chars start))
+     (define remainder/result (uri-template (lexer-result-characters template/result)
+                                            (lexer-result-end-position template/result)))
+     (lexer-result (lexer-result-end-position remainder/result)
+                   (append (lexer-result-tokens template/result)
+                           (lexer-result-tokens remainder/result))
+                   (lexer-result-characters remainder/result))]
+    [(cons _ _)
+     (define text/result (uri-template:text chars start))
+     (define remainder/result (uri-template (lexer-result-characters text/result)
+                                            (lexer-result-end-position text/result)))
+     (lexer-result (lexer-result-end-position remainder/result)
+                   (append (lexer-result-tokens text/result)
+                           (lexer-result-tokens remainder/result))
+                   (lexer-result-characters remainder/result))]))
 
 (define/contract (json-pointer)
   (-> position-token?)
@@ -231,44 +275,54 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                   (position p1 l1 c1)
                   (position p2 l2 c2)))
 
-(define/contract (number)
-  (-> position-token?)
-  (define-values (l1 c1 p1)
-    (port-next-location (current-input-port)))
-  (define (read-integer-chars)
-    (match (peek-char)
-      [(or (? eof-object?)
-           (? char-whitespace?)
-           #\.)
+(define/contract (number chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define (read-integer-chars cs)
+    (match cs
+      [(list)
        (list)]
-      [(or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9)
-       (cons (read-char) (read-integer-chars))]
-      [(? char? c)
+      [(cons (or (? char-whitespace?) #\.) _)
+       (list)]
+      [(cons (and (? char? c)
+                  (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9))
+             _)
+       (cons c (read-integer-chars (cdr cs)))]
+      [(cons (? char? c) _)
        (list)]))
-  (define chars (read-integer-chars))
+  (define digits (read-integer-chars chars))
   (when (empty? chars)
     (error "Failed to read any integer characters!"))
-  (match (peek-char)
-    [#\.
-     (read-char)
-     (define after-decimal-digits (read-integer-chars))
+  (define remaining-chars (drop chars (length digits)))
+  (define end-position (add-position start digits))
+  (match remaining-chars
+    [(list)
+     (lexer-result end-position
+                   (list (position-token (cons 'number (string->number digits))
+                                         start
+                                         end-position))
+                   (list))]
+    [(cons #\. _)
+     (define after-decimal-digits (read-integer-chars (cdr remaining-chars)))
      (when (empty? after-decimal-digits)
-       (error "Read a number, then a \".\", but then failed to read more digits."))
-     (define-values (l2 c2 p2)
-       (port-next-location (current-input-port)))
+       (error "Read some digits, then a \".\", but then failed to read more digits."))
+     (define end-pos-after-dot (add-position end-position (cons #\. after-decimal-digits)))
      (define n (format "~a.~a"
-                       (list->string chars)
+                       (list->string digits)
                        (list->string after-decimal-digits)))
      (parameterize ([read-decimal-as-inexact #f])
-       (position-token (string->number n)
-                       (position p1 l1 c1)
-                       (position p2 l2 c2)))]
+       (define token (position-token (cons 'number (string->number n))
+                                     start
+                                     end-pos-after-dot))
+       (lexer-result end-pos-after-dot
+                     (list token)
+                     (drop chars (length (append digits (list #\.) after-decimal-digits)))))]
     [else
-     (define-values (l2 c2 p2)
-       (port-next-location (current-input-port)))
-     (position-token (string->number (list->string chars))
-                     (position p1 l1 c1)
-                     (position p2 l2 c2))]))
+     (define token (position-token (cons 'number (string->number (list->string chars)))
+                                   start
+                                   end-position))
+     (lexer-result end-position
+                   (list token)
+                   (drop chars (length digits)))]))
 
 #;
 (define/contract (eat-whitespace)
@@ -280,18 +334,27 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
     (eat-whitespace)))
 
 (define/contract (eat-whitespace chars start)
-  ((listof char?) position? . -> . (values (listof char?) position?))
-  (define (consume chars)
-    (match chars
-    [(list)
-     (list)]
-    [(cons (? char-whitespace? c) _)
-     (cons c (consume (cdr chars)))]
-    [else
-     chars]))
+  ((listof char?) position? . -> . lexer-result?)
+  (log-error "eat-whitespace: ~a" chars)
+  (define (consume cs)
+    (log-error "consume: ~a" cs)
+    (match cs
+      [(list)
+       (list)]
+      [(cons (? char-whitespace? c) _)
+       (cons c (consume (cdr cs)))]
+      [else
+       (list)]))
   (define consumed (consume chars))
-  (values (drop chars (length consumed))
-          (add-position start consumed)))
+  (log-error "consumed ~a whitespace chars" (length consumed))
+  (log-error "consumed chars: ~a" consumed)
+  (define remaining-chars (drop chars (length consumed)))
+  (log-error "remaining characters: ~a" remaining-chars)
+  (define new-position (add-position start consumed))
+  (log-error "new position: ~a" new-position)
+  (lexer-result new-position
+                (list)
+                remaining-chars))
 
 #|
 
@@ -404,78 +467,123 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
     [else
      #f]))
 
-(define/contract (http-method)
-  (-> (listof position-token?))
-  (define-values (l1 c1 p1)
-    (port-next-location (current-input-port)))
-  (define (read-http-method-chars)
-    (match (peek-char)
-      [(or (? eof-object?)
-           (? char-whitespace?))
-       (list)]
-      [(? char-upper-case?)
-       (cons (read-char) (read-http-method-chars))]
-      [(? char? c)
-       (error (format "Unexpected non-uppercase character \"~a\" encountered while reading an HTTP method."
-                      c))]))
-  (define chars (read-http-method-chars))
-  (when (empty? chars)
-    (error "Failed to read any HTTP characters!"))
-  (define-values (l2 c2 p2)
-    (port-next-location (current-input-port)))
-  (define method/token (position-token (cons 'http-method (list->string chars))
-                                       (position p1 l1 c1)
-                                       (position p2 l2 c2)))
-  (match (peek-char)
-    [(? eof-object?)
-     (list method/token)]
-    [#\$
-     (define id/token (identifier))
-     (define to/token (to))
-     (define template/token (uri-template))
-     (list method/token id/token to/token template/token)]
-    [#\{
-     (cond [(looking-at-json-object?)
-            (define json-stuff (lex-jsonish-stuff))
-            (define to/token (to))
-            (define template/token (uri-template))
-            (append (list method/token)
-                    json-stuff
-                    (list to/token template/token))]
-           [else
-            (list method/token (uri-template))])]
-    #;[(or #\t #\f #\n #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9)]
-    [(or #\[ #\")
-     (define json-stuff (lex-jsonish-stuff))
-     (define to/token (to))
-     (define template/token (uri-template))
-     (append (list method/token)
-             json-stuff
-             (list to/token template/token))]
-    [else
-     ;; interpret what follows as a URI Template
-     (list method/token (uri-template))]))
+(define/contract (read-http-method-chars cs)
+  ((listof char?) . -> . (listof char?))
+  (match cs
+    [(list)
+     (list)]
+    [(cons (? char-whitespace?) _)
+     (list)]
+    [(cons (? char-upper-case? c) _)
+     (cons c (read-http-method-chars (cdr cs)))]
+    [(cons (? char? c) _)
+     (error (format "Unexpected non-uppercase character \"~a\" encountered while reading an HTTP method."
+                    c))]))
+
+(define/contract (http-method:method chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define method-chars (read-http-method-chars chars))
+  (when (empty? method-chars)
+    (error "Failed to read any HTTP method characters!"))
+  (define position-after-method (add-position start method-chars))
+  (define method/token (position-token (cons 'http-method (list->string method-chars))
+                                       start
+                                       position-after-method))
+  (define remaining-characters (drop chars (length method-chars)))
+  (lexer-result position-after-method
+                (list method/token)
+                remaining-characters))
+
+(define/contract (after-http-method-payload chars start))
+
+(define/contract (after-http-method chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match (lexer-result-characters method/result)
+    [(list)
+     (lexer-result start
+                   (list)
+                   (list))]
+    [(cons (? char-whitespace? c) _)
+     (after-http-method (cdr chars)
+                        (add-position start c))]
+    [(cons (or #\$ #\[ #\") _)
+     (define jsony/result (lex-jsonish-stuff chars start))
+     (define whatever/result (after-http-method-payload (lexer-result-characters jsony/result)
+                                                 (lexer-result-end-position jsony/result)))
+     (lexer-result (lexer-result-end-position whatever/result)
+                   (append (lexer-result-tokens jsony/result)
+                           (lexer-result-tokens whatever/result))
+                   (lexer-result-characters whatever/result))]
+    [(list-rest #\t #\r #\u #\e (? char-whitespace?) ..1 #\t #\o (? char-whitespace?) ..1 _)
+     (define constant "true")
+     (define next-position (add-position start (take chars (string-length constant))))
+     (define json-token (position-token 'json-true
+                                        start
+                                        next-position))
+     (define whatever/result (after-http-method-payload (drop chars (string-length constant))
+                                                        next-position))
+     (lexer-result (lexer-result-end-position whatever/result)
+                   (cons json-token
+                         (lexer-result-tokens whatever/result))
+                   (lexer-result-characters whatever/result))]
+    [(list-rest #\f #\a #\l #\s #\e (? char-whitespace?) ..1 #\t #\o (? char-whitespace?) ..1 _)
+     (define constant "false")
+     (define next-position (add-position start (take chars (string-length constant))))
+     (define json-token (position-token 'json-false
+                                        start
+                                        next-position))
+     (define whatever/result (after-http-method-payload (drop chars (string-length constant))
+                                                        next-position))
+     (lexer-result (lexer-result-end-position whatever/result)
+                   (cons json-token
+                         (lexer-result-tokens whatever/result))
+                   (lexer-result-characters whatever/result))]
+    [(list-rest #\n #\u #\l #\l (? char-whitespace?) ..1 #\t #\u (? char-whitespace?) ..1 _)
+     (define constant "null")
+     (define next-position (add-position start (take chars (string-length constant))))
+     (define json-token (position-token 'json-null
+                                        start
+                                        next-position))
+     (define whatever/result (after-http-method-payload (drop chars (string-length constant))
+                                                        next-position))
+     (lexer-result (lexer-result-end-position whatever/result)
+                   (cons json-token
+                         (lexer-result-tokens whatever/result))
+                   (lexer-result-characters whatever/result))]
+    [(list-rest (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9))]))
+
+(define/contract (http-method chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define method/result (http-method:method chars start))
+  (match chars
+    [(cons (? char-upper-case?) _)
+     (define method-chars (takef chars char-upper-case?))
+     (define method-end-position (add-position start method-chars))
+     (define after-method-chars (drop chars (length method-chars)))
+     (define method/token (position-token (cons 'http-method (list->string method-chars))
+                                          start
+                                          method-end-position))
+     (define after-method/result (after-http-method after-method-chars method-end-position))
+     (lexer-result (lexer-result-end-position after-method/result)
+                   (cons method/token
+                         (lexer-result-tokens after-method/result)
+                         (lexer-result-characters after-method/result)))]))
 
 (module+ test
-  #;
-  (with-input-string "POST $foo to bar"
-    (port-count-lines! (current-input-port))
-    (check-equal? (http-method)
+  (let ([result (http-method (string->list "POST $foo to bar") (position 1 1 0))])
+    (check-equal? (lexer-result-tokens result)
                   (list
                    (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))
                    (position-token '(identifier . "foo") (position 6 1 5) (position 10 1 9))
                    (position-token 'to (position 11 1 10) (position 13 1 12))
                    (position-token
-                    '(uri-template . "bar")
-                    (position 14 1 16)
+                    '(uri-template-text . "bar")
+                    (position 14 1 13)
                     (position 17 1 16)))))
   #;
-  (with-input-string "GET bar"
-    (port-count-lines! (current-input-port))
-    (check-equal? (http-method)
-                  (list
-                   (position-token '(http-method . "GET") (position 1 1 0) (position 4 1 3))
-                   (position-token '(uri-template . "bar") (position 5 1 7) (position 8 1 7)))))
+  (let ([result (http-method (string->list "GET bar") (position 1 1 0))])
+    (check-equal? (lexer-result-tokens)
+                  (list)))
   #;
   (let ([program "POST { \"hi\": \"there\" } to whatever"])
     (log-error "~a" program)
@@ -514,58 +622,97 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
     (check-equal? (http-method)
                   (list))))
 
-(define/contract (responds:responds chars start))
+(define/contract (responds:responds chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define keyword-length (string-length "responds"))
+  (define chars-of-keyword (take chars keyword-length))
+  (define chars-after-keyword (drop chars keyword-length))
+  (define pos-after-keyword (add-position start chars-of-keyword))
+  (define token (position-token 'responds
+                                start
+                                pos-after-keyword))
+  (match chars
+    [(list-rest #\r #\e #\s #\p #\o #\n #\d #\s _)
+     (lexer-result (add-position start (take chars keyword-length))
+                   (list token)
+                   (drop chars keyword-length))]))
 
-(define/contract (responds:with chars start))
+(define/contract (responds:with chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define keyword-length (string-length "with"))
+  (define chars-of-keyword (take chars keyword-length))
+  (define chars-after-keyword (drop chars keyword-length))
+  (define pos-after-keyword (add-position start chars-of-keyword))
+  (define token (position-token 'with
+                                start
+                                pos-after-keyword))
+  (match chars
+    [(list-rest #\w #\i #\t #\h _)
+     (lexer-result pos-after-keyword
+                   (list token)
+                   (drop chars keyword-length))]))
 
-(define/contract (responds:status-code chars start))
+(define/contract (responds:status-code chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define keyword-length 3)
+  (define chars-of-keyword (take chars keyword-length))
+  (define chars-after-keyword (drop chars keyword-length))
+  (define pos-after-keyword (add-position start chars-of-keyword))
+  (define token-content (list->string (chars-of-keyword)))
+  (define token (position-token (cons 'http-status-code token-content)
+                                start
+                                pos-after-keyword))
+  (match chars
+    [(list-rest (or #\2 #\3 #\4 #\5)
+                (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\x #\X)
+                (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\x #\X)
+                _)
+     (lexer-result pos-after-keyword
+                   (list token)
+                   (drop chars keyword-length))]))
 
 (define/contract (responds chars start)
-  ((listof char?) position? -> position-token?)
-  (match chars
-    [(list #\r #\e #\s #\p #\o #\n #\d #\s)
-     (define pos-after-responds
-       (add-position start (take chars (string-length "responds"))))
-     (define chars-after-responds (drop chars (string-length "responds")))
-     (position-token 'responds
-                     start
-                     pos-after-responds)]
-    [(list-rest #\r #\e #\s #\p #\o #\n #\d #\s (? char-whitespace?) _)
-     (define pos-after-responds
-       (add-position start (take chars (string-length "responds"))))
-     (define chars-after-responds (drop chars (string-length "responds")))
-     (define responds-token
-       (position-token 'responds
-                       start
-                       pos-after-responds))
-     (define first-whitespace-result
-       (eat-whitespace chars-after-responds pos-after-responds))
-     (define pos-after-first-whitespace
-       (lexer-state-end-position first-whitespace-result))
-     (define chars-after-first-whitespace
-       (lexer-state-characters first-whitespace-result))
-     (define pos-after-with (add-position pos-after-first-whitespace
-                                          (string->list "with")))
-     (define chars-after-with (drop chars-after-first-whitespace (string-length "with")))
-     (define with-token
-       (position-token 'with
-                       pos-after-first-whitespace
-                       pos-after-with))
-     (define second-whitespace-result
-       (eat-whitespace chars-after-with pos-after-with))
-     (define pos-after-second-whitespace
-       (lexer-state-end-position second-whitespace-result))
-     (define chars-after-second-whitespace
-       (lexer-state-characters second-whitespace-result))
-     (define status-code-token (position-token (cons 'http-status-code
-                                                     (list->string
-                                                      (take chars-after-second-whitespace 3)))
-                                               pos-after-second-whitespace
-                                               (add-position pos-after-second-whitespace
-                                                             (take chars-after-second-whitespace 3))))
-     (list responds-token
-           with-token
-           status-code-token)]))
+  ((listof char?) position? . -> . lexer-result?)
+  (define responds/result (responds:responds chars start))
+  (match (lexer-result-characters responds/result)
+    [(list)
+     responds/result]
+    [else
+     (define first-whitespace-result (eat-whitespace (lexer-result-characters responds/result)
+                                                     (lexer-result-end-position responds/result)))
+     (match (lexer-result-characters first-whitespace-result)
+       [(list)
+        responds/result]
+       [else
+        (define chars-after-first-whitespace (lexer-result-characters first-whitespace-result))
+        (define pos-after-first-whitespace (lexer-result-end-position first-whitespace-result))
+        (define with/result (responds:with chars-after-first-whitespace
+                                           pos-after-first-whitespace))
+        (match (lexer-result-characters with/result)
+          [(list)
+           (lexer-result (lexer-result-end-position with/result)
+                         (append (lexer-result-tokens responds/result)
+                                 (lexer-result-tokens with/result))
+                         (list))]
+          [(cons (? char-whitespace?) _)
+           (define second-whitespace-result (eat-whitespace (lexer-result-characters with/result)
+                                                            (lexer-result-end-position with/result)))
+           (match (lexer-result-characters second-whitespace-result)
+             [(list)
+              (lexer-result (lexer-result-end-position with/result)
+                            (append (lexer-result-tokens responds/result)
+                                    (lexer-result-tokens with/result))
+                            (list))]
+             [else
+              (define chars-after-second-whitespace (lexer-result-characters second-whitespace-result))
+              (define pos-after-second-whitespace (lexer-result-end-position second-whitespace-result))
+              (define status-code/result (responds:status-code chars-after-second-whitespace
+                                                               pos-after-second-whitespace))
+              (lexer-result (lexer-result-end-position status-code/result)
+                            (append (lexer-result-tokens responds/result)
+                                    (lexer-result-tokens with/result)
+                                    (                                    (lexer-result-tokens status-code/result)))
+                            (lexer-result-characters status-code/result))])])])]))
 
 (define/contract (with)
   (-> position-token?)
@@ -667,9 +814,16 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
   (-> position-token?)
   (consume-keyword "exists"))
 
-(define/contract (to)
-  (-> position-token?)
-  (consume-keyword "to"))
+(define/contract (to chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list-rest #\t #\o _)
+     (define end-position (add-position start (take chars 2)))
+     (lexer-result end-position
+                   (list (position-token 'to
+                                         start
+                                         end-position))
+                   (drop chars 2))]))
 
 (define/contract (add-position initial char-or-chars)
   (position? (or/c char? (listof char?)) . -> . position?)
@@ -679,34 +833,38 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
     [#\newline
      (position (add1 (position-offset initial))
                (add1 (position-line initial))
-               1)]
+               0)]
+    [(list-rest #\linefeed #\newline _)
+     (add-position (position (add1 (position-offset initial))
+                             (add1 (position-line initial))
+                             0)
+                   (cddr char-or-chars))]
     [(cons #\newline _)
      (add-position (position (add1 (position-offset initial))
                              (add1 (position-line initial))
-                             1)
+                             0)
                    (cdr char-or-chars))]
     [(? char?)
      (position (add1 (position-offset initial))
-               (add1 (position-line initial))
+               (position-line initial)
                (add1 (position-col initial)))]
     [(cons (? char?) _)
      (add-position (position (add1 (position-offset initial))
-                             (add1 (position-line initial))
+                             (position-line initial)
                              (add1 (position-col initial)))
                    (cdr char-or-chars))]))
 
-(define-struct/contract lexer-result
-  ([end-position position?]
-   [tokens (listof position-token?)]
-   [characters (listof char?)]))
-
 (define/contract (assignment chars start)
-  ((listof char?) position? . -> . position-token?)
+  ((listof char?) position? . -> . lexer-result?)
   (match chars
     [(list-rest #\: #\= _)
-     (position-token (string->symbol ":=")
-                     start
-                     (add-position start (take chars 2)))]
+     (define end-position (add-position start (take chars 2)))
+
+     (lexer-result end-position
+                   (list (position-token (string->symbol ":=")
+                                         start
+                                         end-position))
+                   (drop chars 2))]
     [(list)
      (error (format "Unexpected end-of-file encountered while lexing an assignment (line ~a column ~a)"
                     (position-line start)
@@ -726,11 +884,15 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 (define/contract (initial chars start)
   ((listof char?) position? . -> . (listof position-token?))
   (match chars
+    [(list)
+     (list)]
     [(cons (? eof-object?) _)
      (list)]
     [(cons (? char-whitespace? c) _)
-     (initial (cdr chars)
-              (add-position initial c))]
+     (define-values (remaining-chars end-position)
+       (eat-whitespace chars start))
+     (initial remaining-chars
+              end-position)]
     [(list-rest #\i #\m #\p #\o #\r #\t more)
      (define result (import chars start))
      (append (lexer-result-tokens result)
@@ -776,20 +938,11 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(list-rest #\r #\e #\s #\p #\o #\n #\d #\s
-                ((? char-whitespace?) ...)
-                #\w #\i #\t #\h ((? char-whitespace?) ...)
-                (or #\2 #\3 #\4 #\5)
-                (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\x #\X)
-                (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\x #\X)
-                _)
-     (define responds-token (responds))
-     (define with-token (with))
-     (define status-code-token (http-status-code))
-     (append (list responds-token
-                   with-token
-                   status-code-token)
-             (initial))]
+    [(list-rest #\r #\e #\s #\p #\o #\n #\d #\s _)
+     (define result (single-character chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list-rest #\e #\x #\i #\s #\t #\s more)
      (cons (exists)
            (initial))]
@@ -799,10 +952,10 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                     (position-line start)
                     (position-col start)))]))
 
-(define/contract (tokenize in [start (position 0 1 1)])
+(define/contract (tokenize in [start (position 1 1 0)])
   (->* ((or/c string? bytes? input-port? path? (listof char?)))
        (position?)
-       (listof token?))
+       (listof position-token?))
   (cond [(string? in)
          (tokenize (string->list in) start)]
         [(bytes? in)
@@ -816,6 +969,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
         [(list? in)
          (initial in start)]))
 
+#;
 (module+ test
   (let ([program #<<RIPOSTE
 import foo.rip
@@ -825,10 +979,10 @@ RIPOSTE
     (check-equal? (tokenize program)
                   (list
                    (position-token 'import (position 1 1 0) (position 7 1 6))
-                   (position-token "foo.rip" (position 8 1 7) (position 15 1 14))
+                   (position-token '(filename . "foo.rip") (position 8 1 7) (position 15 1 14))
                    (position-token '(identifier . "a") (position 16 2 0) (position 18 2 2))
                    (position-token ':= (position 19 2 3) (position 21 2 5))
-                   (position-token 4567/1000 (position 22 2 6) (position 27 2 11))))))
+                   (position-token '(number . 4567/1000) (position 22 2 6) (position 27 2 11))))))
 
 #;
 (module+ test
