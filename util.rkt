@@ -4,11 +4,14 @@
          ejsexpr->jsexpr
          jsexpr->ejsexpr
          ensure-ejsexpr
-         render-ejsexprish)
+         render-ejsexprish
+         bytes->string
+         port->chars)
 
 (require racket/function
          racket/contract
          racket/class
+         racket/match
          brag/support
          (only-in json
                   jsexpr?)
@@ -85,3 +88,16 @@
          (send thing render)]
         [else
          (ejsexpr->string thing)]))
+
+(define (bytes->string bstr)
+  (define (fail err) #f)
+  (with-handlers ([exn:fail:contract? fail])
+    (bytes->string/utf-8 bstr)))
+
+(define/contract (port->chars ip)
+  (input-port? . -> . (listof char?))
+  (match (read-char ip)
+    [(? eof-object?)
+     (list)]
+    [(? char? c)
+     (cons c (port->chars ip))]))

@@ -13,7 +13,8 @@
     "dotenv"
     "json-pointer"
     "uri-template"
-    "ejs"))
+    "ejs"
+    "misc1"))
 
 (define build-deps
   '("scribble-lib"

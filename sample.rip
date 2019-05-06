@@ -1,0 +1,16 @@
+#lang riposte
+import base.rip
+
+# Test if the v1/search endpoint provides the same price/qty_increments as v1/catalog/products
+
+## v1/search
+$searchQueryParams := {
+    "pagination_page": "1",
+    "pagination_limit": "1",
+    "in_stock_vendors": "VICAMPO",
+    "sort": "relevance",
+    "fields": "ratings,expert_rating,type,product_id,campaign_id,name,manufacturer_name,tags,price,stocks,images,legal,customer_rating,customer_rating_count",
+    "embed": "bundle_items,has_been_bought,expert_reviews"
+}
+
+GET search{?searchQueryParams*} responds with 2xx

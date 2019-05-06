@@ -1,28 +1,51 @@
 #lang brag
 
-riposte-program : program-step*
+riposte-program : (/maybe-whitespace (program-step | import) /maybe-whitespace)*
 
 program-step: assignment
   | echo
   | command
   | exec
   | assertion
-  | import
   | unset
 
-import: IMPORT URI
+import: /"import" import-filename
+
+import-filename: (LOWERCASE-LETTER | UPPERCASE-LETTER | ZERO | ONE | NON-ZERO-NON-ONE-DIGIT | SLASH | PERIOD | DASH | UNDERSCORE)+
+
+uri-template: ( uri-template-literals | uri-template-expression ) +
+
+uri-template-literals: (@letter | COLON | SLASH | PERIOD | UNDERSCORE | @digit ) +
+
+uri-template-expression: /OPEN-BRACE [ uri-template-operator ] uri-template-variable-list /CLOSE-BRACE
+
+uri-template-operator: "+" | "#" | "." | "/" | ";" | QUESTION-MARK | "&" | "=" | COMMA | "!" | "@" | "|"
+
+uri-template-variable-list: uri-template-varspec ( /COMMA uri-template-varspec ) *
+
+uri-template-varspec: uri-template-varname [ uri-template-variable-modifier ]
+
+@uri-template-varname: @letter ( PERIOD | @letter ) *
+
+uri-template-variable-modifier: uri-template-variable-modifier-prefix | uri-template-variable-modifier-explode
+
+uri-template-variable-modifier-prefix: COLON ( ONE | NON-ZERO-DIGIT ) ( digit ) *
+
+digit: ZERO | ONE | NON-ZERO-NON-ONE-DIGIT
+
+uri-template-variable-modifier-explode: ASTERISK
 
 exec: EXEC URI
 
-echo: "echo" [ JSON-POINTER | normal-identifier | head-id ]
+echo: "echo" [ json-pointer | normal-identifier | head-id ]
 
 unset: "unset" HEADER-IDENTIFIER
 
 assertion : equality | disequality | inequality | predication
 
-equality : expression "=" expression
+equality : expression /"=" expression
 
-disequality : expression "!=" expression
+disequality : expression /"!=" expression
 
 inequality : expression ("<" | ">") expression
 
@@ -33,7 +56,7 @@ predication : (expression "is" [ "not" ] json-type)
   | (expression "has" "length" expression)
   | (expression "has" "at" [ "least" | "most" ] expression | ( "properties" | "elements" | "characters"))
   | (HEADER-REF "is" ("absent" | "present"))
-  | (json-pointer ("exists" | "does" "not" "exist") [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER) ] [ "and" "is" [ "non"] "empty" ] )
+  | (json-pointer ("exists" | "does" "not" "exist") [ "relative to" (normal-identifier | HEADER-IDENTIFIER) ] [  /"and" "is" [ "non"] "empty" ] )
 
 json-type : "boolean" | json-number-type | "null" | json-sequence-type | json-object-type
 
@@ -49,41 +72,58 @@ arithmetical-adjective: [ "non" ] ( "positive" | "negative" )
 
 sequence-adjective: [ "non" ] "empty"
 
-assignment : normal-assignment | parameter-assignment | header-assignment
+@assignment : normal-assignment | parameter-assignment | header-assignment
 
-normal-assignment: normal-identifier ":=" expression [ "(" json-type  ")" ]
+normal-assignment: normal-identifier /":=" expression [ /whitespace "(" /whitespace json-type /whitespace ")" ]
 
-parameter-assignment: PARAMETER-IDENTIFIER ":=" (URI | expression)
+parameter-assignment: PARAMETER-IDENTIFIER /":=" (uri-template | expression)
 
-header-assignment: head-id ":=" expression
+header-assignment: head-id /":=" expression
 
 command:
-   HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ with-headers ] [ empty | satisfies | responds-with ]
- | HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ with-headers ] (responds-with | satisfies) [ "and" empty ]
- | HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ with-headers ] responds-with "and" (satisfies | empty)
- | HTTP-METHOD [ id ] (URI | URI-TEMPLATE) [ with-headers ] responds-with "and" satisfies "and" empty
+    HTTP-METHOD [ /whitespace (id | json-expression) ] /whitespace uri-template [ /whitespace with-headers ] [ emptiness | satisfies | responds-with ]
+  | HTTP-METHOD /whitespace ( id | json-expression ) /whitespace uri-template [ with-headers ] [ emptiness | satisfies  | responds-with ]
+  | HTTP-METHOD [ id | json-expression ] /whitespace uri-template [ /whitespace with-headers ] (/whitespace (responds-with | satisfies)) [ /whitespace /"and" /whitespace emptiness ]
+ | HTTP-METHOD [ /whitespace (id | json-expression) ] /whitespace uri-template [ /whitespace with-headers ] /whitespace responds-with /whitespace /"and" /whitespace (satisfies | emptiness)
+  | HTTP-METHOD [ id | json-expression ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
 
 with-headers: "with" "headers" ( normal-identifier | json-object )
 
-satisfies: ("satisfies" | ("does" "not" "satisfy")) "schema" schema-ref
+@satisfies: positive-satisfies | negative-satisfies
 
-empty: "is" [ "non" ] "empty"
+positive-satisfies: /"satisfies" /whitespace /"schema" /whitespace schema-ref
 
-responds-with: "responds" "with" http-response-code
+negative-satisfies: /"does" /whitespace /"not" /whitespace /"satisfy" /whitespace /"schema" /whitespace schema-ref
 
-schema-ref: id
-  | ("at" (URI | URI-TEMPLATE) )
-  | ("in" URI)
+emptiness: "is" [ /whitespace "non" ] /whitespace "empty"
+
+responds-with: /"responds with" http-response-code
+
+@schema-ref: id
+  | "at" /whitespace uri-template
+  | "in" /whitespace uri-template
 
 expression : json-pointer
   | json-expression
   | id
   | head-id
-  | json-number "*" expression
-  | expression "+" expression
+  | expression /whitespace ASTERISK /whitespace expression
+  | expression /whitespace PLUS /whitespace expression
   | ( "length" "(" expression ")" )
 
-json-pointer: JSON-POINTER [ "relative" "to" normal-identifier ]
+json-pointer: bare-json-pointer | relative-json-pointer
+
+bare-json-pointer: (SLASH reference-token) +
+
+reference-token: escaped-token | unescaped-token
+
+escaped-token: TILDE (ZERO | ONE)
+
+unescaped-token: (letter | UNDERSCORE | digit) *
+
+@letter: UPPERCASE-LETTER | LOWERCASE-LETTER
+
+relative-json-pointer: bare-json-pointer "relative to" normal-identifier
 
 json-expression : json-boolean | json-number | json-null | json-array | json-object | json-string
 
@@ -93,23 +133,23 @@ json-number : json-float | json-integer
 
 json-float : json-integer+ "." json-integer+
 
-json-integer : DIGIT+
+json-integer : digit +
 
 json-null : "null"
 
-json-array : "[" [ json-array-item ("," json-array-item)* ] "]"
+json-array : /OPEN-BRACKET [ json-array-item (/COMMA json-array-item)* ] /CLOSE-BRACKET
 
-json-array-item : (json-expression | id)
+json-array-item : (json-expression | normal-identifier)
 
-json-object : "{" [ json-object-item ("," json-object-item)* ] "}"
+json-object : OPEN-BRACE /maybe-whitespace [ json-object-item (/maybe-whitespace COMMA /maybe-whitespace json-object-item)* ] /maybe-whitespace CLOSE-BRACE
 
-json-object-item : json-object-property ":" (json-expression | id)
+json-object-item : json-object-property /maybe-whitespace COLON /maybe-whitespace (json-expression | normal-identifier | env-identifier)
 
 json-object-property : json-string
 
 json-string: DOUBLE-QUOTED-STRING
 
-http-response-code: (DIGIT DIGIT DIGIT)
+@http-response-code: (@digit @digit @digit)
   | HTTP-RESPONSE-CODE-PATTERN
 
 id: normal-identifier | env-identifier | parameter-identifier
@@ -117,8 +157,12 @@ id: normal-identifier | env-identifier | parameter-identifier
 normal-identifier: IDENTIFIER
 
 env-identifier: ENV-IDENTIFIER
- | (ENV-IDENTIFIER "with" "fallback" DOUBLE-QUOTED-STRING)
+ | (ENV-IDENTIFIER /"with fallback" DOUBLE-QUOTED-STRING)
 
 head-id: HEADER-IDENTIFIER
 
 parameter-identifier: PARAMETER-IDENTIFIER
+
+whitespace: WHITESPACE+
+
+maybe-whitespace: WHITESPACE*

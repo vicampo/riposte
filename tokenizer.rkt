@@ -18,61 +18,30 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 (define expecting-uri? #f)
 (define parsed-base-url-parameter? #f)
 
+(define-lex-trans keyword/no-whitespace
+  (λ (stx)
+    (syntax-case stx ()
+      [(_ KW)
+       #'(:seq
+          (:* (union #\newline #\space #\tab #\u00A0))
+          KW
+          (:+ (union #\newline #\space #\tab #\u00A0)))])))
+
+(define-lex-trans keyword
+  (λ (stx)
+    (syntax-case stx ()
+      [(_ KW)
+       #'(:seq
+          (:+ (union #\newline #\space #\tab #\u00A0))
+          KW
+          (:+ (union #\newline #\space #\tab #\u00A0)))])))
+
 (define (make-tokenizer port)
-  (define (next-uri-token)
-    (define uri-lexer
-      (lexer-src-pos
-       [(eof)
-        eof]
-       [(from/to "#" "\n")
-        (token 'COMMENT
-               lexeme
-               #:skip? #t)]
-       [(:: "#"
-            (:* (:~ #\newline)))
-        (token 'EOF-COMMENT
-               lexeme
-               #:skip? #t)]
-       [(union #\newline #\tab #\space #\u00A0)
-        (token 'WHITESPACE
-               lexeme
-               #:skip? #t)]
-       [(:: "$"
-            (:+ (union (:/ "A" "Z" "a" "z" "0" "9")
-                       "_")))
-        (token 'IDENTIFIER
-               (substring lexeme 1))]
-       [(from/stop-before
-         (:: (:* (:~ (union #\newline #\tab #\space #\{)))
-             "{"
-             (:* (:~ (union #\newline #\tab #\space #\})))
-             "}"
-             (:* (:~ (union #\newline #\tab #\space))))
-         (union #\newline #\tab #\space))
-        (token 'URI-TEMPLATE
-               (string-trim lexeme))]
-       [(from/stop-before
-         (:+ (:~ (union #\newline #\tab #\space)))
-         (union #\newline #\tab #\space))
-        (token 'URI
-               (string-trim lexeme))]))
-    (define tok (uri-lexer port))
-    (when (and (position-token? tok)
-               (token-struct? (position-token-token tok))
-               (member (token-struct-type (position-token-token tok))
-                       (list 'URI 'URI-TEMPLATE)))
-      (set! expecting-uri? #f)
-      (set! parsed-base-url-parameter? #f))
-    tok)
   (define (next-riposte-token)
     (define riposte-lexer
       (lexer-src-pos
        [(eof)
         eof]
-       [(union #\newline #\space #\tab #\u00A0)
-        (token 'WHITESPACE
-               lexeme
-               #:skip? #t)]
        [(from/to "#" "\n")
         (token 'COMMENT
                         lexeme
@@ -118,84 +87,120 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                  (substring trimmed
                             0
                             (sub1 (string-length trimmed)))))]
-       ;; JSON Pointer expressions
-       [(from/stop-before
-         (::
-          (union "/"
-                 (:+ (:: "/" (union (:/ "A" "Z" "a" "z" "0" "9")
-                                    "-"
-                                    "_"
-                                    "\\")))))
-         (union #\newline #\tab #\space))
-        (token 'JSON-POINTER lexeme)]
        ;; keywords
-       [(:: "at"
-            (union #\newline #\tab #\space))
-        (token 'AT "at")]
-       [(:: "import"
-            (union #\newline #\tab #\space))
-        (token 'IMPORT "import")]
-       [(:: "exec"
-            (union #\newline #\tab #\space))
-        (token 'EXEC "exec")]
-       [(union ":="
-               "!="
-               "="
-               "<"
-               ">"
-               "is"
-               "and"
-               "has"
-               "least"
-               "most"
-               "properties"
-               "elements"
-               "characters"
-               "not"
-               "non"
-               "does"
-               "relative"
-               "to"
-               "satisfy"
-               "satisfies"
-               "schema"
-               "empty"
-               "positive"
-               "negative"
-               "responds"
-               "with"
-               "fallback"
-               "headers"
-               "respond"
-               "in"
-               "*"
-               "present"
-               "exist"
-               "exists"
-               "absent"
-               "length"
-               "unset"
-               "echo")
-        (token lexeme lexeme)]
-       ;; JSON keywords
-       [(union "true"
-               "false"
-               "null"
-               "number"
-               "integer"
-               "float"
-               "string"
-               "array"
-               "object")
-        (token lexeme lexeme)]
-       ;; HTTP methods
+       [(keyword "at")
+        (token 'at "at")]
+       [(keyword "exec")
+        (token "exec" "exec")]
+       [(keyword ":=")
+        (token ":=" ":=")]
+       [(keyword "!=")
+        (token "!=" "!=")]
+       [(keyword "=")
+        (token "=" "=")]
+       [(keyword "<")
+        (token "<" "<")]
+       [(keyword ">")
+        (token ">" ">")]
+       [(keyword "is")
+        (token "is" "is")]
+       [(keyword "and")
+        (token "and" "and")]
+       [(keyword "has")
+        (token "has" "has")]
+       [(keyword "least")
+        (token "least" "least")]
+       [(keyword "most")
+        (token "most" "most")]
+       [(keyword "properties")
+        (token "properties" "properties")]
+       [(keyword "elements")
+        (token "elements" "elements")]
+       [(keyword "characters")
+        (token "characters" "characters")]
+       [(keyword "not")
+        (token "not" "not")]
+       [(keyword "non")
+        (token "non" "non")]
+       [(keyword "does")
+        (token "does" "does")]
+       [(keyword "relative to")
+        (token "relative to" "relative to")]
+       #;
+       [(keyword "to")
+        (token "to" "to")]
+       [(keyword "satisfy")
+        (token "satisfy" "satisfy")]
+       [(keyword "satisfies")
+        (token "satisfies" "satisfies")]
+       [(keyword "schema")
+        (token "schema" "schema")]
+       [(keyword "empty")
+        (token "empty" "empty")]
+       [(keyword "positive")
+        (token "positive" "positive")]
+       [(keyword "negative")
+        (token "negative" "negative")]
+       [(keyword "responds with")
+        (token "responds with" "responds with")]
+       #;
+       [(keyword "responds")
+        (token 'responds "responds")]
+       [(keyword "with")
+        (token "with" "with")]
+       [(keyword "with fallback")
+        (token "with fallback" "with fallback")]
+       #;
+       [(keyword "fallback")
+        (token "fallback" "fallback")]
+       [(keyword "headers")
+        (token "headers" "headers")]
+       [(keyword "respond")
+        (token "respond" "respond")]
+       [(keyword "in")
+        (token "in" "in")]
+       [(keyword "present")
+        (token "present" "present")]
+       [(keyword "exist")
+        (token "exist" "exist")]
+       [(keyword "exists")
+        (token "exists" "exists")]
+       [(keyword "absent")
+        (token "absent" "absent")]
+       [(keyword "length")
+        (token "length" "length")]
+       [(keyword "unset")
+        (token "unset" "unset")]
+       [(keyword "echo")
+        (token "echo" "echo")]
+       [(keyword/no-whitespace "import")
+        (token 'import "import")]
+       [(keyword "true")
+        (token "true" "true")]
+       [(keyword "false")
+        (token "false" "false")]
+       [(keyword "null")
+        (token "null" "null")]
+       [(keyword "number")
+        (token "number" "number")]
+       [(keyword "integer")
+        (token "integer" "integer")]
+       [(keyword "float")
+        (token "float" "float")]
+       [(keyword "string")
+        (token "string" "string")]
+       [(keyword "array")
+        (token "array" "array")]
+       [(keyword "object")
+        (token "object" "object")]
        [(from/stop-before (union "GET"
-                                 "PUT"
                                  "POST"
                                  "PATCH"
                                  "OPTIONS"
-                                 "DELETE")
-         (union #\newline #\tab #\space))
+                                 "PUT"
+                                 "DELETE"
+                                 "HEAD")
+                          (union #\newline #\tab #\space))
         (token 'HTTP-METHOD lexeme)]
        [(from/to #\" #\")
         (token 'DOUBLE-QUOTED-STRING
@@ -210,49 +215,51 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
             (union "X" "x"))
         (token 'HTTP-RESPONSE-CODE-PATTERN
                lexeme)]
-       [(:/ "0" "9")
-        (token 'DIGIT lexeme)]
-       [(:/ "A" "Z" "a" "z")
-        (token 'LETTER (string-ref lexeme 0))]
+       [(:/ "2" "9")
+        (token 'NON-ZERO-NON-ONE-DIGIT lexeme)]
+       [#\0
+        (token 'ZERO lexeme)]
+       [#\1
+        (token 'ONE lexeme)]
+       [(:/ #\A #\Z)
+        (token 'UPPERCASE-LETTER lexeme)]
+       [(:/ #\a #\z)
+        (token 'LOWERCASE-LETTER lexeme)]
+       [#\:
+        (token 'COLON lexeme)]
+       [#\/
+        (token 'SLASH lexeme)]
+       [#\.
+        (token 'PERIOD lexeme)]
+       [#\-
+        (token 'DASH lexeme)]
+       [#\_
+        (token 'UNDERSCORE lexeme)]
+       [#\{
+        (token 'OPEN-BRACE lexeme)]
+       [#\}
+        (token 'CLOSE-BRACE lexeme)]
+       [#\[
+        (token 'OPEN-BRACKET lexeme)]
+       [#\]
+        (token 'CLOSE-BRACKET lexeme)]
+       [#\,
+        (token 'COMMA lexeme)]
+       [#\?
+        (token 'QUESTION-MARK lexeme)]
+       [#\*
+        (token 'ASTERISK lexeme)]
+       [#\+
+        (token 'PLUS lexeme)]
+       [(union #\newline #\space #\tab #\u00A0)
+        (token 'WHITESPACE
+               (string-ref lexeme 0)
+               #:skip? #f)]
        [any-char
-        (token lexeme lexeme)
-        ;; (token (format "FALLBACK-~a" (char->integer (string-ref lexeme 0)))
-        ;;        lexeme)
-        ]))
+        (token 'CHAR (string-ref lexeme 0))]))
     (riposte-lexer port))
-  ;; here we need to have the two tokenizers cooperate
-  (define (next-token)
-    (cond [expecting-uri?
-           (next-uri-token)]
-          [else
-           (define tok (next-riposte-token))
-           (when (and (position-token? tok)
-                      (token-struct? (position-token-token tok))
-                      (eq? 'PARAMETER-IDENTIFIER
-                           (token-struct-type
-                            (position-token-token tok)))
-                      (string=? "base"
-                                (token-struct-val
-                                 (position-token-token tok))))
-             (set! parsed-base-url-parameter? #t))
-           (when (and (position-token? tok)
-                      (token-struct? (position-token-token tok))
-                      (or (list? (member (token-struct-type
-                                          (position-token-token tok))
-                                         (list 'HTTP-METHOD
-                                               'IMPORT
-                                               'EXEC)))
-                          (list? (member (token-struct-val
-                                          (position-token-token tok))
-                                         (list "in" "at")))
-                          (and parsed-base-url-parameter?
-                               (string=? ":="
-                                         (token-struct-val
-                                          (position-token-token tok))))))
-             (set! expecting-uri? #t))
-           tok]))
   (define counting? (port-counts-lines? port))
-  next-token)
+  next-riposte-token)
 
 (define/contract (tokenize-string str)
   (string? . -> . list?)

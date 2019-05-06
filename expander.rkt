@@ -1,14 +1,18 @@
 #lang br/quicklang
 
 (require racket/contract
+         http
+         ejs
+         argo
+         net/url
+         json-pointer
+         racket/syntax
+         racket/include
+         racket/dict
+         racket/hash
          (file "evaluator.rkt")
-         (only-in (file "environment.rkt")
-                  make-fresh-environment
-                  environment?)
-         (only-in (file "assignment.rkt")
-                  make-normal-assignment
-                  make-header-assignment
-                  make-parameter-assignment)
+         (only-in (file "util.rkt")
+                  bytes->string)
          (only-in (file "command.rkt")
                   make-command-expression)
          (only-in (file "json-pointer.rkt")
@@ -27,22 +31,247 @@
          (only-in (file "parameters.rkt")
                   param-environment)
          (only-in (file "step.rkt")
-                              step?))
+                  step?)
+         (only-in (file "./version.rkt")
+                  riposte-version)
+         (only-in (file "grammar.rkt")
+                  parse)
+         (only-in (file "tokenizer.rkt")
+                  make-tokenizer)
+         (only-in (file "response.rkt")
+                  response?
+                  make-response))
 
 (require (for-syntax (only-in (file "grammar.rkt")
                               parse)
                      (only-in (file "tokenizer.rkt")
-                              make-tokenizer)))
+                              make-tokenizer)
+                     (prefix-in reader:
+                                (only-in (file "reader.rkt")
+                                         read-syntax))
+                     racket/syntax
+                     syntax/stx
+                     racket/include))
+
+(define/contract
+  base-url
+  (or/c false/c url?)
+  #f)
+
+(define/contract (update-base-url! new-base-url)
+  (string? . -> . void)
+  (set! base-url (string->url new-base-url)))
+
+(define/contract
+  default-request-headers
+  (and/c immutable? (hash/c symbol? string?))
+  (hasheq 'User-Agent (format "Riposte/~a (https://riposte.in)" riposte-version)))
+
+(define/contract
+  request-headers
+  (and/c (hash/c symbol? string?)
+         (not/c immutable?))
+  (make-hasheq (hash->list default-request-headers)))
+
+(define/contract
+  last-response-code
+  (or/c false/c (integer-in 100 599))
+  #f)
+
+(define/contract
+  last-response-body
+  (or/c false/c bytes?)
+  #f)
+
+(define/contract
+  last-response-ejsexpr
+  (or/c void ejsexpr?)
+  void)
+
+(define/contract (read-entity/bytes+response-code in h)
+  (input-port? string? . -> . (list/c exact-integer? dict? bytes?))
+  (list (extract-http-code h)
+        (heads-string->dict h)
+        (read-entity/bytes in h)))
+
+(define/contract (request method url headers)
+  (string?
+   string?
+   (or/c false/c
+         (hash/c symbol? string?))
+   . -> .
+   (list/c exact-integer? (and/c immutable? (hash/c symbol? string?)) bytes?))
+  (define (network-fail e)
+    (error (format "Failed to connect to ~a!" url)))
+  (define (died e)
+    (log-error "~a" (exn-message e))
+    (error (format "Something weird happened when sending a ~a request to ~a!"
+                   method
+                   url)))
+  (with-handlers ([exn:fail:network? network-fail]
+                  [exn? died])
+    (call/input-request "1.1"
+                        method
+                        url
+                        headers
+                        read-entity/bytes+response-code)))
+
+(define/contract (request/payload method url headers payload)
+  (string?
+   string?
+   (or/c false/c
+         (hash/c symbol? string?))
+   ejsexpr?
+   . -> .
+   (list/c exact-integer? (and/c immutable? (hash/c symbol? string?)) bytes?))
+  (log-error "~a ~a with payload ~a" method url payload)
+  (define (network-fail e)
+    (error (format "Failed to connect to ~a!" url)))
+  (define (died e)
+    (log-error "~a" (exn-message e))
+    (error (format "Something weird happened when sending a ~a request to ~a!"
+                   method
+                   url)))
+  (with-handlers ([exn:fail:network? network-fail]
+                  [exn? died])
+    (call/output-request "1.1"
+                         method
+                         url
+                         (ejsexpr->bytes payload)
+                         #f
+                         headers
+                         read-entity/bytes+response-code)))
+
+(define/contract
+  last-response
+  (or/c false/c response?)
+  #f)
+
+(define/contract (update-last-response! code headers body)
+  ((integer-in 100 599) (and/c immutable? (hash/c symbol? string?)) bytes? . -> . void)
+  (set! last-response
+        (make-response code headers body)))
+
+(define/contract (cmd method url)
+  (string? string? . -> . void)
+  (define final-url
+    (cond [(url? base-url)
+           (url->string (combine-url/relative base-url url))]
+          [else
+           url]))
+  (display (format "~a ~a" method final-url))
+  (flush-output)
+  (define result (request method final-url request-headers))
+  (match result
+    [(list code headers body)
+     (displayln (format " responds with ~a" code))
+     (update-last-response! code headers body)]))
+
+(define/contract (cmd/payload method url payload)
+  (string? string? ejsexpr? . -> . void)
+  (displayln (format "headers = ~a" request-headers))
+  (define final-url
+    (cond [(url? base-url)
+           (url->string (combine-url/relative base-url url))]
+          [else
+           url]))
+  (display (format "~a ~a" method final-url))
+  (flush-output)
+  (define result (request/payload method final-url request-headers payload))
+  (match result
+    [(list code headers body)
+     (displayln (format " responds with ~a" code))
+     (update-last-response! code headers body)]))
+
+(define/contract (response-code-matches-pattern? received-code expected-code)
+  (string? string? . -> . boolean?)
+  (cond [(string=? "" received-code)
+         (string=? "" expected-code)]
+        [(string=? "" expected-code)
+         #f]
+        [else
+         (define c1 (string-ref received-code 0))
+         (define c2 (string-ref expected-code 0))
+         (cond [(or (char=? c2 #\X)
+                    (char=? c2 #\x))
+                (response-code-matches-pattern? (substring received-code 1)
+                                                (substring expected-code 1))]
+               [(char=? c1 c2)
+                (response-code-matches-pattern? (substring received-code 1)
+                                                (substring expected-code 1))]
+               [else
+                #f])]))
+
+(define/contract (response-code-matches? code)
+  (string? . -> . void)
+  (define r last-response)
+  (unless (response? r)
+    (error "No response has been received yet, so we cannot check whether response code matches \"~a\"."
+           code))
+  (define matches?
+    (response-code-matches-pattern? (format "~a" (send r get-code))
+                                    code))
+  (unless matches?
+    (error
+     (format "The received response has code ~a, but we expected ~a."
+             (send r get-code)
+             code))))
+
+(define/contract (response-satisfies-schema? schema)
+  (ejsexpr? . -> . void)
+  (define r last-response)
+  (unless (response? r)
+    (error "No response has been received yet, so we cannot check whether response code adheres to a schema."))
+  (unless (send last-response body-is-well-formed?)
+    (error "The previous response is malformed JSON."))
+  (unless (json-schema? schema)
+    (define error-message
+      (with-output-to-string
+        (lambda ()
+          (displayln "The given JSON datum is not a JSON Schema:")
+          (displayln (ejsexpr->string schema)))))
+    (error error-message))
+  (unless (adheres-to-schema? (send last-response as-ejsexpr) schema)
+    (define error-message
+      (with-output-to-string
+        (lambda ()
+          (displayln "The given JSON datum does not adhere to the JSON Schema."))))
+    (error error-message)))
+
+(define/contract (check-response-empty)
+  (-> void)
+  (define r last-response)
+  (unless (response? r)
+    (error "No response has been received yet, so we cannot check whether it is empty."))
+  (unless (send r has-body?)
+    (error
+     (format "The previous response is not empty; ~a bytes were received."
+             (send r body-bytes-length)))))
+
+(define/contract (check-response-nonempty)
+  (-> void)
+  (define r last-response)
+  (unless (response? r)
+    (error "No response has been received yet, so we cannot check whether it is empty."))
+  (when (send r has-body?)
+    (error "The previous response is empty.")))
+
+(define/contract (check-equal lhs rhs)
+  (ejsexpr? ejsexpr? . -> . void)
+  (log-error "checking-equal:")
+  (log-error "~a" lhs)
+  (log-error "~a dipshit" rhs)
+  (unless (equal-ejsexprs? lhs rhs)
+    (error (format "JSON values are not equal! LHS: ~a RHS: ~a" lhs rhs))))
 
 (define-macro (riposte-module-begin PARSE-TREE)
-  #'(#%module-begin
-     (eval-program PARSE-TREE
-                   (param-environment))))
+  #`(#%module-begin
+     (unsyntax-splicing #'PARSE-TREE)))
 
 (provide (rename-out [riposte-module-begin #%module-begin]))
 
 (define-macro (riposte-program STEPS ...)
-  #'(list STEPS ...))
+  #'(STEPS ...))
 
 (provide riposte-program)
 
@@ -51,18 +280,97 @@
 
 (provide program-step)
 
-(define-macro-cases assignment
-  [(assignment (normal-assignment ID ":=" VAL))
-   #'(make-normal-assignment ID VAL)]
-  [(assignment (header-assignment HEADER ":=" VAL))
-   #'(make-header-assignment HEADER VAL)]
-  [(assignment (parameter-assignment PARAM ":=" VAL))
-   #'(make-parameter-assignment PARAM VAL)])
+(define-macro (assignment ASS)
+  #'ASS)
 
 (provide assignment)
 
-(define-macro (expression EXPR)
-  #'EXPR)
+(define-macro (normal-assignment (normal-identifier ID) EXPR)
+  (with-syntax ([name (format-id #'ID "~a" (syntax->datum #'ID))])
+    #'(define name EXPR)))
+
+(provide normal-assignment)
+
+(define-macro-cases parameter-assignment
+  [(parameter-assignment "base" URL)
+   #'(update-base-url! URL)])
+
+(provide parameter-assignment)
+
+(define-macro (header-assignment ID EXPR)
+  #'(hash-set! request-headers (string->symbol ID) EXPR))
+
+(provide header-assignment)
+
+(define/contract (check-json-pointer-refers jp)
+  (string? . -> . void)
+  (log-error "checking whether ~a refers" jp)
+  (define r last-response)
+  (unless (response? r)
+    (error (format "No response has been received yet, so we cannot check whether \"~a\" refers."
+                   jp)))
+  (unless (send r body-is-string?)
+    (error "Response body is not a well-formed sequence of UTF-8 bytes."))
+  (unless (send r body-is-well-formed?)
+    (error "Response body is malformed as JSON."))
+  (unless (json-pointer-refers? jp (send r as-ejsexpr))
+    (error (format "JSON Pointer \"~a\" does not refer." jp))))
+
+(define/contract (check-json-pointer-refers-to-nonempty-value jp)
+  (string? . -> . void)
+  (define r last-response)
+  (unless (response? r)
+    (error (format "No response has been received yet, so we cannot check whether \"~a\" refers."
+                   jp)))
+  (unless (send r body-is-string?)
+    (error "Response body is not a well-formed sequence of UTF-8 bytes."))
+  (unless (send r body-is-well-formed?)
+    (error "Response body, viewed as JSON, is malformed:"))
+  (define body/ejsexpr (send r as-ejsexpr))
+  (unless (json-pointer-refers? jp body/ejsexpr)
+    (error (format "JSON Pointer \"~a\" does not refer." jp)))
+  (define v (json-pointer-value jp body/ejsexpr))
+  (unless (or (hash? v)
+              (string? v)
+              (list? v))
+    (error "Emptiness is defined only for objects, strings and lists."))
+  (cond [(hash? v)
+         (when (hash-empty? v)
+           (error (format "\"~a\" refers to a non-empty hash!" jp)))]
+        [(string? v)
+         (when (string=? "" v)
+           (error (format "\"~a\" refers to a non-empty string!" jp)))]
+        [(list? v)
+         (when (empty? v)
+           (error (format "\"~a\" refers to a non-empty list!" jp)))]))
+
+(define-macro-cases predication
+  [(predication (json-pointer JP) "exists")
+   #'(check-json-pointer-refers (json-pointer-as-string JP))]
+  [(predication (json-pointer JP) "exists" "and" "is" "non" "empty")
+   #'(check-json-pointer-refers-to-nonempty-value (json-pointer-as-string JP))])
+
+(provide predication)
+
+(define-syntax (expression stx)
+  (syntax-case stx ()
+    [(_ (json-expression jp))
+     #'jp]
+    [(_ x "+" y)
+     #'(cond [(hash? x)
+              (unless (hash? y)
+                (error "Cannot add an object and a non-object."))
+              (hash-union x y)]
+             [(real? x)
+              (unless (real? y)
+                (error "Cannot add a number and a non-number."))
+              (+ x y)]
+             [(string? x)
+              (unless (string? y)
+                (error "Cannot add a string and a non-string."))
+              (string-append x y)]
+             [else
+              (error "How do add ~a and ~a?" x y)])]))
 
 (provide expression)
 
@@ -71,21 +379,42 @@
 
 (provide json-expression)
 
+(define-macro (json-number NUMBER)
+  #'NUMBER)
+
+(provide json-number)
+
+(define-macro (json-integer DIGITS ...)
+  #'(string->number (foldr (lambda (a b) (format "~a~a" a b))
+                           ""
+                           (list DIGITS ...))))
+
+(provide json-integer)
+
+(define-macro (json-float DIGITS ...)
+  #'(parameterize ([read-decimal-as-inexact #f])
+      (string->number (foldr (lambda (a b) (format "~a~a" a b))
+                             ""
+                             (list DIGITS ...)))))
+
+(provide json-float)
+
 (define-macro-cases json-boolean
-  ["true"
-   #t]
-  ["false"
-   #t])
+  [(json-boolean "true")
+   #'#t]
+  [(json-boolean "false")
+   #'#f])
 
 (provide json-boolean)
 
 (define-macro (json-object "{" ITEMS ... "}")
-  #'(make-json-object-expression (remove "," (list ITEMS ...))))
+  #'(make-immutable-hasheq (remove* (list "," #\newline #\space #\tab)
+                                    (list ITEMS ...))))
 
 (provide json-object)
 
 (define-macro (json-object-item PROP ":" EXPR-OR-ID)
-  #'(cons PROP EXPR-OR-ID))
+  #'(cons (string->symbol PROP) EXPR-OR-ID))
 
 (provide json-object-item)
 
@@ -94,111 +423,265 @@
 
 (provide json-object-property)
 
+(define-macro (json-array "[" ITEMS ... "]")
+  #'(list ITEMS ...))
+
+(provide json-array)
+
+(define-macro (json-array-item ITEM)
+  #'ITEM)
+
+(provide json-array-item)
+
 (define-macro (json-string S)
   #'S)
 
 (provide json-string)
 
-(define-macro-cases id
-  [(id (normal-identifier X))
-   #'(make-variable-identifier-expression X)]
-  [(id (env-identifier X))
-   #'(make-environment-variable-identifier-expression X)]
-  [(id (env-identifier X "with" "fallback" F))
-   #'(make-environment-variable-identifier-expression X #:fallback F)])
+(define-macro (json-null S)
+  #''null)
+
+(provide json-null)
+
+(define/contract (fetch-environment-variable var fallback)
+  (string-environment-variable-name? (or/c false/c string?) . -> . (or/c false/c string?))
+  (define val (getenv var))
+  (cond [(string? val)
+         val]
+        [else
+         fallback]))
+
+(define-syntax (id stx)
+  (syntax-case stx ()
+    [(_ (normal-identifier x))
+     (format-id stx "~a" (syntax->datum #'x))]
+    [(_ (env-identifier x))
+     #'(begin
+         (when (eq? #f (getenv x))
+           (error "Undefined environment variable (~a)." x))
+         (getenv x))]
+    [(_ (env-identifier x "with" "fallback" f))
+     #'(fetch-environment-variable x f)]))
 
 (provide id)
+
+(define-syntax (env-identifier stx)
+  (syntax-case stx ()
+    [(_ x)
+     #'(begin
+         (when (eq? #f (getenv x))
+           (error (format "Undefined environment variable (~a)." x)))
+         (getenv x))]
+    [(_ x f)
+     #'(fetch-environment-variable x f)]))
+
+(provide env-identifier)
 
 (define-macro (parameter-identifier PARAM)
   #'(make-parameter-identifier-expression PARAM))
 
 (provide parameter-identifier)
 
-(define-macro (normal-identifier ID)
-  #'(make-variable-identifier-expression ID))
+(define-syntax (normal-identifier stx)
+  (syntax-case stx ()
+    [(_ id)
+     (format-id stx "~a" (syntax->datum #'id))]))
 
 (provide normal-identifier)
 
 (define-macro (head-id ID)
-  #'(make-header-identifier-expression ID))
+  #'ID)
 
 (provide head-id)
 
+(define-macro (http-method METHOD-CHARS ...)
+  #'(string-append METHOD-CHARS ...))
+
+(provide http-method)
+
+(define-macro (uri-template EXPRS ...)
+  #'(string-append EXPRS ...))
+
+(provide uri-template)
+
+(define-macro (uri-template-literals LITERALS ...)
+  #'(string-append LITERALS ...))
+
+(provide uri-template-literals)
+
+(define-macro (digit D)
+  #'D)
+
+(provide digit)
+
+(define-syntax (uri-template-expression stx)
+  (syntax-case stx ()
+    [(_ "{"
+        (uri-template-operator "?")
+        (uri-template-variable-list
+         (uri-template-varspec varspec
+                               (uri-template-variable-modifier
+                                (uri-template-variable-modifier-explode "*"))))
+        "}")
+     (let [(name-as-string (apply string-append
+                                  (map syntax->datum
+                                       (stx->list
+                                        (stx-map (lambda (s)
+                                                   (cond [(stx-list? s)
+                                                          (stx-car (stx-cdr s))]
+                                                         [else
+                                                          s]))
+                                                 (stx-cdr #'varspec))))))]
+       (with-syntax ([name (format-id #'varspec "~a" name-as-string)])
+         #'(cond [(hash? name)
+                  (format "?~a"
+                          (foldl (lambda (a b)
+                                   (match b
+                                     [""
+                                      a]
+                                     [else
+                                      (format "~a&~a"
+                                              a b)]))
+                                 ""
+                                 (hash-map name
+                                           (lambda (k v)
+                                             (format "~a=~a" k v)))))]
+                 [else
+                  (error (format "How do deal with this exploded URI Template variable (~a)?" name))])))]
+    [(_ "{"
+        (uri-template-variable-list
+         (uri-template-varspec varspec))
+        "}")
+     (let [(name-as-string (apply string-append
+                                  (map syntax->datum
+                                       (stx->list
+                                        (stx-map (lambda (s)
+                                                   (cond [(stx-list? s)
+                                                          (stx-car (stx-cdr s))]
+                                                         [else
+                                                          s]))
+                                                 (stx-cdr #'varspec))))))]
+       (with-syntax ([name (format-id #'varspec "~a" name-as-string)])
+         #'(cond [(hash? name)
+                  (format "~a"
+                          (hash-map varspec
+                                    (lambda (k v)
+                                      (format "~a=~a" k v))))]
+                 [(integer? name)
+                  (format "~a" name)]
+                 [(real? name)
+                  (format "~a" name)]
+                 [(string? name)
+                  name]
+                 [else
+                  (error (format "How do deal with this plain URI Template variable (~a)?" name))])))]
+    [else
+     #'"fuck2"]))
+
+(provide uri-template-expression)
+
+(define-macro (uri-template-varname PIECES ...)
+  #'(string-append PIECES ...))
+
+(provide uri-template-varname)
+
 (define-macro-cases command
   [(command METHOD URI)
-   #'(make-command-expression METHOD URI)]
-  [(command METHOD URI "satisfies" "schema" SCHEMA)
-   #'(list (make-command-expression METHOD URI)
-           (make-schema-assertion (make-response-expression)
-                                  SCHEMA))]
-  [(command METHOD URI "responds" "with" CODE)
-   #'(list (make-command-expression METHOD URI)
-           (make-response-code-matches-expression CODE))]
-  [(command METHOD URI "responds" "with" CODE "and" "satisfies" SCHEMA)
-   #'(list (make-command-expression METHOD URI)
-           (make-response-code-matches-expression CODE)
-           (make-satisfies-schema-expression SCHEMA))]
-  [(command METHOD URI "with" "headers" HEADERS)
-   #'(make-command-expression METHOD URI #:headers HEADERS)]
-  [(command METHOD URI "with" "headers" HEADERS "satisfies" "schema" SCHEMA)
-   #'(list (make-command-expression METHOD URI #:headers HEADERS)
-           (make-satisfies-schema-expression SCHEMA))]
-  [(command METHOD URI "with" "headers" HEADERS "responds" "with" CODE)
-   #'(list (make-command-expression METHOD URI)
-           (make-response-code-matches-expression CODE))]
-  [(command METHOD URI "with" "headers" HEADERS "responds" "with" CODE "and" "satisfies" "schema" SCHEMA)
-   #'(list (make-command-expression METHOD URI #:headers HEADERS)
-           (make-response-code-matches-expression CODE)
-           (make-satisfies-schema-expression SCHEMA))]
-  [(command METHOD PAYLOAD URI)
-   #'(make-command-expression METHOD URI #:payload PAYLOAD)]
-  [(command METHOD PAYLOAD URI "satisfies" "schema" SCHEMA)
-   #'(list (make-command-expression METHOD URI #:payload PAYLOAD)
-           (make-satisfies-schema-expression SCHEMA))]
-  [(command METHOD PAYLOAD URI "responds" "with" CODE)
-   #'(list (make-command-expression METHOD URI #:payload PAYLOAD)
-           (make-response-code-matches-expression CODE))]
-  [(command METHOD PAYLOAD URI "responds" "with" CODE "and" "satisfies" "schema" SCHEMA)
-   #'(list (make-command-expression METHOD URI #:payload PAYLOAD)
-           (make-response-code-matches-expression CODE)
-           (make-satisfies-schema-expression SCHEMA))]
-  [(command METHOD PAYLOAD URI "with" "headers" HEADERS)
-   #'(make-command-expression METHOD URI #:payload PAYLOAD #:headers HEADERS)]
-  [(command METHOD PAYLOAD URI "with" "headers" HEADERS "and" "satisfies" "schema" SCHEMA)
-   #'(list (make-command-expression METHOD URI #:payload PAYLOAD #:headers HEADERS)
-           (make-satisfies-schema-expression SCHEMA))]
-  [(command METHOD PAYLOAD URI "with" "headers" HEADERS "responds" "with" CODE)
-   #'(list (make-command-expression METHOD URI #:payload PAYLOAD #:headers HEADERS)
-           (make-response-code-matches-expression CODE))]
-  [(command METHOD PAYLOAD URI "with" "headers" HEADERS "responds" "with" CODE "and" "satisfies" "schema" SCHEMA)
-   #'(list (make-command-expression METHOD URI #:payload PAYLOAD #:headers HEADERS)
-           (make-response-code-matches-expression CODE)
-           (make-satisfies-schema-expression SCHEMA))])
+   #'(cmd METHOD URI)]
+  [(command METHOD URI (responds-with CODE))
+   #'(begin
+       (cmd METHOD URI)
+       (response-code-matches? CODE))]
+  [(command METHOD URI (responds-with CODE) "and" (emptiness "is" "non" "empty"))
+   #'(begin
+       (cmd METHOD URI)
+       (response-code-matches? CODE)
+       (check-response-nonempty))]
+  [(command METHOD PAYLOAD URI (responds-with CODE))
+   #'(begin
+       (cmd/payload METHOD URI PAYLOAD)
+       (response-code-matches? CODE))]
+  [(command METHOD PAYLOAD URI (responds-with CODE) "and" (emptiness "is" "non" "empty"))
+   #'(begin
+       (cmd/payload METHOD URI PAYLOAD)
+       (response-code-matches? CODE)
+       (check-response-nonempty))]
+  [(command METHOD URI (responds-with CODE) (positive-satisfies SCHEMA))
+   #'(begin
+       (cmd METHOD URI)
+       (response-code-matches? CODE)
+       (response-satisfies-schema? SCHEMA))])
 
 (provide command)
 
+(define-macro (assertion ASS)
+  #'ASS)
+
+(provide assertion)
+
+(define-macro (equality LHS RHS)
+  #'(check-equal LHS RHS))
+
+(provide equality)
+
 (define-macro-cases http-response-code
   [(http-response-code DIGIT-1 DIGIT-2 DIGIT-3)
-   (format "~a~a~a"
-           #'DIGIT-1
-           #'DIGIT-2
-           #'DIGIT-3)]
+   #'(format "~a~a~a"
+             DIGIT-1
+             DIGIT-2
+             DIGIT-3)]
   [(http-response-code CODE)
-   #'CODE])
+   #'(format "~a" CODE)])
 
 (provide http-response-code)
 
 (define-macro (json-pointer JP)
-  #'(make-json-pointer-expression JP))
+  #'JP)
 
 (provide json-pointer)
 
-(define-macro (import "import" FILE)
-  (define port (open-input-file (syntax->datum #'FILE)))
-  (define path (build-path 'same (syntax->datum #'FILE)))
-  (define parse-tree (parse path (make-tokenizer port)))
-  (define parse-datum (syntax->datum parse-tree))
-  (datum->syntax #'FILE
-                   parse-datum))
+(define-macro-cases json-pointer-as-string
+  [(json-pointer-as-string (bare-json-pointer PARTS ...))
+   #'(string-append PARTS ...)])
 
-(provide import)
+(provide json-pointer-as-string)
+
+(define-macro (bare-json-pointer PARTS ...)
+  #'(let [(jp (string-append PARTS ...))]
+      (unless (response? last-response)
+        (error "No response received yet; JSON Pointer \"~a\" cannot refer to anything." jp))
+      (unless (send last-response body-is-string?)
+        (error "Body cannot be converted to a string (is it binary data?)"))
+      (unless (send last-response body-is-well-formed?)
+        (error "Body is malformed JSON."))
+      (json-pointer-value jp (send last-response as-ejsexpr))))
+
+(provide bare-json-pointer)
+
+(define-macro (relative-json-pointer (bare-json-pointer PARTS ...) "relative to" ID)
+  #'(json-pointer-value (string-append PARTS ...)
+                        ID))
+
+(provide relative-json-pointer)
+
+(define-macro (reference-token BITS ...)
+  #'(string-append BITS ...))
+
+(provide reference-token)
+
+(define-macro (unescaped-token BITS ...)
+  #'(string-append BITS ...))
+
+(provide unescaped-token)
+
+(define-macro (letter L)
+  #'L)
+
+(provide letter)
+
+#;
+(define-macro (import (import-filename PATH))
+  (define path (build-path 'same (syntax->datum #'PATH)))
+  (parse path (make-tokenizer (open-input-file path #:mode 'text))))
+
+#;(provide import)

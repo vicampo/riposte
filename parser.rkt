@@ -1,16 +1,28 @@
 #lang racket/base
 
 (require racket/contract
+         syntax/stx
          (only-in (file "./tokenizer.rkt")
                   make-tokenizer)
          (only-in (file "./grammar.rkt")
-                  parse))
+                  parse)
+         (only-in (file "./reader.rkt")
+                  #;simplify-imports-for-dir
+                  clean-parse-tree
+                  flatten-imported-scripts))
 
 (define/contract (parse-file path)
-  (path-string? . -> . list?)
+  (path? . -> . list?)
+  (define-values (dir base is-directory?)
+    (split-path path))
+  (when is-directory?
+    (error (format "Cannot parse directories: ~a" (path->string path))))
   (with-input-from-file path
     (lambda ()
-      (syntax->datum (parse path (make-tokenizer (current-input-port)))))
+      (syntax->datum
+       (flatten-imported-scripts
+        (clean-parse-tree
+         (parse path (make-tokenizer (current-input-port)))))))
     #:mode 'text))
 
 (module+ main
@@ -26,4 +38,4 @@
     (displayln (format "No such file: ~a" file-to-process))
     (exit 1))
 
-  (parse-file file-to-process))
+  (parse-file (string->path file-to-process)))

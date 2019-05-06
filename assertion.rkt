@@ -61,11 +61,13 @@
 
 (define/contract (code-char-matches-pattern-char? code-char pattern-char)
   (char? char? . -> . boolean?)
+  (log-error "checking code-char ~a and pattern-char ~a" code-char pattern-char)
   (or (char=? #\X pattern-char)
       (char=? code-char pattern-char)))
 
 (define/contract (code-string-matches-pattern? code pattern)
   ((listof char?) (listof char?) . -> . boolean?)
+  (log-error "Checking codestring ~a and pattern ~a" code pattern)
   (cond [(empty? code)
          (empty? pattern)]
         [(empty? pattern)
@@ -78,6 +80,7 @@
 
 (define/contract (code-matches? code pattern)
   (exact-integer? (or/c exact-integer? string?) . -> . boolean?)
+  (log-error "Checking code ~a and pattern ~a" code pattern)
   (cond [(exact-integer? pattern)
          (= code pattern)]
         [else

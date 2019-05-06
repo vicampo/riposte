@@ -1,0 +1,23 @@
+#lang riposte
+import base.rip
+import token-auth.rip
+
+$invalidData := {}
+
+POST $invalidData customers/addresses responds with 422
+
+$validData := {
+    "first_name": "BLA",
+    "last_name": "BLO",
+    "city": "TestCity",
+    "country": "de",
+    "is_default_billing_address": 1,
+    "is_default_shipping_address": 1,
+    "street_name": "teststreet",
+    "street_number": 33,
+    "zip": 32145
+}
+
+POST $validData customers/addresses responds with 201
+
+/customer_address_id exists

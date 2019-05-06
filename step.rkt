@@ -9,9 +9,11 @@
 
 (define step%
   (class object%
-    (class/c [evaluate (->m environment? environment?)])
+    (class/c [evaluate (->m environment? environment?)]
+             [check (->m environment? environment?)])
     (super-new)
     (abstract evaluate
+              check
               render)))
 
 (define/contract (step? x)
