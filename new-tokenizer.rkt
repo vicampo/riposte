@@ -66,22 +66,33 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (import-filename chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (define (read-non-whitespace-chars read-so-far remaining)
-    (match remaining
-      [(list)
-       read-so-far]
-      [(cons (? char-whitespace?) _)
-       read-so-far]
-      [(cons (? char? c) _)
-       (read-non-whitespace-chars (cons c read-so-far) (cdr remaining))]))
-  (define filename-chars (read-non-whitespace-chars (list) chars))
-  (define end-position (add-position start filename-chars))
-  (define token (position-token (cons 'filename (list->string (reverse filename-chars)))
-                                start
-                                end-position))
-  (lexer-result end-position
-                (list token)
-                (drop chars (length filename-chars))))
+  (match chars
+    [(list)
+     (lexer-result start
+                   (list)
+                   (list))]
+    [(cons (? char-whitespace?) _)
+     (import-filename (cdr chars)
+                      (add-position start (car chars)))]
+    [(list (not (? char-whitespace?)) ..1)
+     (define new-position (add-position start chars))
+     (define token (position-token (cons 'filename (list->string chars))
+                                   start
+                                   new-position))
+     (lexer-result new-position
+                   (list token)
+                   (list))]
+    [(list-rest (not (? char-whitespace?)) ..1 (? char-whitespace?) _)
+     (define filename-chars (takef chars (negate char-whitespace?)))
+     (define filename (list->string filename-chars))
+     (define end-position (add-position start filename-chars))
+     (define remaining-chars (drop chars (length filename-chars)))
+     (define token (position-token (cons 'filename filename)
+                                   start
+                                   end-position))
+     (lexer-result end-position
+                   (list token)
+                   remaining-chars)]))
 
 (define/contract (after-import)
   (-> (or/c false/c position-token?))
@@ -114,11 +125,8 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                                           end-position))
      (define chars-of-keyword (take chars (string-length "import")))
      (define remaining-chars (drop chars (string-length "import")))
-     (define-values (chars-after-whitespace pos-after-whitespate)
-       (eat-whitespace (drop chars (string-length "import"))
-                       end-position))
-     (define filename/result (import-filename chars-after-whitespace
-                                              pos-after-whitespate))
+     (define filename/result (import-filename remaining-chars
+                                              end-position))
      (lexer-result (lexer-result-end-position filename/result)
                    (cons import/token
                          (lexer-result-tokens filename/result))
