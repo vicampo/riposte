@@ -1080,8 +1080,8 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons (or #\: #\, #\{ #\} #\[ #\]) _)
-     (define result (single-character chars start))
+    [(cons (or #\{ #\} #\[ #\]) _)
+     (define result (lex-jsonish-stuff chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
