@@ -167,25 +167,28 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                     (position-line start)
                     (position-col start)))]))
 
-(define/contract (comment)
-  (-> position-token?)
-  (define-values (l1 c1 p1)
-    (port-next-location (current-input-port)))
-  (define (read-comment-chars)
-    (match (read-char)
-      [(or (? eof-object?) #\newline)
-       (list)]
-      [(? char? c)
-       (cons c (read-comment-chars))]))
-  (define first (read-char))
-  (unless (eq? #\# first)
-    (error (format "Unexpected first character (~a) of a comment." first)))
-  (define comment (read-comment-chars))
-  (define-values (l2 c2 p2)
-    (port-next-location (current-input-port)))
-  (position-token (cons 'comment (list->string comment))
-                  (position p1 l1 c2)
-                  (position p2 l2 c2)))
+(define/contract (comment chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list #\# (not #\newline) ...)
+     (define end-position (add-position start chars))
+     (define token (position-token (cons 'comment (list->string (cdr chars)))
+                                   start
+                                   end-position))
+     (lexer-result end-position
+                   (list token)
+                   (list))]
+    [(list-rest #\# (not #\newline) ... #\newline _)
+     (define comment-chars (takef (cdr chars)
+                                  (lambda (x)
+                                    (not (char=? x #\newline)))))
+     (define end-position (add-position start (cons #\# comment-chars)))
+     (define token (position-token (cons 'comment (list->string comment-chars))
+                                   start
+                                   end-position))
+     (lexer-result end-position
+                   (list token)
+                   (drop chars (length (cons #\# comment-chars))))]))
 
 (define/contract (read-uri-template-text cs)
   ((listof char?) . -> . (listof char?))
