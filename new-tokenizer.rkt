@@ -1034,11 +1034,9 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (list)]
     [(cons (? eof-object?) _)
      (list)]
-    [(cons (? char-whitespace? c) _)
-     (define-values (remaining-chars end-position)
-       (eat-whitespace chars start))
-     (initial remaining-chars
-              end-position)]
+    [(cons (? char-whitespace?) _)
+     (initial (cdr chars)
+              (add-position start (car chars)))]
     [(list-rest #\i #\m #\p #\o #\r #\t more)
      (define result (import chars start))
      (append (lexer-result-tokens result)
