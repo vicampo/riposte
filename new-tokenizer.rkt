@@ -109,7 +109,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (import chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "import: ~a" chars)
+  ;(log-error "import: ~a" chars)
   (match chars
     [(list #\i #\m #\p #\o #\r #\t)
      (define end-position (add-position start (string->list "import")))
@@ -152,7 +152,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
      (error "Unexpected end-of-file found!")]
     [(cons #\$ cs)
      (define ident-chars (read-identifier-chars cs))
-     (log-error "read ~a identifier chars: ~a" (length ident-chars) ident-chars)
+     ;(log-error "read ~a identifier chars: ~a" (length ident-chars) ident-chars)
      (define token-content (cons 'identifier (list->string ident-chars)))
      (define end-position (add-position start (cons #\$ ident-chars)))
      (define token (position-token token-content
@@ -215,10 +215,45 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (uri-template:template chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (error "not implemented yet"))
+  ;(log-error "uri template: template: ~a" chars)
+  (match chars
+    [(list)
+     (lexer-result start
+                   (list)
+                   (list))]
+    [(cons (or #\{ #\? #\* #\,) _)
+     (define new-position (add-position start (car chars)))
+     (define token (position-token (string->symbol (~a (car chars)))
+                                   start
+                                   new-position))
+     (define more/result (uri-template:template (cdr chars)
+                                                new-position))
+     (struct-copy lexer-result
+                  more/result
+                  [tokens (cons token (lexer-result-tokens more/result))])]
+    [(cons #\} _)
+     (define new-position (add-position start #\}))
+     (define token (position-token (string->symbol "}")
+                                   start
+                                   new-position))
+     (lexer-result new-position
+                   (list token)
+                   (cdr chars))]
+    [(cons (? char-alphabetic?) _)
+     (define identifier-chars (takef chars char-alphabetic?))
+     (define new-position (add-position start identifier-chars))
+     (define token (position-token (cons 'identifier (list->string identifier-chars))
+                                   start
+                                   new-position))
+     (define more/result (uri-template:template (drop chars (length identifier-chars))
+                                                new-position))
+     (struct-copy lexer-result
+                  more/result
+                  [tokens (cons token (lexer-result-tokens more/result))])]))
 
 (define/contract (uri-template chars start)
   ((listof char?) position? . -> . lexer-result?)
+  ;(log-error "uri-template: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -232,7 +267,11 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                    (append (lexer-result-tokens template/result)
                            (lexer-result-tokens remainder/result))
                    (lexer-result-characters remainder/result))]
-    [(cons _ _)
+    [(cons (? char-whitespace?) _)
+     (lexer-result start
+                   (list)
+                   (list))]
+    [(cons (not (? char-whitespace?)) _)
      (define text/result (uri-template:text chars start))
      (define remainder/result (uri-template (lexer-result-characters text/result)
                                             (lexer-result-end-position text/result)))
@@ -262,18 +301,18 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (json-string chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "json-string: ~a" chars)
+  ;(log-error "json-string: ~a" chars)
   (match chars
     [(list-rest #\" (not #\") ... #\" _)
      (define idx-of-double-quote (index-of (cdr chars) #\" char=?))
      (define string-chars (take (cdr chars) idx-of-double-quote))
-     (log-error "string-chars: ~a" string-chars)
+     ;(log-error "string-chars: ~a" string-chars)
      (define new-position (add-position start (cons #\" string-chars)))
      (define token (position-token (cons 'json-string (list->string string-chars))
                                    start
                                    new-position))
      (define remaining-chars (drop chars (+ idx-of-double-quote 2)))
-     (log-error "remaining chars: ~a" remaining-chars)
+     ;(log-error "remaining chars: ~a" remaining-chars)
      (lexer-result new-position
                    (list token)
                    remaining-chars)]))
@@ -341,7 +380,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (eat-whitespace chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "eat-whitespace: ~a" chars)
+  ;(log-error "eat-whitespace: ~a" chars)
   (define (consume cs)
     (log-error "consume: ~a" cs)
     (match cs
@@ -352,12 +391,12 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
       [else
        (list)]))
   (define consumed (consume chars))
-  (log-error "consumed ~a whitespace chars" (length consumed))
-  (log-error "consumed chars: ~a" consumed)
+  ;(log-error "consumed ~a whitespace chars" (length consumed))
+  ;(log-error "consumed chars: ~a" consumed)
   (define remaining-chars (drop chars (length consumed)))
-  (log-error "remaining characters: ~a" remaining-chars)
+  ;(log-error "remaining characters: ~a" remaining-chars)
   (define new-position (add-position start consumed))
-  (log-error "new position: ~a" new-position)
+  ;(log-error "new position: ~a" new-position)
   (lexer-result new-position
                 (list)
                 remaining-chars))
@@ -383,7 +422,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (lex-jsonish-stuff chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "lex-jsonish: ~a" chars)
+  ;(log-error "lex-jsonish: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -399,7 +438,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                    (list))]
     [(list-rest #\$ (or (? char-upper-case?) (? char-lower-case?)) ..1 (? char-whitespace?) _)
      (define up-to-whitespace (takef chars (negate char-whitespace?)))
-     (log-error "up-to-whitespace: ~a" up-to-whitespace)
+     ;(log-error "up-to-whitespace: ~a" up-to-whitespace)
      (define new-position (add-position start up-to-whitespace))
      (define token (position-token (cons 'identifier (list->string (cdr up-to-whitespace)))
                                    start
@@ -548,7 +587,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (after-http-method-payload chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "after-http-method-payload: ~a" chars)
+  ;(log-error "after-http-method-payload: ~a" chars)
   (match chars
     [(cons (? char-whitespace? c) _)
      (after-http-method-payload (cdr chars)
@@ -577,7 +616,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (after-http-method chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "after-http-method: ~a" chars)
+  ;(log-error "after-http-method: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -1035,8 +1074,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
   (match chars
     [(list)
      (list)]
-    [(cons (? eof-object?) _)
-     (list)]
     [(cons (? char-whitespace?) _)
      (initial (cdr chars)
               (add-position start (car chars)))]
@@ -1131,7 +1168,6 @@ RIPOSTE
                    (position-token ':= (position 19 2 3) (position 21 2 5))
                    (position-token '(number . 4567/1000) (position 22 2 6) (position 27 2 11))))))
 
-#;
 (module+ test
   (let ([program #<<RIPOSTE
 import base.rip
@@ -1151,7 +1187,7 @@ $searchQueryParams := {
 GET search{?searchQueryParams*} responds with 2xx
 
 RIPOSTE
-                 ])
+])
     (check-equal? (tokenize program)
                   (list))))
 
