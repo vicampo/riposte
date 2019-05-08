@@ -66,6 +66,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (import-filename chars start)
   ((listof char?) position? . -> . lexer-result?)
+  ;(log-error "import-filename: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -147,7 +148,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (read-header-name-chars cs)
   ((listof char?) . -> . (listof char?))
-  (log-error "read-header-name-chars: ~a" cs)
+  ;(log-error "read-header-name-chars: ~a" cs)
   (match cs
     [(list)
      (list)]
@@ -214,7 +215,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                     (position-col start)))]
     [(cons #\^ cs)
      (define ident-chars (read-header-name-chars cs))
-     (log-error "header name chars: ~a" ident-chars)
+     ;(log-error "header name chars: ~a" ident-chars)
      (define token-content (cons 'request-header-identifier (list->string ident-chars)))
      (define end-position (add-position start (cons #\^ ident-chars)))
      (define token (position-token token-content
@@ -331,32 +332,55 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (uri-template chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "uri-template: ~a" chars)
+  ;(log-error "uri-template: ~a" chars)
   (match chars
-    [(list)
+    [(list (? char-whitespace?) ...)
      (lexer-result start
                    (list)
                    (list))]
     [(cons #\{ _)
      (define template/result (uri-template:template chars start))
-     (define remainder/result (uri-template (lexer-result-characters template/result)
-                                            (lexer-result-end-position template/result)))
-     (lexer-result (lexer-result-end-position remainder/result)
-                   (append (lexer-result-tokens template/result)
-                           (lexer-result-tokens remainder/result))
-                   (lexer-result-characters remainder/result))]
+     (match (lexer-result-characters template/result)
+       [(list)
+        template/result]
+       [(cons (? char-whitespace?) _)
+        template/result]
+       [(cons #\{ _)
+        (define remainder/result (uri-template:template (lexer-result-characters template/result)
+                                                        (lexer-result-end-position template/result)))
+        (lexer-result (lexer-result-end-position remainder/result)
+                      (append (lexer-result-tokens template/result)
+                              (lexer-result-tokens remainder/result))
+                      (lexer-result-characters remainder/result))]
+       [(cons c _)
+        (define remainder/result (uri-template:text (lexer-result-characters template/result)
+                                                    (lexer-result-end-position template/result)))
+        (lexer-result (lexer-result-end-position remainder/result)
+                      (append (lexer-result-tokens template/result)
+                              (lexer-result-tokens remainder/result))
+                      (lexer-result-characters remainder/result))])]
     [(cons (? char-whitespace?) _)
-     (lexer-result start
-                   (list)
-                   chars)]
+     (uri-template (cdr chars)
+                   (add-position start (car chars)))]
     [(cons (not (? char-whitespace?)) _)
      (define text/result (uri-template:text chars start))
-     (define remainder/result (uri-template (lexer-result-characters text/result)
-                                            (lexer-result-end-position text/result)))
-     (lexer-result (lexer-result-end-position remainder/result)
-                   (append (lexer-result-tokens text/result)
-                           (lexer-result-tokens remainder/result))
-                   (lexer-result-characters remainder/result))]))
+     (match (lexer-result-characters text/result)
+       [(list)
+        text/result]
+       [(cons (? char-whitespace?) _)
+        text/result]
+       [(cons #\{ _)
+        (define remainder/result (uri-template:template (lexer-result-characters text/result)
+                                                        (lexer-result-end-position text/result)))
+        (lexer-result (lexer-result-end-position remainder/result)
+                      (append (lexer-result-tokens text/result)
+                              (lexer-result-tokens remainder/result))
+                      (lexer-result-characters remainder/result))]
+       [(cons c _)
+        (error (format "Unexpected character (~a) found while lexing a URI template at line ~a column ~a"
+                       c
+                       (position-line (lexer-result-end-position text/result))
+                       (position-col (lexer-result-end-position text/result))))])]))
 
 (define/contract (read-json-pointer-chars cs)
   ((listof char?) . -> . (listof char?))
@@ -641,7 +665,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (read-http-method-chars cs)
   ((listof char?) . -> . (listof char?))
-  (log-error "read-http-method-chars: ~a" cs)
+  ;(log-error "read-http-method-chars: ~a" cs)
   (match cs
     [(list)
      (list)]
@@ -669,12 +693,12 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (after-http-method-payload chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "after-http-method-payload: ~a" chars)
+  ;(log-error "after-http-method-payload: ~a" chars)
   (match chars
     [(cons (? char-whitespace? c) _)
      (after-http-method-payload (cdr chars)
                                 (add-position start c))]
-    [(list #\t #\o)
+    [(list #\t #\o (? char-whitespace?) ...)
      (define new-position (add-position start chars))
      (define token (position-token 'to
                                    start
@@ -683,18 +707,13 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                    (list token)
                    (list))]
     [(list-rest #\t #\o (? char-whitespace?) _)
-     (define new-position (add-position start (take chars 2)))
-     (define token (position-token 'to
-                                   start
-                                   new-position))
-     (define after-keyword (drop chars 2))
-     (define after-keyword-and-whitespace (dropf after-keyword char-whitespace?))
-     (define uri-template/result (uri-template after-keyword-and-whitespace
-                                               (add-position new-position
-                                                             (takef after-keyword char-whitespace?))))
+     (define to/result (consume-keyword "to" chars start))
+     (define uri-template/result (uri-template (lexer-result-characters to/result)
+                                               (lexer-result-end-position to/result)))
      (struct-copy lexer-result
                   uri-template/result
-                  [tokens (cons token (lexer-result-tokens uri-template/result))])]))
+                  [tokens (append (lexer-result-tokens to/result)
+                                  (lexer-result-tokens uri-template/result))])]))
 
 (define/contract (after-http-method chars start)
   ((listof char?) position? . -> . lexer-result?)
@@ -774,8 +793,8 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                    (cons method/token (lexer-result-tokens after-method/result))
                    (lexer-result-characters after-method/result))]))
 
+#;
 (module+ test
-  #;
   (let ([result (http-method (string->list "POST $foo to bar") (position 1 1 0))])
     (check-equal? (lexer-result-tokens result)
                   (list
@@ -786,7 +805,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                     '(uri-template-text . "bar")
                     (position 14 1 13)
                     (position 17 1 16)))))
-  #;
   (let ([result (http-method (string->list "GET bar") (position 1 1 0))])
     (check-equal? (lexer-result-tokens result)
                   (list
@@ -795,7 +813,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                     '(uri-template-text . "bar")
                     (position 5 1 4)
                     (position 8 1 7)))))
-  #;
   (let* ([program "POST { \"hi\": \"there\" } to whatever"]
          [result (http-method (string->list program) (position 1 1 0))])
     (log-error "~a" program)
@@ -815,7 +832,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                     '(uri-template-text . "whatever")
                     (position 25 1 24)
                     (position 33 1 32)))))
-  #;
   (let* ([program "POST [ 1, 2, 3 ] to whatever"]
          [result (http-method (string->list program) (position 1 1 0))])
     (check-equal? (lexer-result-tokens result)
@@ -833,7 +849,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                     '(uri-template-text . "whatever")
                     (position 21 1 20)
                     (position 29 1 28)))))
-  #;
   (let* ([program "POST null to whatever"]
          [result (http-method (string->list program) (position 1 1 0))])
     (check-equal? (lexer-result-tokens result)
@@ -1168,13 +1183,41 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (define after-assignment-whitespace (takef after-assignment-chars char-whitespace?))
      (define after-assignment-whitespace-position
        (add-position after-assignment-position after-assignment-whitespace))
-     (define template/result (uri-template (dropf after-assignment-chars char-whitespace?)
-                                           after-assignment-whitespace-position))
+     (define template/result (uri-template after-assignment-chars
+                                           after-assignment-position))
      (lexer-result (lexer-result-end-position template/result)
                    (append (list parameter-token
                                  assignment-token)
                            (lexer-result-tokens template/result))
                    (lexer-result-characters template/result))]))
+
+(define/contract (in chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list #\i #\n (? char-whitespace?) ...)
+     (consume-keyword "in" chars start)]
+    [(list-rest #\i #\n (? char-whitespace?) ..1 (not (? char-whitespace?)) _)
+     (define in/result (consume-keyword "in" chars start))
+     (define filename/result (import-filename (lexer-result-characters in/result)
+                                              (lexer-result-end-position in/result)))
+     (lexer-result (lexer-result-end-position filename/result)
+                   (append (lexer-result-tokens in/result)
+                           (lexer-result-tokens filename/result))
+                   (lexer-result-characters filename/result))]))
+
+(define/contract (at chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list #\a #\t (? char-whitespace?) ...)
+     (consume-keyword "at" chars start)]
+    [(list #\a #\t (? char-whitespace?) ..1 (not (? char-whitespace?)))
+     (define at/result (consume-keyword "at" chars start))
+     (define uri/result (uri-template (lexer-result-characters at/result)
+                                      (lexer-result-end-position at/result)))
+     (lexer-result (lexer-result-end-position uri/result)
+                   (append (lexer-result-tokens at/result)
+                           (lexer-result-tokens uri/result))
+                   (lexer-result-characters uri/result))]))
 
 (define/contract (initial chars start)
   ((listof char?) position? . -> . (listof position-token?))
@@ -1229,6 +1272,11 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(list-rest #\! #\= _)
+     (define result (consume-keyword "!=" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons (? char-upper-case?) _)
      (define result (http-method chars start))
      (append (lexer-result-tokens result)
@@ -1244,13 +1292,68 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(list-rest #\i #\s _)
+     (define result (consume-keyword "is" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\n #\o #\t _)
+     (define result (consume-keyword "not" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\n #\o #\n _)
+     (define result (consume-keyword "non" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\e #\m #\p #\t #\y _)
+     (define result (consume-keyword "empty" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\d #\o #\e #\s _)
+     (define result (consume-keyword "does" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list-rest #\r #\e #\s #\p #\o #\n #\d #\s _)
      (define result (responds chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(list #\e #\x #\i #\s #\t (? char-whitespace?) ...)
+     (define result (consume-keyword "exist" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\e #\x #\i #\s #\t (not #\s) _)
+     (define result (consume-keyword "exist" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list-rest #\e #\x #\i #\s #\t #\s _)
      (define result (consume-keyword "exists" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\a #\n #\d _)
+     (define result (consume-keyword "and" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\s #\a #\t #\i #\s #\f #\i #\e #\s _)
+     (define result (consume-keyword "satisfies" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\s #\c #\h #\e #\m #\a _)
+     (define result (consume-keyword "schema" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\i #\n _)
+     (define result (in chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -1417,7 +1520,6 @@ RIPOSTE
       (position-token '* (position 506 15 29) (position 507 15 30))
       (position-token '|}| (position 507 15 30) (position 508 15 31))))))
 
-#;
 (module+ test
   (let ([program #<<RIPOSTE
 import base.rip
@@ -1790,6 +1892,7 @@ RIPOSTE
     (check-equal? (tokenize program)
                   (list))))
 
+#;
 (module+ test
   (let ([program #<<RIPOSTE
 %base := https://api.vicampo.test:8443/v1/
@@ -1801,7 +1904,7 @@ RIPOSTE
 ^Content-Type := "application/json"
 
 RIPOSTE
-])
+                 ])
     (check-equal? (tokenize program)
                   (list))))
 
