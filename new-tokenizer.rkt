@@ -353,8 +353,8 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                               (lexer-result-tokens remainder/result))
                       (lexer-result-characters remainder/result))]
        [(cons c _)
-        (define remainder/result (uri-template:text (lexer-result-characters template/result)
-                                                    (lexer-result-end-position template/result)))
+        (define remainder/result (uri-template (lexer-result-characters template/result)
+                                               (lexer-result-end-position template/result)))
         (lexer-result (lexer-result-end-position remainder/result)
                       (append (lexer-result-tokens template/result)
                               (lexer-result-tokens remainder/result))
@@ -370,8 +370,8 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
        [(cons (? char-whitespace?) _)
         text/result]
        [(cons #\{ _)
-        (define remainder/result (uri-template:template (lexer-result-characters text/result)
-                                                        (lexer-result-end-position text/result)))
+        (define remainder/result (uri-template (lexer-result-characters text/result)
+                                               (lexer-result-end-position text/result)))
         (lexer-result (lexer-result-end-position remainder/result)
                       (append (lexer-result-tokens text/result)
                               (lexer-result-tokens remainder/result))
@@ -1368,7 +1368,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
     [(cons (? char? c) more)
-     (error (format "Unexpected character (~a) encountered at line ~a column ~a. Bailing out."
+     (error (format "Unexpected character (~a) encountered at the toplevel at line ~a column ~a. Bailing out."
                     c
                     (position-line start)
                     (position-col start)))]))
