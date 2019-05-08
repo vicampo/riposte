@@ -1279,8 +1279,8 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
         [(bytes? in)
          (tokenize (bytes->string/utf-8 in) start)]
         [(path? in)
-         (define (toke-it)
-           (tokenize (port->chars (current-input-port)) start))
+         (define (toke-it ip)
+           (tokenize (port->chars ip) start))
          (call-with-input-file in toke-it)]
         [(input-port? in)
          (tokenize (port->chars in) start)]
