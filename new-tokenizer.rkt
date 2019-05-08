@@ -139,9 +139,24 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
      (list)]
     [(cons (? char-whitespace?) _)
      (list)]
-    [(cons (? char-alphabetic? c) _)
-     (cons c (read-identifier-chars (cdr cs)))]
+    [(cons (or #\_ (? char-alphabetic?)) _)
+     (cons (car cs)
+           (read-identifier-chars (cdr cs)))]
     [(cons (? char? c) _)
+     (list)]))
+
+(define/contract (read-header-name-chars cs)
+  ((listof char?) . -> . (listof char?))
+  (log-error "read-header-name-chars: ~a" cs)
+  (match cs
+    [(list)
+     (list)]
+    [(cons (? char-whitespace?) _)
+     (list)]
+    [(cons (or (? char-alphabetic?) #\-) _)
+     (cons (car cs)
+           (read-header-name-chars (cdr cs)))]
+    [else
      (list)]))
 
 (define/contract (identifier chars start)
@@ -178,8 +193,30 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                     (position-col start)))]
     [(cons #\@ cs)
      (define ident-chars (read-identifier-chars cs))
-     (define token-content (cons 'identifier (list->string ident-chars)))
+     (define token-content (cons 'environment-identifier (list->string ident-chars)))
      (define end-position (add-position start (cons #\@ ident-chars)))
+     (define token (position-token token-content
+                                   start
+                                   end-position))
+     (lexer-result end-position
+                   (list token)
+                   (drop chars (add1 (length ident-chars))))]))
+
+(define/contract (request-header-identifier chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list)
+     (error "Unexpected end-of-file found!")]
+    [(cons (not #\^) _)
+     (error (format "Unexpected character (~a) encountered while lexing an identifier at line ~a column ~a."
+                    (car chars)
+                    (position-line start)
+                    (position-col start)))]
+    [(cons #\^ cs)
+     (define ident-chars (read-header-name-chars cs))
+     (log-error "header name chars: ~a" ident-chars)
+     (define token-content (cons 'request-header-identifier (list->string ident-chars)))
+     (define end-position (add-position start (cons #\^ ident-chars)))
      (define token (position-token token-content
                                    start
                                    end-position))
@@ -583,6 +620,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (read-http-method-chars cs)
   ((listof char?) . -> . (listof char?))
+  (log-error "read-http-method-chars: ~a" cs)
   (match cs
     [(list)
      (list)]
@@ -1106,6 +1144,12 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(cons #\^ _)
+     (log-error "request header identifier")
+     (define result (request-header-identifier chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons #\# more)
      (define result (comment chars start))
      (append (lexer-result-tokens result)
@@ -1136,8 +1180,8 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons (or #\= #\< #\> #\+) _)
-     (define result (consume-keyword "=" chars start))
+    [(cons (or #\= #\< #\> #\+ #\-) _)
+     (define result (consume-keyword (~a (car chars)) chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -1314,6 +1358,7 @@ RIPOSTE
       (position-token '* (position 506 15 29) (position 507 15 30))
       (position-token '|}| (position 507 15 30) (position 508 15 31))))))
 
+#;
 (module+ test
   (let ([program #<<RIPOSTE
 import base.rip
@@ -1530,6 +1575,7 @@ RIPOSTE
     (check-equal? (tokenize program)
                   (list))))
 
+#;
 (module+ test
   (let ([program #<<RIPOSTE
 import base.rip
@@ -1661,6 +1707,23 @@ $milesAndCouponData := {
 GET checkout/cart/{uuid}/{?milesAndCouponData*} responds with 2XX
 
 /grand_total + 11 = $initialGrandTotal # we saved 11 = 10 + 1 EUR
+
+RIPOSTE
+                 ])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program #<<RIPOSTE
+# value doesn't matter; header just needs to be present
+^Authorization := ""
+
+# You'll find this in local.php:
+^X-Auth-Access-Token := @AUTH_ACCESS_TOKEN with fallback ""
+
+# Your API consumer doppelgänger from the api_consumer table
+# (column external_consumer_id):
+^X-Consumer-Id := @CONSUMER_ID with fallback ""
 
 RIPOSTE
 ])
