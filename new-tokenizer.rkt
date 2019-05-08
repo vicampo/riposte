@@ -1814,8 +1814,11 @@ RIPOSTE
      #:args (filename)
      filename))
 
-  (unless (file-exists? file-to-process)
+  (define file-to-process/path
+    (string->path file-to-process))
+
+  (unless (file-exists? file-to-process/path)
     (displayln (format "No such file: ~a" file-to-process))
     (exit 1))
 
-  (tokenize file-to-process))
+  (tokenize file-to-process/path))
