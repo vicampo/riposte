@@ -224,6 +224,27 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                    (list token)
                    (drop chars (add1 (length ident-chars))))]))
 
+(define/contract (parameter-identifier chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list)
+     (error "Unexpected end-of-file found!")]
+    [(cons (not #\%) _)
+     (error (format "Unexpected character (~a) encountered while lexing a parameter identifier at line ~a column ~a."
+                    (car chars)
+                    (position-line start)
+                    (position-col start)))]
+    [(cons #\% cs)
+     (define ident-chars (read-identifier-chars cs))
+     (define token-content (cons 'parameter (list->string ident-chars)))
+     (define end-position (add-position start (cons #\% ident-chars)))
+     (define token (position-token token-content
+                                   start
+                                   end-position))
+     (lexer-result end-position
+                   (list token)
+                   (drop chars (add1 (length ident-chars))))]))
+
 (define/contract (comment chars start)
   ((listof char?) position? . -> . lexer-result?)
   (match chars
@@ -310,7 +331,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 
 (define/contract (uri-template chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "uri-template: ~a" chars)
+  (log-error "uri-template: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -1121,6 +1142,40 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                   start
                   (add-position start (car chars))))
 
+(define (base-parameter chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list-rest #\% #\b #\a #\s #\e (? char-whitespace?) ..1
+                #\: #\= (? char-whitespace?) ..1
+                (not (? char-whitespace?)) ..1
+                _)
+     (define parameter-chars (take (cdr chars) 4))
+     (define new-position (add-position start (take chars 5)))
+     (define parameter-token (position-token (cons 'parameter (list->string parameter-chars))
+                                             start
+                                             new-position))
+     (define after-parameter-chars (drop chars 5))
+     (define after-parameter-whitespace (takef after-parameter-chars char-whitespace?))
+     (define before-assignment-position
+       (add-position new-position after-parameter-whitespace))
+     (define after-assignment-position
+       (add-position before-assignment-position (list #\: #\=)))
+     (define assignment-token (position-token (string->symbol ":=")
+                                              before-assignment-position
+                                              after-assignment-position))
+     (define after-assignment-chars (drop after-parameter-chars (+ (length after-parameter-whitespace)
+                                                                   (length (list #\: #\=)))))
+     (define after-assignment-whitespace (takef after-assignment-chars char-whitespace?))
+     (define after-assignment-whitespace-position
+       (add-position after-assignment-position after-assignment-whitespace))
+     (define template/result (uri-template (dropf after-assignment-chars char-whitespace?)
+                                           after-assignment-whitespace-position))
+     (lexer-result (lexer-result-end-position template/result)
+                   (append (list parameter-token
+                                 assignment-token)
+                           (lexer-result-tokens template/result))
+                   (lexer-result-characters template/result))]))
+
 (define/contract (initial chars start)
   ((listof char?) position? . -> . (listof position-token?))
   (match chars
@@ -1145,8 +1200,12 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
     [(cons #\^ _)
-     (log-error "request header identifier")
      (define result (request-header-identifier chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\% #\b #\a #\s #\e _)
+     (define result (base-parameter chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -1713,6 +1772,7 @@ RIPOSTE
     (check-equal? (tokenize program)
                   (list))))
 
+#;
 (module+ test
   (let ([program #<<RIPOSTE
 # value doesn't matter; header just needs to be present
@@ -1724,6 +1784,21 @@ RIPOSTE
 # Your API consumer doppelgänger from the api_consumer table
 # (column external_consumer_id):
 ^X-Consumer-Id := @CONSUMER_ID with fallback ""
+
+RIPOSTE
+                 ])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program #<<RIPOSTE
+%base := https://api.vicampo.test:8443/v1/
+
+# all requests should be understood as JSON
+#
+# (Requests that have an empty body will also have this header.)
+
+^Content-Type := "application/json"
 
 RIPOSTE
 ])
