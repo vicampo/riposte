@@ -1910,7 +1910,8 @@ RIPOSTE
 
 (module+ main
 
-  (require racket/cmdline)
+  (require racket/cmdline
+           racket/pretty)
 
   (define file-to-process
     (command-line
@@ -1924,4 +1925,5 @@ RIPOSTE
     (displayln (format "No such file: ~a" file-to-process))
     (exit 1))
 
-  (tokenize file-to-process/path))
+  (pretty-print
+   (tokenize file-to-process/path)))
