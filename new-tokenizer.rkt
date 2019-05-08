@@ -132,21 +132,20 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                          (lexer-result-tokens filename/result))
                    (lexer-result-characters filename/result))]))
 
+(define/contract (read-identifier-chars cs)
+  ((listof char?) . -> . (listof char?))
+  (match cs
+    [(list)
+     (list)]
+    [(cons (? char-whitespace?) _)
+     (list)]
+    [(cons (? char-alphabetic? c) _)
+     (cons c (read-identifier-chars (cdr cs)))]
+    [(cons (? char? c) _)
+     (list)]))
+
 (define/contract (identifier chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (define (read-identifier-chars cs)
-    (match cs
-      [(list)
-       (list)]
-      [(cons (? char-whitespace?) _)
-       (list)]
-      [(cons (? char-alphabetic? c) _)
-       (cons c (read-identifier-chars (cdr cs)))]
-      [(cons (? char? c) _)
-       (error (format "Unexpected non-alphabetic character \"~a\" encountered while reading an identifier starting at line ~a column ~a)."
-                      c
-                      (position-line start)
-                      (position-col start)))]))
   (match chars
     [(list)
      (error "Unexpected end-of-file found!")]
@@ -166,6 +165,27 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                     c
                     (position-line start)
                     (position-col start)))]))
+
+(define/contract (environment-identifier chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list)
+     (error "Unexpected end-of-file found!")]
+    [(cons (not #\@) _)
+     (error (format "Unexpected character (~a) encountered while lexing an identifier at line ~a column ~a."
+                    (car chars)
+                    (position-line start)
+                    (position-col start)))]
+    [(cons #\@ cs)
+     (define ident-chars (read-identifier-chars cs))
+     (define token-content (cons 'identifier (list->string ident-chars)))
+     (define end-position (add-position start (cons #\@ ident-chars)))
+     (define token (position-token token-content
+                                   start
+                                   end-position))
+     (lexer-result end-position
+                   (list token)
+                   (drop chars (add1 (length ident-chars))))]))
 
 (define/contract (comment chars start)
   ((listof char?) position? . -> . lexer-result?)
@@ -270,7 +290,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
     [(cons (? char-whitespace?) _)
      (lexer-result start
                    (list)
-                   (list))]
+                   chars)]
     [(cons (not (? char-whitespace?)) _)
      (define text/result (uri-template:text chars start))
      (define remainder/result (uri-template (lexer-result-characters text/result)
@@ -280,24 +300,27 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                            (lexer-result-tokens remainder/result))
                    (lexer-result-characters remainder/result))]))
 
-(define/contract (json-pointer)
-  (-> position-token?)
-  (define-values (l1 c1 p1)
-    (port-next-location (current-input-port)))
-  (define (read-json-pointer-chars)
-    (match (read-char)
-      [(? eof-object?)
-       (list)]
-      [(? char-whitespace?)
-       (list)]
-      [(? char? c)
-       (cons c (read-json-pointer-chars))]))
-  (define chars (read-json-pointer-chars))
-  (define-values (l2 c2 p2)
-    (port-next-location (current-input-port)))
-  (position-token (cons 'json-pointer (list->string chars))
-                  (position p1 l1 c2)
-                  (position p2 l2 c2)))
+(define/contract (read-json-pointer-chars cs)
+  ((listof char?) . -> . (listof char?))
+  (match cs
+    [(list)
+     (list)]
+    [(cons (? char-whitespace?) _)
+     (list)]
+    [(cons _ _)
+     (cons (car cs)
+           (read-json-pointer-chars (cdr cs)))]))
+
+(define/contract (json-pointer chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define jp-chars (read-json-pointer-chars chars))
+  (define new-position (add-position start jp-chars))
+  (define token (position-token (cons 'json-pointer (list->string jp-chars))
+                                start
+                                new-position))
+  (lexer-result new-position
+                (list token)
+                (drop chars (length jp-chars))))
 
 (define/contract (json-string chars start)
   ((listof char?) position? . -> . lexer-result?)
@@ -382,7 +405,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
   ((listof char?) position? . -> . lexer-result?)
   ;(log-error "eat-whitespace: ~a" chars)
   (define (consume cs)
-    (log-error "consume: ~a" cs)
+    ;(log-error "consume: ~a" cs)
     (match cs
       [(list)
        (list)]
@@ -587,7 +610,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (after-http-method-payload chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "after-http-method-payload: ~a" chars)
+  (log-error "after-http-method-payload: ~a" chars)
   (match chars
     [(cons (? char-whitespace? c) _)
      (after-http-method-payload (cdr chars)
@@ -842,22 +865,21 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (responds:status-code chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (define keyword-length 3)
-  (define chars-of-keyword (take chars keyword-length))
-  (define chars-after-keyword (drop chars keyword-length))
-  (define pos-after-keyword (add-position start chars-of-keyword))
-  (define token-content (list->string (chars-of-keyword)))
-  (define token (position-token (cons 'http-status-code token-content)
-                                start
-                                pos-after-keyword))
   (match chars
-    [(list-rest (or #\2 #\3 #\4 #\5)
+    [(list-rest (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\x #\X)
                 (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\x #\X)
                 (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\x #\X)
                 _)
+     (define chars-of-keyword (take chars 3))
+     (define chars-after-keyword (drop chars 3))
+     (define pos-after-keyword (add-position start chars-of-keyword))
+     (define token-content (list->string chars-of-keyword))
+     (define token (position-token (cons 'http-status-code token-content)
+                                   start
+                                   pos-after-keyword))
      (lexer-result pos-after-keyword
                    (list token)
-                   (drop chars keyword-length))]))
+                   chars-after-keyword)]))
 
 (define/contract (responds chars start)
   ((listof char?) position? . -> . lexer-result?)
@@ -899,7 +921,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
               (lexer-result (lexer-result-end-position status-code/result)
                             (append (lexer-result-tokens responds/result)
                                     (lexer-result-tokens with/result)
-                                    (                                    (lexer-result-tokens status-code/result)))
+                                    (lexer-result-tokens status-code/result))
                             (lexer-result-characters status-code/result))])])])]))
 
 (define/contract (with)
@@ -978,29 +1000,21 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                   (position c1 l1 c1)
                   (position c2 l2 c2)))
 
-(define/contract (consume-keyword keyword)
-  (string? . -> . position-token?)
-  (define-values (l1 c1 p1)
-    (port-next-location (current-input-port)))
-  (define keyword-read
-    (for/list ([c (string->list keyword)])
-      (read-char)))
-  (define keyword-read/string (list->string (filter char? keyword-read)))
-  (unless (string=? keyword keyword-read/string)
-    (error (format "While tokenizing \"~a\" at line ~a and column ~a, we got something unexpected: ~a"
+(define/contract (consume-keyword keyword chars start)
+  (string? (listof char?) position? . -> . lexer-result?)
+  (define string-chars (string->list keyword))
+  (define initial-segment (take chars (length string-chars)))
+  (unless (= (length initial-segment) (length string-chars))
+    (error (format "Too few characters available! Cannot lex \"~a\" because all we have are ~a"
                    keyword
-                   l1
-                   c1
-                   keyword-read/string)))
-  (define-values (l2 c2 p2)
-    (port-next-location (current-input-port)))
-  (position-token (string->symbol keyword)
-                  (position p1 l1 c1)
-                  (position p2 l2 c2)))
-
-(define/contract (exists)
-  (-> position-token?)
-  (consume-keyword "exists"))
+                   chars)))
+  (define end-position (add-position start initial-segment))
+  (define token (position-token (string->symbol keyword)
+                                start
+                                end-position))
+  (lexer-result end-position
+                (list token)
+                (drop chars (length initial-segment))))
 
 (define/contract (to chars start)
   ((listof char?) position? . -> . lexer-result?)
@@ -1087,6 +1101,11 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(cons #\@ _)
+     (define result (environment-identifier chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons #\# more)
      (define result (comment chars start))
      (append (lexer-result-tokens result)
@@ -1112,24 +1131,36 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons #\" more)
-     (define result (json-string chars start))
-     (append (lexer-result-tokens result)
-             (initial (lexer-result-characters result)
-                      (lexer-result-end-position result)))]
-    [(cons (or #\{ #\} #\[ #\]) _)
+    [(cons (or #\" #\{ #\} #\[ #\]) _)
      (define result (lex-jsonish-stuff chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(list-rest #\r #\e #\s #\p #\o #\n #\d #\s _)
-     (define result (single-character chars start))
+    [(cons (or #\= #\< #\> #\+) _)
+     (define result (consume-keyword "=" chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(list-rest #\e #\x #\i #\s #\t #\s more)
-     (cons (exists)
-           (initial))]
+    [(list-rest #\r #\e #\s #\p #\o #\n #\d #\s _)
+     (define result (responds chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\e #\x #\i #\s #\t #\s _)
+     (define result (consume-keyword "exists" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\w #\i #\t #\h _)
+     (define result (consume-keyword "with" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\f #\a #\l #\l #\b #\a #\c #\k _)
+     (define result (consume-keyword "fallback" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons (? char? c) more)
      (error (format "Unexpected character (~a) encountered at line ~a column ~a. Bailing out."
                     c
@@ -1168,6 +1199,7 @@ RIPOSTE
                    (position-token ':= (position 19 2 3) (position 21 2 5))
                    (position-token '(number . 4567/1000) (position 22 2 6) (position 27 2 11))))))
 
+#;
 (module+ test
   (let ([program #<<RIPOSTE
 import base.rip
@@ -1187,19 +1219,107 @@ $searchQueryParams := {
 GET search{?searchQueryParams*} responds with 2xx
 
 RIPOSTE
-])
-    (check-equal? (tokenize program)
-                  (list))))
+                 ])
+    (check-equal?
+     (tokenize program)
+     (list
+      (position-token 'import (position 1 1 0) (position 7 1 6))
+      (position-token '(filename . "base.rip") (position 8 1 7) (position 16 1 15))
+      (position-token
+       '(comment
+         .
+         " Test if the v1/search endpoint provides the same price/qty_increments as v1/catalog/products")
+       (position 18 3 0)
+       (position 112 3 94))
+      (position-token
+       '(comment . "# v1/search")
+       (position 114 5 0)
+       (position 126 5 12))
+      (position-token
+       '(identifier . "searchQueryParams")
+       (position 127 6 0)
+       (position 145 6 18))
+      (position-token ':= (position 146 6 19) (position 148 6 21))
+      (position-token '|{| (position 149 6 22) (position 150 6 23))
+      (position-token
+       '(json-string . "pagination_page")
+       (position 155 7 4)
+       (position 171 7 20))
+      (position-token ': (position 171 7 20) (position 172 7 21))
+      (position-token '(json-string . "1") (position 173 7 22) (position 175 7 24))
+      (position-token '|,| (position 175 7 24) (position 176 7 25))
+      (position-token
+       '(json-string . "pagination_limit")
+       (position 181 8 4)
+       (position 198 8 21))
+      (position-token ': (position 198 8 21) (position 199 8 22))
+      (position-token '(json-string . "1") (position 200 8 23) (position 202 8 25))
+      (position-token '|,| (position 202 8 25) (position 203 8 26))
+      (position-token
+       '(json-string . "in_stock_vendors")
+       (position 208 9 4)
+       (position 225 9 21))
+      (position-token ': (position 225 9 21) (position 226 9 22))
+      (position-token
+       '(json-string . "VICAMPO")
+       (position 227 9 23)
+       (position 235 9 31))
+      (position-token '|,| (position 235 9 31) (position 236 9 32))
+      (position-token
+       '(json-string . "sort")
+       (position 241 10 4)
+       (position 246 10 9))
+      (position-token ': (position 246 10 9) (position 247 10 10))
+      (position-token
+       '(json-string . "relevance")
+       (position 248 10 11)
+       (position 258 10 21))
+      (position-token '|,| (position 258 10 21) (position 259 10 22))
+      (position-token
+       '(json-string . "fields")
+       (position 264 11 4)
+       (position 271 11 11))
+      (position-token ': (position 271 11 11) (position 272 11 12))
+      (position-token
+       '(json-string
+         .
+         "ratings,expert_rating,type,product_id,campaign_id,name,manufacturer_name,tags,price,stocks,images,legal,customer_rating,customer_rating_count")
+       (position 273 11 13)
+       (position 415 11 155))
+      (position-token '|,| (position 415 11 155) (position 416 11 156))
+      (position-token
+       '(json-string . "embed")
+       (position 421 12 4)
+       (position 427 12 10))
+      (position-token ': (position 427 12 10) (position 428 12 11))
+      (position-token
+       '(json-string . "bundle_items,has_been_bought,expert_reviews")
+       (position 429 12 12)
+       (position 473 12 56))
+      (position-token '|}| (position 474 13 0) (position 475 13 1))
+      (position-token
+       '(http-method . "GET")
+       (position 477 15 0)
+       (position 480 15 3))
+      (position-token
+       '(uri-template-text . "search")
+       (position 481 15 4)
+       (position 487 15 10))
+      (position-token '|{| (position 487 15 10) (position 488 15 11))
+      (position-token '? (position 488 15 11) (position 489 15 12))
+      (position-token
+       '(identifier . "searchQueryParams")
+       (position 489 15 12)
+       (position 506 15 29))
+      (position-token '* (position 506 15 29) (position 507 15 30))
+      (position-token '|}| (position 507 15 30) (position 508 15 31))))))
 
-#;
 (module+ test
   (let ([program #<<RIPOSTE
 import base.rip
 import token-auth.rip
 
-$invalidData := {}
-
-POST $invalidData customers/addresses responds with 422
+POST {} to customers/addresses responds with 422
 
 $validData := {
     "first_name": "BLA",
@@ -1213,11 +1333,337 @@ $validData := {
     "zip": 32145
 }
 
-POST $validData customers/addresses responds with 201
+POST $validData to customers/addresses responds with 201
 
 /customer_address_id exists
 RIPOSTE
                  ])
+    (check-equal?
+     (tokenize program)
+     (list
+      (position-token 'import (position 1 1 0) (position 7 1 6))
+      (position-token '(filename . "base.rip") (position 8 1 7) (position 16 1 15))
+      (position-token 'import (position 17 2 0) (position 23 2 6))
+      (position-token
+       '(filename . "token-auth.rip")
+       (position 24 2 7)
+       (position 38 2 21))
+      (position-token '(http-method . "POST") (position 40 4 0) (position 44 4 4))
+      (position-token '|{| (position 45 4 5) (position 46 4 6))
+      (position-token '|}| (position 46 4 6) (position 47 4 7))
+      (position-token 'to (position 48 4 8) (position 50 4 10))
+      (position-token
+       '(uri-template-text . "customers/addresses")
+       (position 51 4 11)
+       (position 70 4 30))
+      (position-token 'responds (position 71 4 31) (position 79 4 39))
+      (position-token 'with (position 80 4 40) (position 84 4 44))
+      (position-token
+       '(http-status-code . "422")
+       (position 85 4 45)
+       (position 88 4 48))
+      (position-token
+       '(identifier . "validData")
+       (position 90 6 0)
+       (position 100 6 10))
+      (position-token ':= (position 101 6 11) (position 103 6 13))
+      (position-token '|{| (position 104 6 14) (position 105 6 15))
+      (position-token
+       '(json-string . "first_name")
+       (position 110 7 4)
+       (position 121 7 15))
+      (position-token ': (position 121 7 15) (position 122 7 16))
+      (position-token
+       '(json-string . "BLA")
+       (position 123 7 17)
+       (position 127 7 21))
+      (position-token '|,| (position 127 7 21) (position 128 7 22))
+      (position-token
+       '(json-string . "last_name")
+       (position 133 8 4)
+       (position 143 8 14))
+      (position-token ': (position 143 8 14) (position 144 8 15))
+      (position-token
+       '(json-string . "BLO")
+       (position 145 8 16)
+       (position 149 8 20))
+      (position-token '|,| (position 149 8 20) (position 150 8 21))
+      (position-token '(json-string . "city") (position 155 9 4) (position 160 9 9))
+      (position-token ': (position 160 9 9) (position 161 9 10))
+      (position-token
+       '(json-string . "TestCity")
+       (position 162 9 11)
+       (position 171 9 20))
+      (position-token '|,| (position 171 9 20) (position 172 9 21))
+      (position-token
+       '(json-string . "country")
+       (position 177 10 4)
+       (position 185 10 12))
+      (position-token ': (position 185 10 12) (position 186 10 13))
+      (position-token
+       '(json-string . "de")
+       (position 187 10 14)
+       (position 190 10 17))
+      (position-token '|,| (position 190 10 17) (position 191 10 18))
+      (position-token
+       '(json-string . "is_default_billing_address")
+       (position 196 11 4)
+       (position 223 11 31))
+      (position-token ': (position 223 11 31) (position 224 11 32))
+      (position-token '(number . 1) (position 225 11 33) (position 226 11 34))
+      (position-token '|,| (position 226 11 34) (position 227 11 35))
+      (position-token
+       '(json-string . "is_default_shipping_address")
+       (position 232 12 4)
+       (position 260 12 32))
+      (position-token ': (position 260 12 32) (position 261 12 33))
+      (position-token '(number . 1) (position 262 12 34) (position 263 12 35))
+      (position-token '|,| (position 263 12 35) (position 264 12 36))
+      (position-token
+       '(json-string . "street_name")
+       (position 269 13 4)
+       (position 281 13 16))
+      (position-token ': (position 281 13 16) (position 282 13 17))
+      (position-token
+       '(json-string . "teststreet")
+       (position 283 13 18)
+       (position 294 13 29))
+      (position-token '|,| (position 294 13 29) (position 295 13 30))
+      (position-token
+       '(json-string . "street_number")
+       (position 300 14 4)
+       (position 314 14 18))
+      (position-token ': (position 314 14 18) (position 315 14 19))
+      (position-token '(number . 33) (position 316 14 20) (position 318 14 22))
+      (position-token '|,| (position 318 14 22) (position 319 14 23))
+      (position-token
+       '(json-string . "zip")
+       (position 324 15 4)
+       (position 328 15 8))
+      (position-token ': (position 328 15 8) (position 329 15 9))
+      (position-token '(number . 32145) (position 330 15 10) (position 335 15 15))
+      (position-token '|}| (position 336 16 0) (position 337 16 1))
+      (position-token
+       '(http-method . "POST")
+       (position 339 18 0)
+       (position 343 18 4))
+      (position-token
+       '(identifier . "validData")
+       (position 344 18 5)
+       (position 354 18 15))
+      (position-token 'to (position 355 18 16) (position 357 18 18))
+      (position-token
+       '(uri-template-text . "customers/addresses")
+       (position 358 18 19)
+       (position 377 18 38))
+      (position-token 'responds (position 378 18 39) (position 386 18 47))
+      (position-token 'with (position 387 18 48) (position 391 18 52))
+      (position-token
+       '(http-status-code . "201")
+       (position 392 18 53)
+       (position 395 18 56))
+      (position-token
+       '(json-pointer . "/customer_address_id")
+       (position 397 20 0)
+       (position 417 20 20))
+      (position-token 'exists (position 418 20 21) (position 424 20 27))))))
+
+#;
+(module+ test
+  (let ([program #<<RIPOSTE
+import base.rip
+import token-auth.rip
+
+$uuid := @UUID with fallback "4526554c-fc86-42ad-aeb4-57c8f4cb5674"
+
+GET checkout/cart/{uuid} responds with 2XX
+
+# Add something to the cart:
+
+$productData := {
+  "product_id": 13698,
+  "campaign_id": 1,
+  "qty": 2
+}
+
+$gourmetData := {
+  "product_id": 60868, # this should be a gourmet item!
+  "campaign_id": 1,
+  "qty": 2
+}
+
+POST $productData to checkout/cart/{uuid}/items responds with 2XX
+
+######################################################################
+# Sanity check: the cart grand total is now not zero:
+######################################################################
+
+$initialGrandTotal := /grand_total
+
+$initialGrandTotal > 0
+
+######################################################################
+# Adding an item will increase the grand total
+######################################################################
+
+POST $productData to checkout/cart/{uuid}/items responds with 2XX
+
+$initialGrandTotalTwo := /grand_total
+
+$initialGrandTotalTwo > 0
+
+$initialGrandTotalTwo > $initialGrandTotal
+
+######################################################################
+# Adding a gourmet item will not increase the grand total
+######################################################################
+
+POST $gourmetData to checkout/cart/{uuid}/items responds with 2XX
+
+$initialGrandTotalThree := /grand_total
+
+$initialGrandTotalThree > 0
+
+$initialGrandTotalTwo = $initialGrandTotalThree
+RIPOSTE
+                 ])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program #<<RIPOSTE
+import base.rip
+import token-auth.rip
+
+$uuid := @UUID with fallback "4526554c-fc86-42ad-aeb4-57c8f4cb5674"
+
+GET checkout/cart/{uuid} responds with 2XX
+
+/undiscounted_grand_total exists
+/undiscounted_tax_total exists
+/undiscounted_shipping_total exists
+
+# This is deprecated, but still there:
+/shipping_cost exists
+
+/discounts exists
+
+# Add something to the cart:
+
+$productData := {
+  "product_id": 41966,
+  "campaign_id": 1,
+  "qty": 10
+}
+
+POST $productData to checkout/cart/{uuid}/items responds with 2XX
+
+$initialGrandTotal := /grand_total
+
+######################################################################
+# Sanity check: the cart grand total is now not zero:
+######################################################################
+
+GET checkout/cart/{uuid} responds with 2XX
+
+/grand_total > 0
+
+######################################################################
+# Now try to use a coupon with the new approach:
+######################################################################
+
+$couponQueryData := { "apply_coupon_code": "TEST10" }
+
+GET checkout/cart/{uuid}/{?couponQueryData*} responds with 200
+
+# These fields were added in VIP-3586:
+
+/discounts exists
+/discounts/0/type exists
+/discounts/0/type = "coupon"
+
+/discounts/0/label exists
+/discounts/0/label = "coupons"
+
+/discounts/0/amount exists
+/discounts/0/amount = 10 # the value of the coupon
+/grand_total + 10 = $initialGrandTotal # the grand total is smaller
+
+######################################################################
+# Use our credits
+######################################################################
+
+$creditData := { "apply_credits": "1" }
+
+GET checkout/cart/{uuid}/{?creditData*} responds with 200
+
+# The new fields should be there, but with different values than
+# we received previously:
+
+/discounts exists
+/discounts/0/type exists
+/discounts/0/type = "credit"
+
+/discounts/0/label exists
+/discounts/0/label = "credits"
+
+/discounts/0/amount exists
+/discounts/0/amount > 0 # the value of our credits
+/grand_total < $initialGrandTotal # the grand total is smaller if we use credits
+
+######################################################################
+#
+# If we try to use both at the same time, we should get an error:
+#
+######################################################################
+
+$badDiscountData := {
+  "apply_coupon_code": "TEST10",
+  "apply_credits": "1"
+}
+
+GET checkout/cart/{uuid}/{?badDiscountData*} responds with 422
+
+######################################################################
+#
+# Miles & More should work:
+#
+######################################################################
+
+$milesData := {
+  "apply_miles": 330 # worth exactly 1 euro at current exchange rate
+}
+
+GET checkout/cart/{uuid}/{?milesData*} responds with 2XX
+
+/discounts exists
+/discounts/0/type exists
+/discounts/0/type = "miles"
+
+/discounts/0/label exists
+/discounts/0/label = "milesandmore"
+
+/discounts/0/amount exists
+/discounts/0/amount > 0 # the value of our credits
+/grand_total + 1 = $initialGrandTotal # we saved 1 EUR
+
+######################################################################
+#
+# Combining miles and a coupon works:
+#
+######################################################################
+
+$milesAndCouponData := {
+  "apply_miles": 330, # worth exactly 1 euro at current exchange rate
+  "apply_coupon_code": "TEST10"
+}
+
+GET checkout/cart/{uuid}/{?milesAndCouponData*} responds with 2XX
+
+/grand_total + 11 = $initialGrandTotal # we saved 11 = 10 + 1 EUR
+
+RIPOSTE
+])
     (check-equal? (tokenize program)
                   (list))))
 
