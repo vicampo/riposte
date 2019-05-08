@@ -2,14 +2,10 @@
 
 (require racket/contract
          syntax/stx
-         (only-in (file "./tokenizer.rkt")
-                  make-tokenizer)
+         (only-in (file "./new-tokenizer.rkt")
+                  tokenize)
          (only-in (file "./grammar.rkt")
-                  parse)
-         (only-in (file "./reader.rkt")
-                  #;simplify-imports-for-dir
-                  clean-parse-tree
-                  flatten-imported-scripts))
+                  parse))
 
 (define/contract (parse-file path)
   (path? . -> . list?)
@@ -20,9 +16,7 @@
   (with-input-from-file path
     (lambda ()
       (syntax->datum
-       (flatten-imported-scripts
-        (clean-parse-tree
-         (parse path (make-tokenizer (current-input-port)))))))
+       (parse path (tokenize (current-input-port)))))
     #:mode 'text))
 
 (module+ main

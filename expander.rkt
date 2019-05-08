@@ -36,16 +36,12 @@
                   riposte-version)
          (only-in (file "grammar.rkt")
                   parse)
-         (only-in (file "tokenizer.rkt")
-                  make-tokenizer)
          (only-in (file "response.rkt")
                   response?
                   make-response))
 
 (require (for-syntax (only-in (file "grammar.rkt")
                               parse)
-                     (only-in (file "tokenizer.rkt")
-                              make-tokenizer)
                      (prefix-in reader:
                                 (only-in (file "reader.rkt")
                                          read-syntax))
@@ -678,10 +674,3 @@
   #'L)
 
 (provide letter)
-
-#;
-(define-macro (import (import-filename PATH))
-  (define path (build-path 'same (syntax->datum #'PATH)))
-  (parse path (make-tokenizer (open-input-file path #:mode 'text))))
-
-#;(provide import)
