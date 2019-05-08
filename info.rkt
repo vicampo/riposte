@@ -26,7 +26,7 @@
 
 (define pkg-authors '("jesse@lisp.sh"))
 
-(define scribblings '(("scribblings/riposte.scrbl" ())))
+;(define scribblings '(("scribblings/riposte.scrbl" ())))
 
 (define racket-launcher-names '("riposte"))
 (define racket-launcher-libraries '("riposte.rkt"))
