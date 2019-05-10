@@ -1296,6 +1296,16 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(list-rest #\r #\e #\l #\a #\t #\i #\v #\e _)
+     (define result (consume-keyword "relative" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\t #\o _)
+     (define result (consume-keyword "to" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list #\e #\x #\i #\s #\t (? char-whitespace?) ...)
      (define result (consume-keyword "exist" chars start))
      (append (lexer-result-tokens result)
@@ -1341,7 +1351,12 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons (? char? c) more)
+    [(list-rest #\e #\c #\h #\o _)
+     (define result (consume-keyword "echo" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(cons (? char? c) _)
      (error (format "Unexpected character (~a) encountered at the toplevel at line ~a column ~a. Bailing out."
                     c
                     (position-line start)
