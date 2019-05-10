@@ -534,7 +534,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (lexer-result start
                    (list)
                    (list))]
-    [(list #\$ (or (? char-upper-case?) (? char-lower-case?)) ..1)
+    [(list #\$ (or (? char-upper-case?) (? char-lower-case?)) ..1 (? char-whitespace?) ...)
      (define new-position (add-position start chars))
      (define id/token (position-token (token 'IDENTIFIER (list->string (cdr chars)))
                                       start
@@ -542,7 +542,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (lexer-result new-position
                    (list id/token)
                    (list))]
-    [(list-rest #\$ (or (? char-upper-case?) (? char-lower-case?)) ..1 (? char-whitespace?) _)
+    [(list-rest #\$ (or (? char-upper-case?) (? char-lower-case?)) ..1 (? char-whitespace?) ... (not (? char-whitespace?)) _)
      (define up-to-whitespace (takef chars (negate char-whitespace?)))
      ;(log-error "up-to-whitespace: ~a" up-to-whitespace)
      (define new-position (add-position start up-to-whitespace))
@@ -575,21 +575,21 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                    (append (lexer-result-tokens string/result)
                            (lexer-result-tokens more/result))
                    (lexer-result-characters more/result))]
-    [(list #\n #\u #\l #\l)
+    [(list #\n #\u #\l #\l (? char-whitespace?) ...)
      (define new-position (add-position start (take chars 4)))
      (lexer-result new-position
                    (list (position-token (token 'json-null)
                                          start
                                          new-position))
                    (list))]
-    [(list #\t #\r #\u #\e)
+    [(list #\t #\r #\u #\e (? char-whitespace?) ...)
      (define new-position (add-position start (take chars 4)))
      (lexer-result new-position
                    (list (position-token (token 'json-true)
                                          start
                                          new-position))
                    (list))]
-    [(list #\f #\a #\l #\s #\e)
+    [(list #\f #\a #\l #\s #\e (? char-whitespace?) ...)
      (define new-position (add-position start (take chars 5)))
      (lexer-result new-position
                    (list (position-token (token 'json-true)
