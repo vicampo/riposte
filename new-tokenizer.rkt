@@ -151,7 +151,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
      (list)]
     [(cons (? char-whitespace?) _)
      (list)]
-    [(cons (or #\_ (? char-alphabetic?)) _)
+    [(cons (? char-identifier?) _)
      (cons (car cs)
            (read-identifier-chars (cdr cs)))]
     [(cons (? char? c) _)
@@ -734,10 +734,32 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (lexer-result start
                    (list)
                    (list))]
-    [(cons (? char-whitespace? c) _)
+    [(cons (? char-whitespace?) _)
      (after-http-method (cdr chars)
-                        (add-position start c))]
-    [(cons (or #\$ #\{ #\[ #\") _)
+                        (add-position start (car chars)))]
+    ;; disambiguate between a JSON object an a URI template:
+    ;; case: empty JSON object
+    [(list-rest #\{ (? char-whitespace?) ... #\} (? char-whitespace?) #\t #\o _)
+     (define jsony/result (lex-jsonish-stuff chars start))
+     (define whatever/result (after-http-method-payload (lexer-result-characters jsony/result)
+                                                        (lexer-result-end-position jsony/result)))
+     (lexer-result (lexer-result-end-position whatever/result)
+                   (append (lexer-result-tokens jsony/result)
+                           (lexer-result-tokens whatever/result))
+                   (lexer-result-characters whatever/result))]
+    ;; case: non-empty JSON object
+    [(list-rest #\{ (? char-whitespace?) ... #\" _)
+     (define jsony/result (lex-jsonish-stuff chars start))
+     (define whatever/result (after-http-method-payload (lexer-result-characters jsony/result)
+                                                        (lexer-result-end-position jsony/result)))
+     (lexer-result (lexer-result-end-position whatever/result)
+                   (append (lexer-result-tokens jsony/result)
+                           (lexer-result-tokens whatever/result))
+                   (lexer-result-characters whatever/result))]
+    ;; starts with {, but does not look like a JSON object. Decided: it's a URI Template
+    [(cons #\{ _)
+     (uri-template chars start)]
+    [(cons (or #\$ #\[ #\") _)
      (define jsony/result (lex-jsonish-stuff chars start))
      (define whatever/result (after-http-method-payload (lexer-result-characters jsony/result)
                                                         (lexer-result-end-position jsony/result)))
@@ -790,8 +812,10 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (http-method chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (define method/result (http-method:method chars start))
   (match chars
+    [(cons (? char-whitespace?) _)
+     (http-method (cdr chars)
+                  (add-position start (car chars)))]
     [(cons (? char-upper-case?) _)
      (define method-chars (takef chars char-upper-case?))
      (define method-end-position (add-position start method-chars))
