@@ -134,6 +134,16 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                          (lexer-result-tokens filename/result))
                    (lexer-result-characters filename/result))]))
 
+(define/contract (char-identifier? x)
+  (char? . -> . boolean?)
+  (match x
+    [(? char-alphabetic?)
+     #t]
+    [#\_
+     #t]
+    [else
+     #f]))
+
 (define/contract (read-identifier-chars cs)
   ((listof char?) . -> . (listof char?))
   (match cs
@@ -320,7 +330,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                    (list t)
                    (cdr chars))]
     [(cons (? char-alphabetic?) _)
-     (define identifier-chars (takef chars char-alphabetic?))
+     (define identifier-chars (takef chars char-identifier?))
      (define new-position (add-position start identifier-chars))
      (define id/token (position-token (token 'IDENTIFIER (list->string identifier-chars))
                                       start
