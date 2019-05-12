@@ -1153,7 +1153,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
   (match chars
     [(list-rest #\: #\= _)
      (define end-position (add-position start (take chars 2)))
-
      (lexer-result end-position
                    (list (position-token (token (string->symbol ":="))
                                          start
