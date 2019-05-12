@@ -1534,6 +1534,7 @@ RIPOSTE
       (position-token '* (position 506 15 29) (position 507 15 30))
       (position-token '|}| (position 507 15 30) (position 508 15 31))))))
 
+#;
 (module+ test
   (let ([program #<<RIPOSTE
 import base.rip
