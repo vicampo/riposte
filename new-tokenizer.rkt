@@ -462,7 +462,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
   (match remaining-chars
     [(list)
      (lexer-result end-position
-                   (list (position-token (token 'number (string->number (list->string digits)))
+                   (list (position-token (token 'NUMBER (string->number (list->string digits)))
                                          start
                                          end-position))
                    (list))]
@@ -475,14 +475,14 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                        (list->string digits)
                        (list->string after-decimal-digits)))
      (parameterize ([read-decimal-as-inexact #f])
-       (define number/token (position-token (token 'number (string->number n))
+       (define number/token (position-token (token 'NUMBER (string->number n))
                                             start
                                             end-pos-after-dot))
        (lexer-result end-pos-after-dot
                      (list number/token)
                      (drop chars (length (append digits (list #\.) after-decimal-digits)))))]
     [else
-     (define number/token (position-token (token 'number (string->number (list->string digits)))
+     (define number/token (position-token (token 'NUMBER (string->number (list->string digits)))
                                           start
                                           end-position))
      (lexer-result end-position
