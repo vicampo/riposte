@@ -155,6 +155,12 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
     [(cons (? char? c) _)
      (list)]))
 
+(module+ test
+  (check-equal? (read-identifier-chars (string->list "foo"))
+                (list #\f #\o #\o))
+  (check-equal? (read-identifier-chars (string->list "foo,"))
+                (list #\f #\o #\o)))
+
 (define/contract (read-header-name-chars cs)
   ((listof char?) . -> . (listof char?))
   ;(log-error "read-header-name-chars: ~a" cs)
