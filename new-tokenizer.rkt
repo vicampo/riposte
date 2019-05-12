@@ -1797,6 +1797,11 @@ RIPOSTE
     (check-equal? (tokenize program)
                   (list))))
 
+(module+ test
+  (let ([program "$a := { \"foo\": true } $b := false"])
+    (check-equal? (tokenize program)
+                  (list))))
+
 (module+ main
 
   (require racket/cmdline
