@@ -548,29 +548,17 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (lexer-result start
                    (list)
                    (list))]
-    [(list #\$ (or (? char-upper-case?) (? char-lower-case?)) ..1 (? char-whitespace?) ...)
-     (define new-position (add-position start chars))
-     (define id/token (position-token (token 'IDENTIFIER (list->string (cdr chars)))
-                                      start
-                                      new-position))
-     (lexer-result new-position
-                   (list id/token)
-                   (list))]
-    [(list-rest #\$ (or (? char-upper-case?) (? char-lower-case?)) ..1 (? char-whitespace?) ... (not (? char-whitespace?)) _)
-     (define up-to-whitespace (takef chars (negate char-whitespace?)))
-     ;(log-error "up-to-whitespace: ~a" up-to-whitespace)
-     (define new-position (add-position start up-to-whitespace))
-     (define id/token (position-token (token 'IDENTIFIER (list->string (cdr up-to-whitespace)))
-                                      start
-                                      new-position))
-     (define more/result (lex-jsonish-stuff (drop chars (length up-to-whitespace))
-                                            new-position))
-     (struct-copy lexer-result
-                  more/result
-                  [tokens (cons id/token (lexer-result-tokens more/result))])]
     [(cons (? char-whitespace? c) _)
      (lex-jsonish-stuff (cdr chars)
                         (add-position start c))]
+    [(cons #\$ _)
+     (define id/result (identifier chars start))
+     (define more/result (lex-jsonish-stuff (lexer-result-characters id/result)
+                                            (lexer-result-end-position id/result)))
+     (struct-copy lexer-result
+                  more/result
+                  [tokens (append (lexer-result-tokens id/result)
+                                  (lexer-result-tokens more/result))])]
     [(cons (or #\{ #\} #\[ #\] #\, #\:) _)
      (define new-position (add-position start (car chars)))
      (define t (position-token (token (string->symbol (~a (car chars))))
