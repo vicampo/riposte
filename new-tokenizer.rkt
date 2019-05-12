@@ -190,7 +190,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                                       end-position))
      (lexer-result end-position
                    (list id/token)
-                   (drop chars (add1 (length ident-chars))))]
+                   (drop chars (length (cons #\$ ident-chars))))]
     [(cons c _)
      (error (format "Unexpected character (~a) encountered while lexing an identifier at line ~a column ~a."
                     c
