@@ -137,9 +137,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 (define/contract (char-identifier? x)
   (char? . -> . boolean?)
   (match x
-    [(? char-alphabetic?)
-     #t]
-    [#\_
+    [(or (? char-alphabetic?) #\_)
      #t]
     [else
      #f]))
