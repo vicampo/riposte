@@ -21,13 +21,11 @@ uri-template-variable-list: uri-template-varspec ( /"," uri-template-varspec ) *
 
 uri-template-varspec: IDENTIFIER [ uri-template-variable-modifier ]
 
-uri-template-variable-modifier: uri-template-variable-modifier-prefix | uri-template-variable-modifier-explode
+uri-template-variable-modifier: uri-template-variable-modifier-prefix | "*"
 
-uri-template-variable-modifier-prefix: COLON ( ONE | NON-ZERO-DIGIT ) ( digit ) *
+uri-template-variable-modifier-prefix: ":" NUMBER
 
 digit: ZERO | ONE | NON-ZERO-NON-ONE-DIGIT
-
-uri-template-variable-modifier-explode: ASTERISK
 
 exec: EXEC URI
 
@@ -101,8 +99,8 @@ expression : json-pointer
   | json-expression
   | id
   | head-id
-  | expression ASTERISK expression
-  | expression PLUS expression
+  | expression "*" expression
+  | expression "+" expression
   | ( "length" "(" expression ")" )
 
 json-pointer: JSON-POINTER | (JSON-POINTER "relative" "to" IDENTIFIER)
@@ -115,11 +113,9 @@ unescaped-token: (letter | UNDERSCORE | digit) *
 
 @letter: UPPERCASE-LETTER | LOWERCASE-LETTER
 
-json-expression : json-boolean | json-number | json-null | json-array | json-object | JSON-STRING
+json-expression : json-boolean | NUMBER | json-null | json-array | json-object | JSON-STRING
 
 json-boolean : "true" | "false"
-
-json-number : json-float | json-integer
 
 json-float : json-integer+ "." json-integer+
 
@@ -127,13 +123,13 @@ json-integer : digit +
 
 json-null : "null"
 
-json-array : /OPEN-BRACKET [ json-array-item (/COMMA json-array-item)* ] /CLOSE-BRACKET
+json-array : /"[" [ json-array-item (/"," json-array-item)* ] /"]"
 
-json-array-item : (json-expression | IDENTIFIER)
+json-array-item : json-expression | IDENTIFIER
 
-json-object : OPEN-BRACE [ json-object-item (COMMA json-object-item)* ] CLOSE-BRACE
+json-object : "{" [ json-object-item ("," json-object-item)* ] "}"
 
-json-object-item : json-object-property COLON (json-expression | IDENTIFIER | env-identifier)
+json-object-item : json-object-property ":" (json-expression | IDENTIFIER | env-identifier)
 
 json-object-property : JSON-STRING
 
