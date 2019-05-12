@@ -266,7 +266,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
   (match chars
     [(list #\# (not #\newline) ...)
      (define end-position (add-position start chars))
-     (define comment/token (position-token (token 'comment (list->string (cdr chars)))
+     (define comment/token (position-token (token 'COMMENT (list->string (cdr chars)) #:skip? #t)
                                            start
                                            end-position))
      (lexer-result end-position
@@ -277,7 +277,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                                   (lambda (x)
                                     (not (char=? x #\newline)))))
      (define end-position (add-position start (cons #\# comment-chars)))
-     (define comment/token (position-token (token 'comment (list->string comment-chars))
+     (define comment/token (position-token (token 'COMMENT (list->string comment-chars) #:skip? #t)
                                            start
                                            end-position))
      (lexer-result end-position
