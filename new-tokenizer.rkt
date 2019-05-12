@@ -1263,17 +1263,17 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons #\# more)
+    [(cons #\# _)
      (define result (comment chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons #\/ more)
+    [(cons #\/ _)
      (define result (json-pointer chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) more)
+    [(cons (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) _)
      (define result (number chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
