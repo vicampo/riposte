@@ -73,11 +73,11 @@ parameter-assignment: PARAMETER-IDENTIFIER /":=" (uri-template | expression)
 header-assignment: head-id /":=" expression
 
 command:
-    HTTP-METHOD [ (id | json-expression) ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with ]
-  | HTTP-METHOD ( id | json-expression ) uri-template [ with-headers ] [ emptiness | satisfies  | responds-with ]
-  | HTTP-METHOD [ id | json-expression ] uri-template [ with-headers ] (responds-with | satisfies) [ /"and" emptiness ]
- | HTTP-METHOD [ (id | json-expression) ] uri-template [ with-headers ] responds-with /"and" (satisfies | emptiness)
-  | HTTP-METHOD [ id | json-expression ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
+    HTTP-METHOD [ (id | json-expression) "to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with ]
+  | HTTP-METHOD ( id | json-expression ) "to" uri-template [ with-headers ] [ emptiness | satisfies  | responds-with ]
+  | HTTP-METHOD [ (id | json-expression) "to" ] uri-template [ with-headers ] (responds-with | satisfies) [ /"and" emptiness ]
+ | HTTP-METHOD [ (id | json-expression) "to" ] uri-template [ with-headers ] responds-with /"and" (satisfies | emptiness)
+  | HTTP-METHOD [ (id | json-expression) "to" ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
 
 with-headers: "with" "headers" ( IDENTIFIER | json-object )
 
