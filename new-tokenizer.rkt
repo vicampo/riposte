@@ -540,6 +540,143 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 |#
 
+(define/contract (lex-json-array-items chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(cons #\# _)
+     (define comment/result (comment chars start))
+     (define tail/result (lex-json-array-items (lexer-result-characters comment/result)
+                                               (lexer-result-end-position comment/result)))
+     (struct-copy lexer-result
+                  tail/result
+                  [tokens (append (lexer-result-tokens comment/result)
+                                  (lexer-result-tokens tail/result))])]
+    [(cons #\] _)
+     (define end-position (add-position start (car chars)))
+     (define t (position-token (token "]")
+                               start
+                               end-position))
+     (lexer-result end-position
+                   (list t)
+                   (cdr chars))]
+    [(cons #\, _)
+     (define after-comma-position (add-position start (car chars)))
+     (define t (position-token (token ",")
+                               start
+                               after-comma-position))
+     (define next-item/result (lex-jsonish-stuff (cdr chars)
+                                            after-comma-position))
+     (define tail/result (lex-json-array-items (lexer-result-characters next-item/result)
+                                               (lexer-result-end-position next-item/result)))
+     (struct-copy lexer-result
+                  tail/result
+                  [tokens (append (list t)
+                                  (lexer-result-tokens next-item/result)
+                                  (lexer-result-tokens tail/result))])]
+    [(cons _ _)
+     (define item/result (lex-jsonish-stuff chars start))
+     (define tail/result (lex-json-array-items (lexer-result-characters item/result)
+                                               (lexer-result-end-position item/result)))
+     (struct-copy lexer-result
+                  tail/result
+                  [tokens (append (lexer-result-tokens item/result)
+                                  (lexer-result-tokens tail/result))])]))
+
+(define/contract (lex-json-array chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(cons (? char-whitespace?) _)
+     (lex-json-array (cdr chars)
+                     (add-position start (car chars)))]
+    [(cons #\[ _)
+     (define after-opening-token/position (add-position start (car chars)))
+     (define opening-token (position-token (token "[")
+                                           start
+                                           after-opening-token/position))
+     (define items/result (lex-json-array-items (cdr chars)
+                                                after-opening-token/position))
+     (struct-copy lexer-result
+                  items/result
+                  [tokens (cons opening-token
+                                (lexer-result-tokens items/result))])]))
+
+(define/contract (lex-json-object-items chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (log-error "lex-json-object-items: ~a" chars)
+  (match chars
+    [(cons (? char-whitespace?) _)
+     (lex-json-object-items (cdr chars)
+                            (add-position start (car chars)))]
+    [(cons #\# _)
+     (define comment/result (comment chars start))
+     (define tail/result (lex-json-object-items (lexer-result-characters comment/result)
+                                                (lexer-result-end-position comment/result)))
+     (struct-copy lexer-result
+                  tail/result
+                  [tokens (append (lexer-result-tokens comment/result)
+                                  (lexer-result-tokens tail/result))])]
+    [(cons #\, _)
+     (define after-comma-position (add-position start (car chars)))
+     (define t (position-token (token ",")
+                               start
+                               after-comma-position))
+     (define next-item/result (lex-json-object-items (cdr chars)
+                                                     after-comma-position))
+     (struct-copy lexer-result
+                  next-item/result
+                  [tokens (append (list t)
+                                  (lexer-result-tokens next-item/result))])]
+    [(cons #\} _)
+     (define end-position (add-position start (car chars)))
+     (define t (position-token (token "}")
+                               start
+                               end-position))
+     (lexer-result end-position
+                   (list t)
+                   (cdr chars))]
+    [(cons #\" _)
+     (define property/result (json-string chars start))
+     (define remaining-chars (lexer-result-characters property/result))
+     (match remaining-chars
+       [(list-rest (? char-whitespace?) ... #\: _)
+        (define whitespace-chars (takef remaining-chars char-whitespace?))
+        (define after-whitespace-chars (dropf remaining-chars char-whitespace?))
+        (log-error "after-whitespace-chars: ~a" after-whitespace-chars)
+        (define colon-position (add-position (lexer-result-end-position property/result)
+                                             whitespace-chars))
+        (define after-colon-position (add-position colon-position #\:))
+        (define colon-token (position-token (token ":")
+                                            colon-position
+                                            after-colon-position))
+        (define value/result (lex-jsonish-stuff (cdr after-whitespace-chars)
+                                                after-colon-position))
+        (log-error "lexed a value; remaining characters: ~a" (lexer-result-characters value/result))
+        (define tail/result (lex-json-object-items (lexer-result-characters value/result)
+                                                   (lexer-result-end-position value/result)))
+        (struct-copy lexer-result
+                     tail/result
+                     [tokens (append (lexer-result-tokens property/result)
+                                     (list colon-token)
+                                     (lexer-result-tokens value/result)
+                                     (lexer-result-tokens tail/result))])])]))
+
+(define/contract (lex-json-object chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(cons (? char-whitespace?) _)
+     (lex-json-object (cdr chars)
+                      (add-position start (car chars)))]
+    [(cons #\{ _)
+     (define new-position (add-position start (car chars)))
+     (define opening-token (position-token (token "{")
+                                           start
+                                           new-position))
+     (define items/result (lex-json-object-items (cdr chars)
+                                                 new-position))
+     (struct-copy lexer-result
+                  items/result
+                  [tokens (cons opening-token (lexer-result-tokens items/result))])]))
+
 (define/contract (lex-jsonish-stuff chars start)
   ((listof char?) position? . -> . lexer-result?)
   ;(log-error "lex-jsonish: ~a" chars)
@@ -548,94 +685,48 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (lexer-result start
                    (list)
                    (list))]
+    [(cons #\# _)
+     (define comment/result (comment chars start))
+     (define tail/result (lex-jsonish-stuff (lexer-result-characters comment/result)
+                                            (lexer-result-end-position comment/result)))
+     (struct-copy lexer-result
+                  tail/result
+                  [tokens (append (lexer-result-tokens comment/result)
+                                  (lexer-result-tokens tail/result))])]
     [(cons (? char-whitespace? c) _)
      (lex-jsonish-stuff (cdr chars)
                         (add-position start c))]
     [(cons #\$ _)
-     (define id/result (identifier chars start))
-     (define more/result (lex-jsonish-stuff (lexer-result-characters id/result)
-                                            (lexer-result-end-position id/result)))
-     (struct-copy lexer-result
-                  more/result
-                  [tokens (append (lexer-result-tokens id/result)
-                                  (lexer-result-tokens more/result))])]
-    [(cons (or #\{ #\} #\[ #\] #\, #\:) _)
-     (define new-position (add-position start (car chars)))
-     (define t (position-token (token (string->symbol (~a (car chars))))
-                               start
-                               new-position))
-     (define more/result (lex-jsonish-stuff (cdr chars)
-                                            new-position))
-     (lexer-result (lexer-result-end-position more/result)
-                   (cons t (lexer-result-tokens more/result))
-                   (lexer-result-characters more/result))]
+     (identifier chars start)]
+    [(cons #\{ _)
+     (lex-json-object chars start)]
+    [(cons #\[ _)
+     (lex-json-array chars start)]
     [(cons #\" _)
-     (define string/result (json-string chars start))
-     (define more/result (lex-jsonish-stuff (lexer-result-characters string/result)
-                                            (lexer-result-end-position string/result)))
-     (lexer-result (lexer-result-end-position more/result)
-                   (append (lexer-result-tokens string/result)
-                           (lexer-result-tokens more/result))
-                   (lexer-result-characters more/result))]
-    [(list #\n #\u #\l #\l (? char-whitespace?) ...)
+     (json-string chars start)]
+    [(list-rest #\n #\u #\l #\l _)
      (define new-position (add-position start (take chars 4)))
      (lexer-result new-position
                    (list (position-token (token 'json-null)
                                          start
                                          new-position))
-                   (list))]
-    [(list #\t #\r #\u #\e (? char-whitespace?) ...)
+                   (drop chars 4))]
+    [(list-rest #\t #\r #\u #\e _)
      (define new-position (add-position start (take chars 4)))
      (lexer-result new-position
                    (list (position-token (token 'json-true)
                                          start
                                          new-position))
-                   (list))]
-    [(list #\f #\a #\l #\s #\e (? char-whitespace?) ...)
+                   (drop chars 4))]
+    [(list-rest #\f #\a #\l #\s #\e _)
      (define new-position (add-position start (take chars 5)))
      (lexer-result new-position
                    (list (position-token (token 'json-true)
                                          start
                                          new-position))
-                   (list))]
-    [(list-rest #\n #\u #\l #\l (or (? char-whitespace?) #\,) _)
-     (define new-position (add-position start (take chars 4)))
-     (define null-token (position-token (token 'json-null)
-                                        start
-                                        new-position))
-     (define more/result (lex-jsonish-stuff (drop chars 4)
-                                            new-position))
-     (struct-copy lexer-result
-                  more/result
-                  [tokens (cons null-token (lexer-result-tokens more/result))])]
-    [(list-rest #\t #\r #\u #\e (or (? char-whitespace?) #\,) _)
-     (define new-position (add-position start (take chars 4)))
-     (define null-token (position-token (token 'json-true)
-                                        start
-                                        new-position))
-     (define more/result (lex-jsonish-stuff (drop chars 4)
-                                            new-position))
-     (struct-copy lexer-result
-                  more/result
-                  [tokens (cons null-token (lexer-result-tokens more/result))])]
-    [(list-rest #\f #\a #\l #\s #\e (or (? char-whitespace?) #\,) _)
-     (define new-position (add-position start (take chars 5)))
-     (define null-token (position-token (token 'json-false)
-                                        start
-                                        new-position))
-     (define more/result (lex-jsonish-stuff (drop chars 5)
-                                            new-position))
-     (struct-copy lexer-result
-                  more/result
-                  [tokens (cons null-token (lexer-result-tokens more/result))])]
+                   (drop chars 5))]
     [(cons (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) _)
-     (define number/result (number chars start))
-     (define more/result (lex-jsonish-stuff (lexer-result-characters number/result)
-                                            (lexer-result-end-position number/result)))
-     (lexer-result (lexer-result-end-position more/result)
-                   (append (lexer-result-tokens number/result)
-                           (lexer-result-tokens more/result))
-                   (lexer-result-characters more/result))]
+     (number chars start)]
     [else
      (lexer-result start
                    (list)
@@ -1266,6 +1357,21 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(list-rest #\f #\a #\l #\s #\e _)
+     (define result (lex-jsonish-stuff chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\t #\r #\u #\e _)
+     (define result (lex-jsonish-stuff chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\n #\u #\l #\l _)
+     (define result (lex-jsonish-stuff chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list-rest #\: #\= _)
      (define result (assignment chars start))
      (append (lexer-result-tokens result)
@@ -1797,8 +1903,19 @@ RIPOSTE
     (check-equal? (tokenize program)
                   (list))))
 
+#;
 (module+ test
   (let ([program "$a := { \"foo\": true } $b := false"])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program "$a := { \"foo\": true, \"bar\": $bar } $b := false"])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program "$a := [ 4 ]"])
     (check-equal? (tokenize program)
                   (list))))
 
