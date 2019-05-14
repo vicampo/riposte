@@ -5,6 +5,8 @@
 (require racket/contract
          racket/match
          racket/format
+         (only-in racket/string
+                  non-empty-string?)
          (only-in racket/list
                   take
                   drop
@@ -1172,20 +1174,26 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                   (position c2 l2 c2)))
 
 (define/contract (consume-keyword keyword chars start)
-  (string? (listof char?) position? . -> . lexer-result?)
-  (define string-chars (string->list keyword))
-  (define initial-segment (take chars (length string-chars)))
-  (unless (= (length initial-segment) (length string-chars))
-    (error (format "Too few characters available! Cannot lex \"~a\" because all we have are ~a"
-                   keyword
-                   chars)))
-  (define end-position (add-position start initial-segment))
-  (define keyword/token (position-token (token (string->symbol keyword))
-                                        start
-                                        end-position))
-  (lexer-result end-position
-                (list keyword/token)
-                (drop chars (length initial-segment))))
+  (non-empty-string? (listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list)
+     (error "Cannot consume keyword \"~a\": no more characters left!" keyword)]
+    [(cons (? char-whitespace?) _)
+     (consume-keyword keyword (cdr chars) (add-position start (car chars)))]
+    [else
+     (define string-chars (string->list keyword))
+     (define initial-segment (take chars (length string-chars)))
+     (unless (= (length initial-segment) (length string-chars))
+       (error (format "Too few characters available! Cannot lex \"~a\" because all we have are ~a"
+                      keyword
+                      chars)))
+     (define end-position (add-position start initial-segment))
+     (define keyword/token (position-token (token (string->symbol keyword))
+                                           start
+                                           end-position))
+     (lexer-result end-position
+                   (list keyword/token)
+                   (drop chars (length initial-segment)))]))
 
 (define/contract (to chars start)
   ((listof char?) position? . -> . lexer-result?)
