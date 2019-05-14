@@ -41,14 +41,33 @@ disequality : expression /"!=" expression
 
 inequality : expression ("<" | ">") expression
 
-predication : (expression "is" [ "not" ] json-type)
-  | (expression "is" (sequence-adjective | arithmetical-adjective | object-adjective ))
-  | (expression "has" "property" expression)
-  | (expression "does" "not" "have" "property" expression)
-  | (expression "has" "length" expression)
-  | (expression "has" "at" [ "least" | "most" ] expression | ( "properties" | "elements" | "characters"))
-  | (HEADER-REF "is" ("absent" | "present"))
-  | (json-pointer ("exists" | "does" "not" "exist") [ "relative to" (IDENTIFIER | HEADER-IDENTIFIER) ] [  /"and" "is" [ "non"] "empty" ] )
+@predication : has-type
+  | adjective-applies
+  | has-property
+  | has-length
+  | has-element-count
+  | header-presence
+  | jp-existence
+
+has-type: expression "is" [ "not" ] json-type
+
+adjective-applies: expression "is" (sequence-adjective | arithmetical-adjective | object-adjective )
+
+has-element-count: expression "has"
+  "at" [ "least" | "most" ]
+  expression
+  ( "properties" | "elements" | "characters" )
+
+has-length: expression "has" "length" expression
+
+has-property: expression ("has" | "does" "not" "have") "property" expression
+
+jp-existence: JSON-POINTER
+  ("exists" | "does" "not" "exist")
+  [ "relative" "to" (IDENTIFIER | HEADER-IDENTIFIER) ]
+  [ "and" "is" [ "non" ] "empty" ]
+
+header-presence: HEADER-REF "is" ("absent" | "present")
 
 json-type : "boolean" | json-number-type | "null" | json-sequence-type | json-object-type
 
@@ -68,7 +87,7 @@ sequence-adjective: [ "non" ] "empty"
 
 normal-assignment: IDENTIFIER /":=" expression [ "(" json-type ")" ]
 
-parameter-assignment: PARAMETER-IDENTIFIER /":=" (uri-template | expression)
+parameter-assignment: PARAMETER /":=" (uri-template | expression)
 
 header-assignment: head-id /":=" expression
 
@@ -91,11 +110,11 @@ emptiness: "is" [ "non" ] "empty"
 
 responds-with: /"responds" /"with" HTTP-STATUS-CODE
 
-@schema-ref: id
+schema-ref: id
   | "at" uri-template
-  | "in" uri-template
+  | "in" FILENAME
 
-expression : json-pointer
+@expression : json-pointer
   | json-expression
   | id
   | head-id
@@ -133,11 +152,15 @@ json-object-item : json-object-property ":" (json-expression | IDENTIFIER | env-
 
 json-object-property : JSON-STRING
 
-id: IDENTIFIER | env-identifier | parameter-identifier
+id: IDENTIFIER | env-identifier | parameter-identifier | head-id
 
 env-identifier: ENV-IDENTIFIER
  | (ENV-IDENTIFIER /"with" /"fallback" json-expression)
 
-head-id: HEADER-IDENTIFIER
+@head-id: request-head-id | response-head-id
+
+request-head-id: REQUEST-HEADER-IDENTIFIER
+
+response-head-id: RESPONSE-HEADER-IDENTIFIER
 
 parameter-identifier: PARAMETER-IDENTIFIER
