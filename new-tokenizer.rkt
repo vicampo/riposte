@@ -251,7 +251,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
     [(cons #\^ cs)
      (define ident-chars (read-header-name-chars cs))
      ;(log-error "header name chars: ~a" ident-chars)
-     (define token-content (token 'request-header-identifier (list->string ident-chars)))
+     (define token-content (token 'REQUEST-HEADER-IDENTIFIER (list->string ident-chars)))
      (define end-position (add-position start (cons #\^ ident-chars)))
      (define id/token (position-token token-content
                                       start
@@ -272,7 +272,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                     (position-col start)))]
     [(cons #\% cs)
      (define ident-chars (read-identifier-chars cs))
-     (define token-content (token 'parameter (list->string ident-chars)))
+     (define token-content (token 'PARAMETER (list->string ident-chars)))
      (define end-position (add-position start (cons #\% ident-chars)))
      (define id/token (position-token token-content
                                       start
@@ -1269,7 +1269,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                 _)
      (define parameter-chars (take (cdr chars) 4))
      (define new-position (add-position start (take chars 5)))
-     (define parameter-token (position-token (token 'parameter (list->string parameter-chars))
+     (define parameter-token (position-token (token 'PARAMETER (list->string parameter-chars))
                                              start
                                              new-position))
      (define after-parameter-chars (drop chars 5))
