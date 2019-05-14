@@ -622,7 +622,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (lex-json-object-items chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (log-error "lex-json-object-items: ~a" chars)
+  ;(log-error "lex-json-object-items: ~a" chars)
   (match chars
     [(cons (? char-whitespace?) _)
      (lex-json-object-items (cdr chars)
@@ -661,7 +661,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
        [(list-rest (? char-whitespace?) ... #\: _)
         (define whitespace-chars (takef remaining-chars char-whitespace?))
         (define after-whitespace-chars (dropf remaining-chars char-whitespace?))
-        (log-error "after-whitespace-chars: ~a" after-whitespace-chars)
         (define colon-position (add-position (lexer-result-end-position property/result)
                                              whitespace-chars))
         (define after-colon-position (add-position colon-position #\:))
@@ -670,7 +669,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                                             after-colon-position))
         (define value/result (lex-jsonish-stuff (cdr after-whitespace-chars)
                                                 after-colon-position))
-        (log-error "lexed a value; remaining characters: ~a" (lexer-result-characters value/result))
         (define tail/result (lex-json-object-items (lexer-result-characters value/result)
                                                    (lexer-result-end-position value/result)))
         (struct-copy lexer-result
