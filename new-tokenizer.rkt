@@ -209,16 +209,34 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
                     (car chars)
                     (position-line start)
                     (position-col start)))]
-    [(cons #\@ cs)
-     (define ident-chars (read-identifier-chars cs))
+    [(list-rest #\@ (? char-identifier?) ..1 _)
+     (define ident-chars (read-identifier-chars (cdr chars)))
      (define token-content (token 'ENV-IDENTIFIER (list->string ident-chars)))
      (define end-position (add-position start (cons #\@ ident-chars)))
      (define id/token (position-token token-content
                                       start
                                       end-position))
-     (lexer-result end-position
-                   (list id/token)
-                   (drop chars (add1 (length ident-chars))))]))
+     (define remaining-chars (drop chars (length (cons #\@ ident-chars))))
+     (match remaining-chars
+       [(list-rest (? char-whitespace?) ..1 #\w #\i #\t #\h
+                   (? char-whitespace?) ..1 #\f #\a #\l #\l #\b #\a #\c #\k
+                   (? char-whitespace?) _)
+        (define with/result (consume-keyword "with" remaining-chars end-position))
+        (define fallback/result (consume-keyword "fallback"
+                                                 (lexer-result-characters with/result)
+                                                 (lexer-result-end-position with/result)))
+        (define value/result (lex-jsonish-stuff (lexer-result-characters fallback/result)
+                                                (lexer-result-end-position fallback/result)))
+        (lexer-result (lexer-result-end-position value/result)
+                      (append (list id/token)
+                              (lexer-result-tokens with/result)
+                              (lexer-result-tokens fallback/result)
+                              (lexer-result-tokens value/result))
+                      (lexer-result-characters value/result))]
+       [else
+        (lexer-result end-position
+                      (list id/token)
+                      remaining-chars)])]))
 
 (define/contract (request-header-identifier chars start)
   ((listof char?) position? . -> . lexer-result?)
@@ -700,6 +718,8 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                         (add-position start c))]
     [(cons #\$ _)
      (identifier chars start)]
+    [(cons #\@ _)
+     (environment-identifier chars start)]
     [(cons #\{ _)
      (lex-json-object chars start)]
     [(cons #\[ _)
@@ -1467,11 +1487,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                       (lexer-result-end-position result)))]
     [(list-rest #\w #\i #\t #\h _)
      (define result (consume-keyword "with" chars start))
-     (append (lexer-result-tokens result)
-             (initial (lexer-result-characters result)
-                      (lexer-result-end-position result)))]
-    [(list-rest #\f #\a #\l #\l #\b #\a #\c #\k _)
-     (define result (consume-keyword "fallback" chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
