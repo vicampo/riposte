@@ -707,26 +707,11 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
     [(cons #\" _)
      (json-string chars start)]
     [(list-rest #\n #\u #\l #\l _)
-     (define new-position (add-position start (take chars 4)))
-     (lexer-result new-position
-                   (list (position-token (token 'json-null)
-                                         start
-                                         new-position))
-                   (drop chars 4))]
+     (consume-keyword "null" chars start)]
     [(list-rest #\t #\r #\u #\e _)
-     (define new-position (add-position start (take chars 4)))
-     (lexer-result new-position
-                   (list (position-token (token 'json-true)
-                                         start
-                                         new-position))
-                   (drop chars 4))]
+     (consume-keyword "true" chars start)]
     [(list-rest #\f #\a #\l #\s #\e _)
-     (define new-position (add-position start (take chars 5)))
-     (lexer-result new-position
-                   (list (position-token (token 'json-true)
-                                         start
-                                         new-position))
-                   (drop chars 5))]
+     (consume-keyword "false" chars start)]
     [(cons (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) _)
      (number chars start)]
     [else
