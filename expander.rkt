@@ -281,7 +281,7 @@
 
 (provide assignment)
 
-(define-macro (normal-assignment (normal-identifier ID) EXPR)
+(define-macro (normal-assignment ID EXPR)
   (with-syntax ([name (format-id #'ID "~a" (syntax->datum #'ID))])
     #'(define name EXPR)))
 
