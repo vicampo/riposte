@@ -9,6 +9,8 @@ program-step: assignment
   | assertion
   | unset
 
+riposte-repl: program-step
+
 import: /"import" FILENAME
 
 uri-template: ( URI-TEMPLATE-LITERAL | uri-template-expression ) +
@@ -29,9 +31,9 @@ digit: ZERO | ONE | NON-ZERO-NON-ONE-DIGIT
 
 exec: EXEC URI
 
-echo: "echo" [ json-pointer | IDENTIFIER | head-id ]
+echo: /"echo" [ json-pointer | IDENTIFIER | head-id ]
 
-unset: "unset" HEADER-IDENTIFIER
+unset: /"unset" HEADER-IDENTIFIER
 
 assertion : equality | disequality | inequality | predication
 
@@ -148,7 +150,7 @@ json-array-item : json-expression | IDENTIFIER
 
 json-object : "{" [ json-object-item ("," json-object-item)* ] "}"
 
-json-object-item : json-object-property ":" (json-expression | IDENTIFIER | env-identifier)
+json-object-item : json-object-property /":" (json-expression | IDENTIFIER | env-identifier)
 
 json-object-property : JSON-STRING
 
