@@ -9,8 +9,6 @@ program-step: assignment
   | assertion
   | unset
 
-riposte-repl: program-step
-
 import: /"import" FILENAME
 
 uri-template: ( URI-TEMPLATE-LITERAL | uri-template-expression ) +
@@ -31,7 +29,7 @@ digit: ZERO | ONE | NON-ZERO-NON-ONE-DIGIT
 
 exec: EXEC URI
 
-echo: /"echo" [ json-pointer | IDENTIFIER | head-id ]
+echo: /"echo" [ json-pointer | normal-identifier | head-id ]
 
 unset: /"unset" HEADER-IDENTIFIER
 
@@ -66,7 +64,7 @@ has-property: expression ("has" | "does" "not" "have") "property" expression
 
 jp-existence: JSON-POINTER
   ("exists" | "does" "not" "exist")
-  [ "relative" "to" (IDENTIFIER | HEADER-IDENTIFIER) ]
+  [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER) ]
   [ "and" "is" [ "non" ] "empty" ]
 
 header-presence: HEADER-REF "is" ("absent" | "present")
@@ -100,7 +98,7 @@ command:
  | HTTP-METHOD [ (id | json-expression) "to" ] uri-template [ with-headers ] responds-with /"and" (satisfies | emptiness)
   | HTTP-METHOD [ (id | json-expression) "to" ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
 
-with-headers: "with" "headers" ( IDENTIFIER | json-object )
+with-headers: "with" "headers" ( normal-identifier | json-object )
 
 @satisfies: positive-satisfies | negative-satisfies
 
@@ -116,7 +114,7 @@ schema-ref: id
   | "at" uri-template
   | "in" FILENAME
 
-@expression : json-pointer
+@expression: json-pointer
   | json-expression
   | id
   | head-id
@@ -124,7 +122,7 @@ schema-ref: id
   | expression "+" expression
   | ( "length" "(" expression ")" )
 
-json-pointer: JSON-POINTER | (JSON-POINTER "relative" "to" IDENTIFIER)
+json-pointer: JSON-POINTER | (JSON-POINTER "relative" "to" normal-identifier)
 
 reference-token: escaped-token | unescaped-token
 
@@ -134,7 +132,7 @@ unescaped-token: (letter | UNDERSCORE | digit) *
 
 @letter: UPPERCASE-LETTER | LOWERCASE-LETTER
 
-json-expression : json-boolean | NUMBER | json-null | json-array | json-object | JSON-STRING
+@json-expression: json-boolean | NUMBER | json-null | json-array | json-object | JSON-STRING
 
 json-boolean : "true" | "false"
 
@@ -146,15 +144,15 @@ json-null : "null"
 
 json-array : /"[" [ json-array-item (/"," json-array-item)* ] /"]"
 
-json-array-item : json-expression | IDENTIFIER
+json-array-item : json-expression | normal-identifier
 
-json-object : "{" [ json-object-item ("," json-object-item)* ] "}"
+json-object: /"{" [ json-object-item ("," json-object-item)* ] /"}"
 
-json-object-item : json-object-property /":" (json-expression | IDENTIFIER | env-identifier)
+json-object-item: JSON-STRING /":" (json-expression | normal-identifier | env-identifier)
 
-json-object-property : JSON-STRING
+id: normal-identifier | env-identifier | parameter-identifier | head-id
 
-id: IDENTIFIER | env-identifier | parameter-identifier | head-id
+normal-identifier: IDENTIFIER
 
 env-identifier: ENV-IDENTIFIER
  | (ENV-IDENTIFIER /"with" /"fallback" json-expression)
@@ -166,3 +164,5 @@ request-head-id: REQUEST-HEADER-IDENTIFIER
 response-head-id: RESPONSE-HEADER-IDENTIFIER
 
 parameter-identifier: PARAMETER-IDENTIFIER
+
+riposte-repl: normal-identifier | command | assignment

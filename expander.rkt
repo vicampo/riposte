@@ -38,7 +38,8 @@
                   parse)
          (only-in (file "response.rkt")
                   response?
-                  make-response))
+                  make-response)
+         (file "setup.rkt"))
 
 (require (for-syntax (only-in (file "grammar.rkt")
                               parse)
@@ -262,6 +263,9 @@
 
 (define-macro (riposte-module-begin PARSE-TREE)
   #`(#%module-begin
+     (module configure-runtime br
+       (require riposte/setup)
+       (do-setup!))
      (unsyntax-splicing #'PARSE-TREE)))
 
 (provide (rename-out [riposte-module-begin #%module-begin]))
@@ -674,3 +678,8 @@
   #'L)
 
 (provide letter)
+
+(define-macro (riposte-repl THING)
+  #'THING)
+
+(provide riposte-repl)
