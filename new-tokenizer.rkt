@@ -1191,7 +1191,8 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                       keyword
                       chars)))
      (define end-position (add-position start initial-segment))
-     (define keyword/token (position-token (token (string->symbol keyword))
+     (define keyword/token (position-token (token (string->symbol keyword)
+                                                  keyword)
                                            start
                                            end-position))
      (lexer-result end-position

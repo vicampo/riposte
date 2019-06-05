@@ -355,6 +355,26 @@
 
 (provide predication)
 
+(define-macro-cases jp-existence
+  [(_ JP "exists")
+   #'(begin
+      (unless (response? last-response)
+        (error "No response received yet; JSON Pointer \"~a\" cannot refer to anything." jp))
+      (unless (send last-response body-is-string?)
+        (error "Body cannot be converted to a string (is it binary data?)"))
+      (unless (send last-response body-is-well-formed?)
+        (error "Body is malformed JSON."))
+      (unless (json-pointer-refers? JP (send last-response as-ejsexpr))
+        (define new-message
+          (with-output-to-string
+            (lambda ()
+              (displayln (format "JSON Pointer \"~a\" does not refer!" JP))
+              (displayln (format "We evaluated the JSON Pointer relative to:"))
+              (displayln (ejsexpr->string (send last-response as-ejsexpr))))))
+        (error new-message)))])
+
+(provide jp-existence)
+
 (define-syntax (expression stx)
   (syntax-case stx ()
     [(_ (json-expression jp))
@@ -373,7 +393,10 @@
                 (error "Cannot add a string and a non-string."))
               (string-append x y)]
              [else
-              (error "How do add ~a and ~a?" x y)])]))
+              (error "How do add ~a and ~a?" x y)])]
+    ; not sure what to do; punt
+    [(_ x)
+     #'x]))
 
 (provide expression)
 
@@ -402,14 +425,18 @@
 
 (provide json-float)
 
+#;
 (define-macro (json-boolean B)
   #'B)
 
-#;
 (define-macro-cases json-boolean
   [(json-boolean "true")
    #'#t]
+  [(json-boolean #t)
+   #'#t]
   [(json-boolean "false")
+   #'#f]
+  [(json-boolean #f)
    #'#f])
 
 (provide json-boolean)
@@ -564,6 +591,10 @@
    #'(begin
        (cmd METHOD URI)
        (response-code-matches? CODE)
+       (response-satisfies-schema? SCHEMA))]
+  [(_ METHOD URI (positive-satisfies (schema-ref SCHEMA)))
+   #'(begin
+       (cmd METHOD URI)
        (response-satisfies-schema? SCHEMA))])
 
 (provide command)

@@ -114,7 +114,7 @@ schema-ref: id
   | "at" uri-template
   | "in" FILENAME
 
-@expression: json-pointer
+expression: json-pointer
   | json-expression
   | id
   | head-id
