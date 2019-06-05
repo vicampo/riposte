@@ -150,7 +150,7 @@ json-object: /"{" [ json-object-item ("," json-object-item)* ] /"}"
 
 json-object-item: JSON-STRING /":" (json-expression | normal-identifier | env-identifier)
 
-id: normal-identifier | env-identifier | parameter-identifier | head-id
+@id: normal-identifier | env-identifier | parameter-identifier | head-id
 
 normal-identifier: IDENTIFIER
 
