@@ -2,6 +2,7 @@
 
 (require (for-syntax racket/base)
          racket/cmdline
+         racket/pretty
          dotenv
          (file "util.rkt")
          (only-in (file "evaluator.rkt")
@@ -16,6 +17,11 @@
                   param-cwd)
          (only-in (file "./version.rkt")
                   riposte-version)
+         (only-in (file "reader.rkt")
+                  read-syntax)
+         (file "grammar.rkt")
+         (only-in (file "new-tokenizer.rkt")
+                  tokenize)
          racket/contract
          brag/support
          racket/match)
@@ -63,14 +69,44 @@
   (exit 1))
 
 (define/contract (eval-program-in-dir dir file-to-process)
-  ((or/c path? (one-of/c 'relative)) path-string? . -> . environment?)
+  ((or/c path? (one-of/c 'relative)) path? . -> . environment?)
   (define cwd
     (cond [(path? dir)
            dir]
           [else
            (current-directory)]))
-  (parameterize ([param-cwd cwd])
-    (eval-program (file->program file-to-process))))
+  (parameterize ([param-cwd cwd]
+                 [current-namespace (make-base-empty-namespace)])
+    (namespace-require 'riposte/expander)
+    (load file-to-process)))
+
+(define/contract (expand-imports program cwd)
+  (any/c path? . -> . any/c)
+  (match program
+    [(list)
+     (list)]
+    [(or (? string?) (? number?) (? boolean?))
+     program]
+    [(list 'import (? string? filename))
+     (define path (build-path cwd filename))
+     (unless (file-exists? path)
+       (error (format "Cannot import program at \"~a\": no such file." (path->string path))))
+     (define-values (dir base is-directory?)
+       (split-path path))
+     (define tokens (tokenize path))
+     (define parse-tree (parse tokens))
+     (expand-imports (syntax->datum parse-tree) dir)]
+    [(cons (? symbol? x) y)
+     (cons x (map (lambda (s)
+                    (expand-imports s cwd))
+                  y))]))
+
+(define (run-program filename cwd)
+  (define parsed (syntax->datum (parse (tokenize filename))))
+  (define expanded (expand-imports parsed cwd))
+  (parameterize ([current-namespace (make-base-empty-namespace)])
+    (namespace-require '(file "./expander.rkt"))
+    (eval expanded)))
 
 (module+ main
 
@@ -127,5 +163,10 @@
 
   (run! (dotenv-load! (opt-dotenvs)))
 
-  (run! #:error-handler fail-program
-        (eval-program-in-dir dir file-to-process)))
+  (define cwd
+    (cond [(path? dir)
+           dir]
+          [else
+           (current-directory)]))
+
+  (run-program (string->path file-to-process) cwd))
