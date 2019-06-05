@@ -89,7 +89,7 @@ normal-assignment: IDENTIFIER /":=" expression [ "(" json-type ")" ]
 
 parameter-assignment: PARAMETER /":=" (uri-template | expression)
 
-header-assignment: head-id /":=" expression
+header-assignment: REQUEST-HEADER-IDENTIFIER /":=" expression
 
 command:
     HTTP-METHOD [ (id | json-expression) "to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with ]
