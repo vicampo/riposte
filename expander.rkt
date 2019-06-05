@@ -46,6 +46,10 @@
                      (prefix-in reader:
                                 (only-in (file "reader.rkt")
                                          read-syntax))
+                     (only-in (file "new-tokenizer.rkt")
+                              tokenize)
+                     (only-in (file "parameters.rkt")
+                              param-cwd)
                      racket/syntax
                      syntax/stx
                      racket/include))
@@ -266,12 +270,14 @@
      (module configure-runtime br
        (require riposte/setup)
        (do-setup!))
-     (unsyntax-splicing #'PARSE-TREE)))
+     #'PARSE-TREE
+     #;(unsyntax-splicing #'PARSE-TREE)
+     ))
 
 (provide (rename-out [riposte-module-begin #%module-begin]))
 
 (define-macro (riposte-program STEPS ...)
-  #'(STEPS ...))
+  #'(begin STEPS ...))
 
 (provide riposte-program)
 
@@ -514,71 +520,19 @@
 
 (provide digit)
 
-(define-syntax (uri-template-expression stx)
-  (syntax-case stx ()
-    [(_ "{"
-        (uri-template-operator "?")
-        (uri-template-variable-list
-         (uri-template-varspec varspec
-                               (uri-template-variable-modifier
-                                (uri-template-variable-modifier-explode "*"))))
-        "}")
-     (let [(name-as-string (apply string-append
-                                  (map syntax->datum
-                                       (stx->list
-                                        (stx-map (lambda (s)
-                                                   (cond [(stx-list? s)
-                                                          (stx-car (stx-cdr s))]
-                                                         [else
-                                                          s]))
-                                                 (stx-cdr #'varspec))))))]
-       (with-syntax ([name (format-id #'varspec "~a" name-as-string)])
-         #'(cond [(hash? name)
-                  (format "?~a"
-                          (foldl (lambda (a b)
-                                   (match b
-                                     [""
-                                      a]
-                                     [else
-                                      (format "~a&~a"
-                                              a b)]))
-                                 ""
-                                 (hash-map name
-                                           (lambda (k v)
-                                             (format "~a=~a" k v)))))]
-                 [else
-                  (error (format "How do deal with this exploded URI Template variable (~a)?" name))])))]
-    [(_ "{"
-        (uri-template-variable-list
-         (uri-template-varspec varspec))
-        "}")
-     (let [(name-as-string (apply string-append
-                                  (map syntax->datum
-                                       (stx->list
-                                        (stx-map (lambda (s)
-                                                   (cond [(stx-list? s)
-                                                          (stx-car (stx-cdr s))]
-                                                         [else
-                                                          s]))
-                                                 (stx-cdr #'varspec))))))]
-       (with-syntax ([name (format-id #'varspec "~a" name-as-string)])
-         #'(cond [(hash? name)
-                  (format "~a"
-                          (hash-map varspec
-                                    (lambda (k v)
-                                      (format "~a=~a" k v))))]
-                 [(integer? name)
-                  (format "~a" name)]
-                 [(real? name)
-                  (format "~a" name)]
-                 [(string? name)
-                  name]
-                 [else
-                  (error (format "How do deal with this plain URI Template variable (~a)?" name))])))]
-    [else
-     #'"fuck2"]))
+(define-macro-cases uri-template-expression
+  [(_ (uri-template-variable-list VAR))
+   #'VAR])
 
 (provide uri-template-expression)
+
+(define-macro-cases uri-template-varspec
+  [(_ VAR)
+   (format-id #'VAR "~a" (syntax->datum #'VAR))])
+
+(provide uri-template-varspec)
+
+(provide)
 
 (define-macro (uri-template-varname PIECES ...)
   #'(string-append PIECES ...))
