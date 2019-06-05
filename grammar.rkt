@@ -63,7 +63,7 @@ has-length: expression "has" "length" expression
 has-property: expression ("has" | "does" "not" "have") "property" expression
 
 jp-existence: JSON-POINTER
-  ("exists" | "does" "not" "exist")
+  ("exists" | ("does" "not" "exist"))
   [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER) ]
   [ "and" "is" [ "non" ] "empty" ]
 
