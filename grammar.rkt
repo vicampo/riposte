@@ -146,7 +146,7 @@ json-array : /"[" [ json-array-item (/"," json-array-item)* ] /"]"
 
 json-array-item : json-expression | normal-identifier
 
-json-object: /"{" [ json-object-item ("," json-object-item)* ] /"}"
+json-object: /"{" [ json-object-item (/"," json-object-item)* ] /"}"
 
 json-object-item: JSON-STRING /":" (json-expression | normal-identifier | env-identifier)
 
