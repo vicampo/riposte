@@ -259,9 +259,6 @@
 
 (define/contract (check-equal lhs rhs)
   (ejsexpr? ejsexpr? . -> . void)
-  (log-error "checking-equal:")
-  (log-error "~a" lhs)
-  (log-error "~a dipshit" rhs)
   (unless (equal-ejsexprs? lhs rhs)
     (error (format "JSON values are not equal! LHS: ~a RHS: ~a" lhs rhs))))
 
@@ -405,6 +402,10 @@
 
 (provide json-float)
 
+(define-macro (json-boolean B)
+  #'B)
+
+#;
 (define-macro-cases json-boolean
   [(json-boolean "true")
    #'#t]
@@ -413,13 +414,12 @@
 
 (provide json-boolean)
 
-(define-macro (json-object "{" ITEMS ... "}")
-  #'(make-immutable-hasheq (remove* (list "," #\newline #\space #\tab)
-                                    (list ITEMS ...))))
+(define-macro (json-object ITEMS ...)
+  #'(make-immutable-hasheq (list ITEMS ...)))
 
 (provide json-object)
 
-(define-macro (json-object-item PROP ":" EXPR-OR-ID)
+(define-macro (json-object-item PROP EXPR-OR-ID)
   #'(cons (string->symbol PROP) EXPR-OR-ID))
 
 (provide json-object-item)
@@ -501,17 +501,17 @@
 (provide head-id)
 
 (define-macro (http-method METHOD-CHARS ...)
-  #'(string-append METHOD-CHARS ...))
+  #'(~a METHOD-CHARS ...))
 
 (provide http-method)
 
 (define-macro (uri-template EXPRS ...)
-  #'(string-append EXPRS ...))
+  #'(~a EXPRS ...))
 
 (provide uri-template)
 
 (define-macro (uri-template-literals LITERALS ...)
-  #'(string-append LITERALS ...))
+  #'(~a LITERALS ...))
 
 (provide uri-template-literals)
 
@@ -540,27 +540,27 @@
 (provide uri-template-varname)
 
 (define-macro-cases command
-  [(command METHOD URI)
+  [(_ METHOD URI)
    #'(cmd METHOD URI)]
-  [(command METHOD URI (responds-with CODE))
+  [(_ METHOD URI (responds-with CODE))
    #'(begin
        (cmd METHOD URI)
        (response-code-matches? CODE))]
-  [(command METHOD URI (responds-with CODE) "and" (emptiness "is" "non" "empty"))
+  [(_ METHOD URI (responds-with CODE) "and" (emptiness "is" "non" "empty"))
    #'(begin
        (cmd METHOD URI)
        (response-code-matches? CODE)
        (check-response-nonempty))]
-  [(command METHOD PAYLOAD URI (responds-with CODE))
+  [(_ METHOD PAYLOAD URI (responds-with CODE))
    #'(begin
        (cmd/payload METHOD URI PAYLOAD)
        (response-code-matches? CODE))]
-  [(command METHOD PAYLOAD URI (responds-with CODE) "and" (emptiness "is" "non" "empty"))
+  [(_ METHOD PAYLOAD URI (responds-with CODE) "and" (emptiness "is" "non" "empty"))
    #'(begin
        (cmd/payload METHOD URI PAYLOAD)
        (response-code-matches? CODE)
        (check-response-nonempty))]
-  [(command METHOD URI (responds-with CODE) (positive-satisfies SCHEMA))
+  [(_ METHOD URI (responds-with CODE) (positive-satisfies SCHEMA))
    #'(begin
        (cmd METHOD URI)
        (response-code-matches? CODE)
@@ -590,7 +590,14 @@
 (provide http-response-code)
 
 (define-macro (json-pointer JP)
-  #'JP)
+  #'(begin
+      (unless (response? last-response)
+        (error "No response received yet; JSON Pointer \"~a\" cannot refer to anything." jp))
+      (unless (send last-response body-is-string?)
+        (error "Body cannot be converted to a string (is it binary data?)"))
+      (unless (send last-response body-is-well-formed?)
+        (error "Body is malformed JSON."))
+      (json-pointer-value JP (send last-response as-ejsexpr))))
 
 (provide json-pointer)
 
