@@ -39,7 +39,9 @@
          (only-in (file "response.rkt")
                   response?
                   make-response)
-         (file "setup.rkt"))
+         (file "setup.rkt")
+         (only-in (file "parameters.rkt")
+                  param-cwd))
 
 (require (for-syntax (only-in (file "grammar.rkt")
                               parse)
@@ -48,8 +50,6 @@
                                          read-syntax))
                      (only-in (file "new-tokenizer.rkt")
                               tokenize)
-                     (only-in (file "parameters.rkt")
-                              param-cwd)
                      racket/syntax
                      syntax/stx
                      racket/include))
@@ -230,6 +230,31 @@
       (with-output-to-string
         (lambda ()
           (displayln "The given JSON datum is not a JSON Schema:")
+          (displayln (ejsexpr->string schema)))))
+    (error error-message))
+  (unless (adheres-to-schema? (send last-response as-ejsexpr) schema)
+    (define error-message
+      (with-output-to-string
+        (lambda ()
+          (displayln "The given JSON datum does not adhere to the JSON Schema."))))
+    (error error-message)))
+
+(define/contract (response-satisfies-schema-in-file? schema-file)
+  (string? . -> . void)
+  (define r last-response)
+  (unless (response? r)
+    (error "No response has been received yet, so we cannot check whether response code adheres to a schema."))
+  (unless (send last-response body-is-well-formed?)
+    (error "The previous response is malformed JSON."))
+  (define path (build-path (param-cwd) schema-file))
+  (unless (file-exists? path)
+    (error (format "No such file: ~a" (path->string path))))
+  (define schema (call-with-input-file* path port->ejsexpr #:mode 'text))
+  (unless (json-schema? schema)
+    (define error-message
+      (with-output-to-string
+        (lambda ()
+          (displayln (format "The content of ~a is not a JSON Schema:" (path->string path)))
           (displayln (ejsexpr->string schema)))))
     (error error-message))
   (unless (adheres-to-schema? (send last-response as-ejsexpr) schema)
@@ -587,11 +612,16 @@
        (cmd/payload METHOD URI PAYLOAD)
        (response-code-matches? CODE)
        (check-response-nonempty))]
-  [(_ METHOD URI (responds-with CODE) (positive-satisfies SCHEMA))
+  [(_ METHOD PAYLOAD URI (responds-with CODE) (positive-satisfies (schema-ref "in" SCHEMA-FILE)))
+   #'(begin
+       (cmd/payload METHOD URI PAYLOAD)
+       (response-code-matches? CODE)
+       (response-satisfies-schema-in-file? SCHEMA-FILE))]
+  [(_ METHOD URI (responds-with CODE) (positive-satisfies (schema-ref "in" SCHEMA-FILE)))
    #'(begin
        (cmd METHOD URI)
        (response-code-matches? CODE)
-       (response-satisfies-schema? SCHEMA))]
+       (response-satisfies-schema-in-file? SCHEMA-FILE))]
   [(_ METHOD URI (positive-satisfies (schema-ref SCHEMA)))
    #'(begin
        (cmd METHOD URI)
