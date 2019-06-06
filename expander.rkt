@@ -39,9 +39,7 @@
          (only-in (file "response.rkt")
                   response?
                   make-response)
-         (file "setup.rkt")
-         (only-in (file "parameters.rkt")
-                  param-cwd))
+         (file "setup.rkt"))
 
 (require (for-syntax (only-in (file "grammar.rkt")
                               parse)
