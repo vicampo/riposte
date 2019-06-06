@@ -106,7 +106,8 @@
   (define expanded (expand-imports parsed cwd))
   (parameterize ([current-namespace (make-base-empty-namespace)])
     (namespace-require '(file "./expander.rkt"))
-    (eval expanded)))
+    (parameterize ([param-cwd cwd])
+      (eval expanded))))
 
 (module+ main
 
