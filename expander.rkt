@@ -246,7 +246,7 @@
     (error "No response has been received yet, so we cannot check whether response code adheres to a schema."))
   (unless (send last-response body-is-well-formed?)
     (error "The previous response is malformed JSON."))
-  (define path (build-path (param-cwd) schema-file))
+  (define path (string->path schema-file))
   (unless (file-exists? path)
     (error (format "No such file: ~a" (path->string path))))
   (define schema (call-with-input-file* path port->ejsexpr #:mode 'text))
