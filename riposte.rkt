@@ -96,6 +96,8 @@
      (define tokens (tokenize path))
      (define parse-tree (parse tokens))
      (expand-imports (syntax->datum parse-tree) dir)]
+    [(list 'schema-ref "in" (? string? filename))
+     (list 'schema-ref "in" (path->string (build-path cwd filename)))]
     [(cons (? symbol? x) y)
      (cons x (map (lambda (s)
                     (expand-imports s cwd))
