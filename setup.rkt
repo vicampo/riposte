@@ -15,9 +15,7 @@
     [(? eof-object?)
      eof]
     [(? string? l)
-     (define tokenized (tokenize l))
-     (displayln (format "tokenized: ~a" tokenized))
-     (repl-parse tokenized)]))
+     (repl-parse (tokenize l))]))
 
 (define (do-setup!)
   (basic-output-port (current-output-port))
