@@ -24,7 +24,8 @@
                   tokenize)
          racket/contract
          brag/support
-         racket/match)
+         racket/match
+         (file "./setup.rkt"))
 
 (define/contract opt-version
   parameter?
@@ -110,6 +111,9 @@
     (namespace-require '(file "./expander.rkt"))
     (eval expanded)))
 
+(define (repl)
+  (define line (read-line)))
+
 (module+ main
 
   (define file-to-process
@@ -124,7 +128,7 @@
      [("--env") f
                 "Specify an environment file to use (can be specified multiple times)"
                 (opt-dotenvs (cons f (opt-dotenvs)))]
-     #:args args
+     #:args ([args #f])
      args))
 
   (when (opt-version)
@@ -132,6 +136,10 @@
     (exit 0))
 
   (match file-to-process
+    [#f
+     (do-setup!)
+     (displayln "Done!")
+     (exit 0)]
     [(list filename)
      (set! file-to-process
            filename)]
