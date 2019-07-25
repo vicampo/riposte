@@ -1,8 +1,12 @@
-#lang br
+#lang racket/base
 
-(provide basic-output-port do-setup!)
+(provide basic-output-port
+         do-setup!)
 
-(require (file "grammar.rkt")
+(require (only-in racket/port
+                  open-output-nowhere)
+         racket/match
+         (file "grammar.rkt")
          (file "new-tokenizer.rkt"))
 
 (define basic-output-port
