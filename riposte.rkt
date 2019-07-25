@@ -3,6 +3,7 @@
 (require (for-syntax racket/base)
          racket/cmdline
          racket/pretty
+         racket/format
          dotenv
          (file "util.rkt")
          (only-in (file "evaluator.rkt")
@@ -112,9 +113,14 @@
     (eval expanded)))
 
 (define (repl)
-  (define line (read-line)))
+  (display "> ")
+  (eval (read))
+  (repl))
 
 (module+ main
+
+  (define (complain-about-undefined-var err)
+    (displayln (format "Undefined identifier \"~a\"." (exn:fail:contract:variable-id err))))
 
   (define file-to-process
     (command-line
@@ -138,8 +144,14 @@
   (match file-to-process
     [#f
      (do-setup!)
-     (displayln "Done!")
-     (exit 0)]
+     (define handler (current-eval))
+     (define (new-handler x)
+       (with-handlers ([exn:fail:contract:variable? complain-about-undefined-var])
+         (handler x)))
+     (parameterize ([current-namespace (make-base-empty-namespace)])
+       (namespace-require '(file "./expander.rkt"))
+       (parameterize ([current-eval new-handler])
+         (read-eval-print-loop)))]
     [(list filename)
      (set! file-to-process
            filename)]
