@@ -112,11 +112,6 @@
     (namespace-require '(file "./expander.rkt"))
     (eval expanded)))
 
-(define (repl)
-  (display "> ")
-  (eval (read))
-  (repl))
-
 (module+ main
 
   (define (complain-about-undefined-var err)
