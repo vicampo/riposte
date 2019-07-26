@@ -117,6 +117,13 @@
   (define (complain-about-undefined-var err)
     (displayln (format "Undefined identifier \"~a\"." (exn:fail:contract:variable-id err))))
 
+  (define (cancelling-prompt)
+    (define (resume e)
+      (displayln "")
+      (cancelling-prompt))
+    (with-handlers ([exn:break? resume])
+      (read-eval-print-loop)))
+
   (define file-to-process
     (command-line
      #:program "riposte"
@@ -146,7 +153,13 @@
      (parameterize ([current-namespace (make-base-empty-namespace)])
        (namespace-require '(file "./expander.rkt"))
        (parameterize ([current-eval new-handler])
-         (read-eval-print-loop)))]
+         (break-enabled #t)
+         (with-handlers ([exn:break? (lambda (e)
+                                       (displayln "")
+                                       (read-eval-print-loop))])
+           (read-eval-print-loop))))
+     (displayln "")
+     (exit 0)]
     [(list filename)
      (set! file-to-process
            filename)]
