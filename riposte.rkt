@@ -6,8 +6,6 @@
          racket/format
          dotenv
          (file "util.rkt")
-         (only-in (file "parameters.rkt")
-                  param-cwd)
          (only-in (file "./version.rkt")
                   riposte-version)
          (only-in (file "reader.rkt")

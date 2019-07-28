@@ -2,7 +2,6 @@
 
 (provide ejsexpr->jsexpr
          jsexpr->ejsexpr
-         ensure-ejsexpr
          render-ejsexprish
          bytes->string
          port->chars)
@@ -16,12 +15,7 @@
                   jsexpr?)
          (only-in ejs
                   ejsexpr?
-                  ejsexpr->string)
-         (file "grammar.rkt")
-         (only-in (file "expression.rkt")
-                  expression?)
-         (only-in (file "environment.rkt")
-                  environment?))
+                  ejsexpr->string))
 
 (define/contract (ejsexpr->jsexpr x)
   (ejsexpr? . -> . jsexpr?)
@@ -65,13 +59,6 @@
                            (hash->list x)))]
         [else
          'null]))
-
-(define/contract (ensure-ejsexpr thing env)
-  ((or/c ejsexpr? expression?) environment? . -> . ejsexpr?)
-  (cond [(expression? thing)
-         (send thing evaluate env)]
-        [else
-         thing]))
 
 (define/contract (render-ejsexprish thing)
   ((or/c ejsexpr? expression?) . -> . string?)
