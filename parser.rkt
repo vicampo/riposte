@@ -2,7 +2,7 @@
 
 (require racket/contract
          syntax/stx
-         (only-in (file "./new-tokenizer.rkt")
+         (only-in (file "./tokenizer.rkt")
                   tokenize)
          (only-in (file "./grammar.rkt")
                   parse))

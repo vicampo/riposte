@@ -1,7 +1,6 @@
 #lang racket/base
 
-(provide load-riposte-file
-         ejsexpr->jsexpr
+(provide ejsexpr->jsexpr
          jsexpr->ejsexpr
          ensure-ejsexpr
          render-ejsexprish
@@ -19,18 +18,10 @@
                   ejsexpr?
                   ejsexpr->string)
          (file "grammar.rkt")
-         (file "tokenizer.rkt")
          (only-in (file "expression.rkt")
                   expression?)
          (only-in (file "environment.rkt")
                   environment?))
-
-(define/contract (load-riposte-file f)
-  (path-string? . -> . (or/c false/c list?))
-  (with-handlers ([exn:fail:parsing? (const #f)])
-    (parse-to-datum (tokenize-file f))))
-
-;; converting ejsexprs to jsexprs
 
 (define/contract (ejsexpr->jsexpr x)
   (ejsexpr? . -> . jsexpr?)

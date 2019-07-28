@@ -7,6 +7,10 @@ Changelog](https://keepachangelog.com/en/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 (or at least intends to).
 
+Please submit bugs, feature requests, or other issues to
+Riposte's [GitHub Issues
+page](https://github.com/vicampo/riposte/issues).
+
 ## Unreleased
 
 - Respect `Connection: keep-alive` in responses. (Don't close the
@@ -26,6 +30,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
         "no" } responds with 2XX`, `GET /foo with additional cookies {
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
+
+## [1.0.0] - 2019-01-28
+
+### Added
+
+- Riposte now has a REPL! Just invoke Riposte with no
+  arguments, and you're in.
+
+### Removed
+
+- Support for linting Riposte scripts. (This will come back,
+  I promise!)
+
+### Changed
+
+- Syntax for requests with payloads has been
+  changed. Previously, they looked like this: `POST $foo
+  /bar`. In this version, the keyword `to` needs to be used
+  to separate the payload from the URL. Thus, one now should
+  write `POST $foo to /bar`.
 
 ## [0.10.0] - 2018-10-30
 

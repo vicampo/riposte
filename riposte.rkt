@@ -6,14 +6,9 @@
          racket/format
          dotenv
          (file "util.rkt")
-         (only-in (file "evaluator.rkt")
-                  eval-program)
          (only-in (file "environment.rkt")
                   environment?
                   make-fresh-environment)
-         (file "check.rkt")
-         (only-in (file "program.rkt")
-                  file->program)
          (only-in (file "parameters.rkt")
                   param-cwd)
          (only-in (file "./version.rkt")
@@ -21,7 +16,7 @@
          (only-in (file "reader.rkt")
                   read-syntax)
          (file "grammar.rkt")
-         (only-in (file "new-tokenizer.rkt")
+         (only-in (file "tokenizer.rkt")
                   tokenize)
          racket/contract
          brag/support
@@ -29,10 +24,6 @@
          (file "./setup.rkt"))
 
 (define/contract opt-version
-  parameter?
-  (make-parameter #f))
-
-(define/contract opt-lint
   parameter?
   (make-parameter #f))
 
@@ -130,8 +121,6 @@
      #:once-each
      [("--version") "Print the version"
                     (opt-version #t)]
-     [("--lint") "Check a Riposte file"
-                 (opt-lint #t)]
      #:multi
      [("--env") f
                 "Specify an environment file to use (can be specified multiple times)"
@@ -177,17 +166,6 @@
   (when is-directory?
     (displayln (format "Given file is actually a directory: ~a" file-to-process))
     (exit 1))
-
-  (define (lint-complain-and-die! e)
-    (displayln (format "~a is a malformed Riposte script.")
-               (current-error-port))
-    (exit 1))
-
-  (when (opt-lint)
-    (with-handlers ([exn:fail? lint-complain-and-die!])
-      (file->program file-to-process)
-      (displayln (format "~a is a well-formed Riposte script." file-to-process))
-      (exit 0)))
 
   (run! (check-dotenvs (opt-dotenvs)))
 

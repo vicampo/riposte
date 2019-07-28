@@ -1,5 +1,5 @@
-#lang br/quicklang
+#lang racket/bsae
 
-(module reader br
+(module reader racket/base
   (require "reader.rkt")
   (provide read-syntax))

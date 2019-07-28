@@ -2,7 +2,7 @@
 
 (define collection "riposte")
 
-(define version "0.10.0")
+(define version "1.0.0")
 
 (define deps
   '("base"
@@ -26,7 +26,7 @@
 
 (define pkg-authors '("jesse@lisp.sh"))
 
-;(define scribblings '(("scribblings/riposte.scrbl" ())))
+(define scribblings '(("scribblings/riposte.scrbl" ())))
 
 (define racket-launcher-names '("riposte"))
 (define racket-launcher-libraries '("riposte.rkt"))

@@ -1,4 +1,4 @@
-#lang br/quicklang
+#lang racket
 
 (require racket/contract
          http
@@ -10,43 +10,22 @@
          racket/include
          racket/dict
          racket/hash
-         (file "evaluator.rkt")
+         br/define
          (only-in (file "util.rkt")
                   bytes->string)
-         (only-in (file "command.rkt")
-                  make-command-expression)
-         (only-in (file "json-pointer.rkt")
-                  make-json-pointer-expression)
          (only-in (file "identifier.rkt")
-                  make-variable-identifier-expression
-                  make-parameter-identifier-expression
-                  make-header-identifier-expression
-                  make-environment-variable-identifier-expression)
-         (only-in (file "json.rkt")
-                  make-json-object-expression)
-         (only-in (file "assertion.rkt")
-                  make-response-code-matches-expression)
-         (only-in (file "import.rkt")
-                  make-import)
-         (only-in (file "parameters.rkt")
-                  param-environment)
-         (only-in (file "step.rkt")
-                  step?)
+                  make-parameter-identifier-expression)
          (only-in (file "./version.rkt")
                   riposte-version)
-         (only-in (file "grammar.rkt")
-                  parse)
          (only-in (file "response.rkt")
                   response?
                   make-response)
          (file "setup.rkt"))
 
-(require (for-syntax (only-in (file "grammar.rkt")
-                              parse)
-                     (prefix-in reader:
+(require (for-syntax (prefix-in reader:
                                 (only-in (file "reader.rkt")
                                          read-syntax))
-                     (only-in (file "new-tokenizer.rkt")
+                     (only-in (file "tokenizer.rkt")
                               tokenize)
                      racket/syntax
                      syntax/stx
@@ -287,7 +266,7 @@
 
 (define-macro (riposte-module-begin PARSE-TREE)
   #`(#%module-begin
-     (module configure-runtime br
+     (module configure-runtime racket
        (require riposte/setup)
        (do-setup!))
      #'PARSE-TREE

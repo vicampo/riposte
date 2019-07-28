@@ -7,7 +7,7 @@
                   open-output-nowhere)
          racket/match
          (file "grammar.rkt")
-         (file "new-tokenizer.rkt"))
+         (file "tokenizer.rkt"))
 
 (define basic-output-port
   (make-parameter (open-output-nowhere)))
