@@ -13,8 +13,6 @@
          br/define
          (only-in (file "util.rkt")
                   bytes->string)
-         (only-in (file "identifier.rkt")
-                  make-parameter-identifier-expression)
          (only-in (file "./version.rkt")
                   riposte-version)
          (only-in (file "response.rkt")

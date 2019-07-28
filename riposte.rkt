@@ -6,9 +6,6 @@
          racket/format
          dotenv
          (file "util.rkt")
-         (only-in (file "environment.rkt")
-                  environment?
-                  make-fresh-environment)
          (only-in (file "parameters.rkt")
                   param-cwd)
          (only-in (file "./version.rkt")
@@ -60,18 +57,6 @@
 (define (fail-program e)
   (displayln (format "FAIL: ~a" (exn-message e)))
   (exit 1))
-
-(define/contract (eval-program-in-dir dir file-to-process)
-  ((or/c path? (one-of/c 'relative)) path? . -> . environment?)
-  (define cwd
-    (cond [(path? dir)
-           dir]
-          [else
-           (current-directory)]))
-  (parameterize ([param-cwd cwd]
-                 [current-namespace (make-base-empty-namespace)])
-    (namespace-require 'riposte/expander)
-    (load file-to-process)))
 
 (define/contract (expand-imports program cwd)
   (any/c path? . -> . any/c)
