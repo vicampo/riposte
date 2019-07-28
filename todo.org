@@ -1,0 +1,58 @@
+* Version 1.0.0
+** redirections
+*** redirects to
+** exec
+** REPL via raco exe
+** header present
+** header absent
+** JSON Pointer
+*** exists
+*** does not exist
+*** is empty
+*** is non empty
+** Arithmetic
+*** less than and greater than
+**** x < y
+**** x <= y
+**** x > y
+**** x >= y
+*** string +
+*** hash +
+*** number +
+** Predications
+*** Float
+**** is float
+**** is not float
+*** Integer
+**** is integer
+**** is not integer
+**** is positive integer
+**** is negative integer
+**** is non positive integer
+**** is non negative integer
+**** is non zero integer
+*** Array
+**** is array
+**** is not array
+**** is empty array
+**** is non empty array
+*** Object
+**** is object
+**** is not object
+**** is non empty object
+**** is empty object
+*** Null
+**** is null
+**** is not null
+*** Boolean
+**** is boolean
+**** is true
+**** is false
+**** is not boolean
+*** String
+**** is string
+**** is not string
+**** is non empty string
+** Parameters
+*** timeout (%timeout)
+*** base URL (%base)
