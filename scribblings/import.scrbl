@@ -16,7 +16,7 @@ Consider setting up a base URI in a separate file, @tt{parameters.rip}:
 
 @codeblock[#:keep-lang-line? #f]|{
 #lang riposte
-%base := "https://cool.test/api/v2/"
+%base := https://cool.test/api/v2/
 %timeout := 30
 }|
 
@@ -24,8 +24,8 @@ Then, in another Riposte script, @tt{login.rip}, we can import these two to set 
 
 @codeblock[#:keep-lang-line? #f]|{
 #lang riposte
-import "parameters.rip"
-import "headers.rip"
+import parameters.rip
+import headers.rip
 
 $payload := {
   "username": @USERNAME,

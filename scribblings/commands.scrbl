@@ -89,7 +89,7 @@ For a single request, one can specify headers that should be used, in just @emph
 @codeblock[#:keep-lang-line? #f #:line-numbers #f]|{
 #lang riposte
 $heads := { "Accept-Language": "jp" }
-GET $payload api/flub with headers $heads responds with 2XX
+POST $payload to api/flub with headers $heads responds with 2XX
 }|
 
 Notice here that we use a JSON object to specify the headers. The headers that are ultimately generated are normalized. (If you have an application that is sensitive to normalization—if it behaves one way when headers are normalized and another if headers are not normalized, I'm afraid Riposte cannot currently build such HTTP requests.)
@@ -120,12 +120,12 @@ $schema := {
   "type": "object",
   "requiredProperties": [ "age", "weight" ]
 }
-GET $payload api/flub satisfies schema $schema
+POST $payload to api/flub satisfies schema $schema
 }|
 
 Example of using a schema specified in a file:
 
 @codeblock[#:keep-lang-line? #f #:line-numbers #f]|{
 #lang riposte
-GET $payload api/flub satisfies schema in schema.json
+POST $payload to api/flub satisfies schema in schema.json
 }|

@@ -75,7 +75,7 @@ $loginPayload := {
   "password": @PASSWORD
 }
 
-POST $loginPayload auth/login responds with 2XX
+POST $loginPayload to auth/login responds with 2XX
 
 # extract a value from the response body
 # and use it as the value of an
