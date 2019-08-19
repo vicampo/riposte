@@ -2,8 +2,8 @@
 
 (require racket/contract
          http
-         ejs
          argo
+         json
          net/url
          json-pointer
          racket/syntax
@@ -12,7 +12,8 @@
          racket/hash
          br/define
          (only-in (file "util.rkt")
-                  bytes->string)
+                  bytes->string
+                  equal-jsexprs?)
          (only-in (file "./version.rkt")
                   riposte-version)
          (only-in (file "response.rkt")
@@ -59,11 +60,6 @@
   (or/c false/c bytes?)
   #f)
 
-(define/contract
-  last-response-ejsexpr
-  (or/c void ejsexpr?)
-  void)
-
 (define/contract (read-entity/bytes+response-code in h)
   (input-port? string? . -> . (list/c exact-integer? dict? bytes?))
   (list (extract-http-code h)
@@ -97,7 +93,7 @@
    string?
    (or/c false/c
          (hash/c symbol? string?))
-   ejsexpr?
+   jsexpr?
    . -> .
    (list/c exact-integer? (and/c immutable? (hash/c symbol? string?)) bytes?))
   (log-error "~a ~a with payload ~a" method url payload)
@@ -113,7 +109,7 @@
     (call/output-request "1.1"
                          method
                          url
-                         (ejsexpr->bytes payload)
+                         (jsexpr->bytes payload)
                          #f
                          headers
                          read-entity/bytes+response-code)))
@@ -144,7 +140,7 @@
      (update-last-response! code headers body)]))
 
 (define/contract (cmd/payload method url payload)
-  (string? string? ejsexpr? . -> . void)
+  (string? string? jsexpr? . -> . void)
   (displayln (format "headers = ~a" request-headers))
   (define final-url
     (cond [(url? base-url)
@@ -194,7 +190,7 @@
              code))))
 
 (define/contract (response-satisfies-schema? schema)
-  (ejsexpr? . -> . void)
+  (jsexpr? . -> . void)
   (define r last-response)
   (unless (response? r)
     (error "No response has been received yet, so we cannot check whether response code adheres to a schema."))
@@ -205,9 +201,9 @@
       (with-output-to-string
         (lambda ()
           (displayln "The given JSON datum is not a JSON Schema:")
-          (displayln (ejsexpr->string schema)))))
+          (displayln (jsexpr->string schema)))))
     (error error-message))
-  (unless (adheres-to-schema? (send last-response as-ejsexpr) schema)
+  (unless (adheres-to-schema? (send last-response as-jsexpr) schema)
     (define error-message
       (with-output-to-string
         (lambda ()
@@ -224,15 +220,15 @@
   (define path (string->path schema-file))
   (unless (file-exists? path)
     (error (format "No such file: ~a" (path->string path))))
-  (define schema (call-with-input-file* path port->ejsexpr #:mode 'text))
+  (define schema (call-with-input-file* path read-json #:mode 'text))
   (unless (json-schema? schema)
     (define error-message
       (with-output-to-string
         (lambda ()
           (displayln (format "The content of ~a is not a JSON Schema:" (path->string path)))
-          (displayln (ejsexpr->string schema)))))
+          (displayln (jsexpr->string schema)))))
     (error error-message))
-  (unless (adheres-to-schema? (send last-response as-ejsexpr) schema)
+  (unless (adheres-to-schema? (send last-response as-jsexpr) schema)
     (define error-message
       (with-output-to-string
         (lambda ()
@@ -258,8 +254,8 @@
     (error "The previous response is empty.")))
 
 (define/contract (check-equal lhs rhs)
-  (ejsexpr? ejsexpr? . -> . void)
-  (unless (equal-ejsexprs? lhs rhs)
+  (jsexpr? jsexpr? . -> . void)
+  (unless (equal-jsexprs? lhs rhs)
     (error (format "JSON values are not equal! LHS: ~a RHS: ~a" lhs rhs))))
 
 (define-macro (riposte-module-begin PARSE-TREE)
@@ -316,7 +312,7 @@
     (error "Response body is not a well-formed sequence of UTF-8 bytes."))
   (unless (send r body-is-well-formed?)
     (error "Response body is malformed as JSON."))
-  (unless (json-pointer-refers? jp (send r as-ejsexpr))
+  (unless (json-pointer-refers? jp (send r as-jsexpr))
     (error (format "JSON Pointer \"~a\" does not refer." jp))))
 
 (define/contract (check-json-pointer-refers-to-nonempty-value jp)
@@ -329,10 +325,10 @@
     (error "Response body is not a well-formed sequence of UTF-8 bytes."))
   (unless (send r body-is-well-formed?)
     (error "Response body, viewed as JSON, is malformed:"))
-  (define body/ejsexpr (send r as-ejsexpr))
-  (unless (json-pointer-refers? jp body/ejsexpr)
+  (define body/jsexpr (send r as-jsexpr))
+  (unless (json-pointer-refers? jp body/jsexpr)
     (error (format "JSON Pointer \"~a\" does not refer." jp)))
-  (define v (json-pointer-value jp body/ejsexpr))
+  (define v (json-pointer-value jp body/jsexpr))
   (unless (or (hash? v)
               (string? v)
               (list? v))
@@ -364,13 +360,13 @@
         (error "Body cannot be converted to a string (is it binary data?)"))
       (unless (send last-response body-is-well-formed?)
         (error "Body is malformed JSON."))
-      (unless (json-pointer-refers? JP (send last-response as-ejsexpr))
+      (unless (json-pointer-refers? JP (send last-response as-jsexpr))
         (define new-message
           (with-output-to-string
             (lambda ()
               (displayln (format "JSON Pointer \"~a\" does not refer!" JP))
               (displayln (format "We evaluated the JSON Pointer relative to:"))
-              (displayln (ejsexpr->string (send last-response as-ejsexpr))))))
+              (displayln (jsexpr->string (send last-response as-jsexpr))))))
         (error new-message)))])
 
 (provide jp-existence)
@@ -633,7 +629,7 @@
         (error "Body cannot be converted to a string (is it binary data?)"))
       (unless (send last-response body-is-well-formed?)
         (error "Body is malformed JSON."))
-      (json-pointer-value JP (send last-response as-ejsexpr))))
+      (json-pointer-value JP (send last-response as-jsexpr))))
 
 (provide json-pointer)
 
@@ -651,7 +647,7 @@
         (error "Body cannot be converted to a string (is it binary data?)"))
       (unless (send last-response body-is-well-formed?)
         (error "Body is malformed JSON."))
-      (json-pointer-value jp (send last-response as-ejsexpr))))
+      (json-pointer-value jp (send last-response as-jsexpr))))
 
 (provide bare-json-pointer)
 
