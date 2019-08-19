@@ -1293,6 +1293,22 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                            (lexer-result-tokens template/result))
                    (lexer-result-characters template/result))]))
 
+(define (timeout-parameter chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list-rest #\% #\t #\i #\m #\e #\o #\u #\t
+                (? char-whitespace?) ..1
+                _)
+     (define parameter-chars (take (cdr chars) (string-length "timeout")))
+     (define remaining-chars (drop chars (string-length "%timeout")))
+     (define new-position (add-position start (take chars (string-length "%timeout"))))
+     (define parameter-token (position-token (token 'PARAMETER (list->string parameter-chars))
+                                             start
+                                             new-position))
+     (lexer-result new-position
+                   (list parameter-token)
+                   remaining-chars)]))
+
 (define/contract (in chars start)
   ((listof char?) position? . -> . lexer-result?)
   (match chars
@@ -1351,6 +1367,11 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                       (lexer-result-end-position result)))]
     [(list-rest #\% #\b #\a #\s #\e _)
      (define result (base-parameter chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\% #\t #\i #\m #\e #\o #\u #\t _)
+     (define result (timeout-parameter chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -1479,6 +1500,30 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list #\i #\n #\t #\e #\g #\e #\r)
+         (list-rest #\i #\n #\t #\e #\g #\e #\r _))
+     (define result (consume-keyword "integer" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\a #\r #\r #\a #\y)
+         (list-rest #\a #\r #\r #\a #\y _))
+     (define result (consume-keyword "array" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\p #\o #\s #\i #\t #\i #\v #\e)
+         (list-rest #\p #\o #\s #\i #\t #\i #\v #\e _))
+     (define result (consume-keyword "positive" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\n #\e #\g #\a #\t #\i #\v #\e)
+         (list-rest #\n #\e #\g #\a #\t #\i #\v #\e _))
+     (define result (consume-keyword "negative" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list-rest #\i #\n _)
      (define result (in chars start))
      (append (lexer-result-tokens result)
@@ -1489,8 +1534,18 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(list-rest #\h #\e #\a #\d #\e #\r #\s _)
+     (define result (consume-keyword "headers" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list-rest #\e #\c #\h #\o _)
      (define result (consume-keyword "echo" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest #\u #\n #\s #\e #\t _)
+     (define result (consume-keyword "unset" chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -1631,6 +1686,159 @@ RIPOSTE
                     (token-struct '|]| #f #f #f #f #f #f)
                     (position 11 1 10)
                     (position 12 1 11))))))
+
+(module+ test
+  (let ([program "%base := http://foo.example.com"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'PARAMETER "base" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 6 1 5))
+                   (position-token
+                    (token-struct ':= #f #f #f #f #f #f)
+                    (position 7 1 6)
+                    (position 9 1 8))
+                   (position-token
+                    (token-struct 'URI-TEMPLATE-LITERAL "http://foo.example.com" #f #f #f #f #f)
+                    (position 10 1 9)
+                    (position 32 1 31))))))
+
+(module+ test
+  (let ([program "%timeout := 45"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'PARAMETER "timeout" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 9 1 8))
+                   (position-token
+                    (token-struct ':= #f #f #f #f #f #f)
+                    (position 10 1 9)
+                    (position 12 1 11))
+                   (position-token
+                    (token-struct 'NUMBER 45 #f #f #f #f #f)
+                    (position 13 1 12)
+                    (position 15 1 14))))))
+
+(module+ test
+  (let ([program "unset ^Content-Type"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'unset "unset" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 6 1 5))
+                   (position-token
+                    (token-struct 'REQUEST-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+                    (position 7 1 6)
+                    (position 20 1 19))))))
+
+(module+ test
+  (let ([program "POST $payload to api/flub with headers $heads responds with 2XX"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'HTTP-METHOD "POST" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'IDENTIFIER "payload" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 14 1 13))
+                   (position-token
+                    (token-struct 'to "to" #f #f #f #f #f)
+                    (position 15 1 14)
+                    (position 17 1 16))
+                   (position-token
+                    (token-struct 'URI-TEMPLATE-LITERAL "api/flub" #f #f #f #f #f)
+                    (position 18 1 17)
+                    (position 26 1 25))
+                   (position-token
+                    (token-struct 'with "with" #f #f #f #f #f)
+                    (position 27 1 26)
+                    (position 31 1 30))
+                   (position-token
+                    (token-struct 'headers "headers" #f #f #f #f #f)
+                    (position 32 1 31)
+                    (position 39 1 38))
+                   (position-token
+                    (token-struct 'IDENTIFIER "heads" #f #f #f #f #f)
+                    (position 40 1 39)
+                    (position 46 1 45))
+                   (position-token
+                    (token-struct 'responds #f #f #f #f #f #f)
+                    (position 47 1 46)
+                    (position 55 1 54))
+                   (position-token
+                    (token-struct 'with #f #f #f #f #f #f)
+                    (position 56 1 55)
+                    (position 60 1 59))
+                   (position-token
+                    (token-struct 'HTTP-STATUS-CODE "2XX" #f #f #f #f #f)
+                    (position 61 1 60)
+                    (position 64 1 63))))))
+
+(module+ test
+  (let ([program "$foo is integer"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "foo" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 8 1 7))
+                   (position-token
+                    (token-struct 'integer "integer" #f #f #f #f #f)
+                    (position 9 1 8)
+                    (position 16 1 15))))))
+
+(module+ test
+  (let ([program "$bar is not array"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "bar" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 8 1 7))
+                   (position-token
+                    (token-struct 'not "not" #f #f #f #f #f)
+                    (position 9 1 8)
+                    (position 12 1 11))
+                   (position-token
+                    (token-struct 'array "array" #f #f #f #f #f)
+                    (position 13 1 12)
+                    (position 18 1 17))))))
+
+; /foo is positive integer
+
+(module+ test
+  (let ([program "/foo is positive integer"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'JSON-POINTER "/foo" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 8 1 7))
+                   (position-token
+                    (token-struct 'positive "positive" #f #f #f #f #f)
+                    (position 9 1 8)
+                    (position 17 1 16))
+                   (position-token
+                    (token-struct 'integer "integer" #f #f #f #f #f)
+                    (position 18 1 17)
+                    (position 25 1 24))))))
 
 (module+ main
 
