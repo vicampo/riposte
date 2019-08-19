@@ -97,7 +97,7 @@ command:
  | HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] responds-with /"and" (satisfies | emptiness)
   | HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
 
-with-headers: "with" "headers" ( normal-identifier | json-object )
+with-headers: /"with" /"headers" ( normal-identifier | json-object )
 
 @satisfies: positive-satisfies | negative-satisfies
 
