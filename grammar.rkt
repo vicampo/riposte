@@ -93,7 +93,6 @@ header-assignment: REQUEST-HEADER-IDENTIFIER /":=" expression
 
 command:
     HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with ]
-  | HTTP-METHOD ( id | json-expression ) /"to" uri-template [ with-headers ] [ emptiness | satisfies  | responds-with ]
   | HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] (responds-with | satisfies) [ /"and" emptiness ]
  | HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] responds-with /"and" (satisfies | emptiness)
   | HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
