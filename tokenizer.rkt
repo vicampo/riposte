@@ -1571,7 +1571,7 @@ RIPOSTE
                     (position 13 1 12)
                     (position 14 1 13))
                    (position-token
-                    (token-struct 'true #f #f #f #f #f #f)
+                    (token-struct 'true "true" #f #f #f #f #f)
                     (position 15 1 14)
                     (position 19 1 18))
                    (position-token
@@ -1603,7 +1603,7 @@ RIPOSTE
                     (position 37 1 36)
                     (position 39 1 38))
                    (position-token
-                    (token-struct 'false #f #f #f #f #f #f)
+                    (token-struct 'false "false" #f #f #f #f #f)
                     (position 40 1 39)
                     (position 45 1 44))))))
 
