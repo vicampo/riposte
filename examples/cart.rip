@@ -1,0 +1,10 @@
+#lang riposte
+
+$uuid := "daf10488-4e6d-4bd5-98b6-cd926dc41e10"
+
+# -----------------------
+# Define a UUID and start
+# sending requests!
+# -----------------------
+
+GET cart/{uuid} responds with 2XX
