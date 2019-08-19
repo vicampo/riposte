@@ -31,7 +31,7 @@ exec: EXEC URI
 
 echo: /"echo" [ json-pointer | normal-identifier | head-id ]
 
-unset: /"unset" HEADER-IDENTIFIER
+unset: /"unset" REQUEST-HEADER-IDENTIFIER
 
 assertion : equality | disequality | inequality | predication
 
