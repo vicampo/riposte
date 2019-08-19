@@ -21,7 +21,7 @@ Here's a simple Riposte script contains all three ingredients:
 #lang riposte
 ^Content-Type := "application/json"
 $payload := { "a": 5, "b": [] }
-POST $payload https://whatever.test responds with 201
+POST $payload to https://whatever.test responds with 201
 /foo is positive integer
 }|
 

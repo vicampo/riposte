@@ -32,7 +32,7 @@ $payload := {
   "password": @PASSWORD
 }
 
-POST $payload login responds with 200
+POST $payload to login responds with 200
 
 $key := /apikey
 ^APIKey := $key
@@ -52,5 +52,5 @@ $load := {
 }
 
 # APIKey request header will be present here:
-PATCH $load dump/truck responds with 204
+PATCH $load to dump/truck responds with 204
 }|

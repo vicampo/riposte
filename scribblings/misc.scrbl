@@ -6,7 +6,7 @@ Here's where you can find some information for which I couldn't find a better pl
 
 @section{File extension}
 
-I suggest using @tt{.rip} for your Riposte scripts. But, in truth, it doesn't matter. Riposte scripts are supposed to be plain text, and there's no check that a script has the file extension @tt{.rip}.
+I suggest using @tt{.rip} for your Riposte scripts. But, in truth, it doesn't matter. Riposte scripts are supposed to be plain text, and there's no check that a script has any particular file extension.
 
 @section{JSON-only}
 

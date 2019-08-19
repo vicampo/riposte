@@ -15,7 +15,7 @@ There are a few different kinds of assertions:
 
 ]
 
-@section{Equations & their discontents (disequations, inequalities)}
+@section{Equations and inequalities}
 
 Write an equation by writing two expressions separated by @tt{=}.
 

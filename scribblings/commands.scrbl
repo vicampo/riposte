@@ -18,15 +18,15 @@ Those two parts are optional; you can check the response code without specifying
 Formally, a command has one of these these structures, depending on whether you want to check the response code and assert that the response satisfies a schema.
 
 @verbatim{
-HTTP-METHOD [ PAYLOAD ] URI-TEMPLATE [ "with" "headers" HEADERS ]
+HTTP-METHOD [ PAYLOAD "to" ] URI-TEMPLATE [ "with" "headers" HEADERS ]
 }
 
 @verbatim{
-HTTP-METHOD [ PAYLOAD ] URI-TEMPLATE [ "with" "headers" HEADERS ] "responds" "with" HTTP-RESPONSE-CODE [ "and" "satisfies" "schema" SCHEMA ]
+HTTP-METHOD [ PAYLOAD "to" ] URI-TEMPLATE [ "with" "headers" HEADERS ] "responds" "with" HTTP-RESPONSE-CODE [ "and" "satisfies" "schema" SCHEMA ]
 }
 
 @verbatim{
-HTTP-METHOD [ PAYLOAD ] URI-TEMPLATE [ "with" "headers" HEADERS ] "satisfies" "schema" SCHEMA
+HTTP-METHOD [ PAYLOAD "to" ] URI-TEMPLATE [ "with" "headers" HEADERS ] "satisfies" "schema" SCHEMA
 }
 
 A command need not be on one line.
@@ -55,12 +55,12 @@ However, you can use whatever you like, e.g., @tt{CANCEL}, @tt{BREW}, and so on.
 
 @section{Payload}
 
-PAYLOAD, if present, is supposed to be a variable reference. Here's an example:
+PAYLOAD, if present, is supposed to be a variable reference or literal JSON (with variables allowed). Here's an example:
 
 @codeblock[#:keep-lang-line? #f #:line-numbers #f]|{
 #lang riposte
 $payload := { "a" : 4, "b": true, "c": [] }
-POST $payload api/flub responds with 2XX
+POST $payload to api/flub responds with 2XX
 }|
 
 When executing the command, the payload will become the request body.
@@ -77,7 +77,7 @@ If you're not so static, the URI you give here might be built up from URI Templa
 #lang riposte
 $payload := { "a" : 4, "b": true, "c": [] }
 $id := 1
-POST $payload api/flub/{id} responds with 2XX
+POST $payload to api/flub/{id} responds with 2XX
 }|
 
 A URI is, at the end of the day, a kind of string. In this example, notice that we've used an integer and plugged it into the URI.

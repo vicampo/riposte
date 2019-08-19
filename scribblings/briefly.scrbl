@@ -48,7 +48,7 @@ $payload := {
   "qty": $qty                 # and you can add comments to JSON, too
 }
 
-POST $payload cart/{uuid}/items responds with 200
+POST $payload to cart/{uuid}/items responds with 200
 
 $itemId := /items/0/cart_item_id # extract the item ID
 }|
