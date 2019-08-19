@@ -5,14 +5,19 @@
 (define version "1.0.0")
 
 (define deps
-  '("base"
-    "brag"
+  '("br-parser-tools-lib"
+    "brag-lib"
+    "net-cookies-lib"
+    "web-server-lib"
+    "base"
+    "brag-lib"
+    "br-parser-tools-lib"
     "beautiful-racket-lib"
     "http"
+    "net-cookies-lib"
     "argo"
     "dotenv"
     "json-pointer"
-    "uri-template"
     "ejs"
     "misc1"))
 
@@ -20,6 +25,8 @@
   '("scribble-lib"
     "rackunit-lib"
     "racket-doc"
+    "web-server-lib"
+    "net-cookies-lib"
     "beautiful-racket-lib"))
 
 (define pkg-desc "Riposte is a scripting language for testing JSON-based HTTP APIs.")
