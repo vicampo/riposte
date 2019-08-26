@@ -5,8 +5,8 @@
 
 (require racket/class
          racket/contract
-         ejs
          racket/function
+         json
          (only-in (file "util.rkt")
                   bytes->string))
 
@@ -17,9 +17,9 @@
                 headers
                 body/raw)
     (define/public (has-body?)
-      (bytes=? body/raw #""))
-    (define/public (as-ejsexpr)
-      (bytes->ejsexpr body/raw))
+      (not (bytes=? body/raw #"")))
+    (define/public (as-jsexpr)
+      (bytes->jsexpr body/raw))
     (define/public (body-is-well-formed?)
       (cond [(bytes=? #"" body/raw)
              #f]
@@ -27,7 +27,7 @@
              (with-handlers ([exn:fail? (const #f)])
                (begin0
                    #t
-                 (send this as-ejsexpr)))]))
+                 (send this as-jsexpr)))]))
     (define/public (get-code)
       code)
     (define/public (body-is-string?)
