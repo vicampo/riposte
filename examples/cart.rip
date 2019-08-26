@@ -1,5 +1,7 @@
 #lang riposte
 
+%base := http://localhost:12345
+
 $uuid := "daf10488-4e6d-4bd5-98b6-cd926dc41e10"
 
 # -----------------------

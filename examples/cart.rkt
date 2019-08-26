@@ -1,6 +1,9 @@
 #lang racket/base
 
-(provide start)
+(require (file "common.rkt"))
 
 (define (start req)
-  (response/json #:code 204))
+  (response/empty #:code 204))
+
+(module+ main
+  (run start))
