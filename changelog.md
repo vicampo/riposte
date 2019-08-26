@@ -31,12 +31,7 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
-## [1.0.0] - 2019-01-28
-
-### Added
-
-- Riposte now has a REPL! Just invoke Riposte with no
-  arguments, and you're in.
+## [0.11.0] - 2019-09-01
 
 ### Removed
 
