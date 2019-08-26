@@ -11,5 +11,5 @@
   (define parse-tree (parse path (tokenize port)))
   (datum->syntax
    #f
-   `(module riposte-module riposte/expander
+   `(module riposte-module "expander.rkt"
       ,parse-tree)))
