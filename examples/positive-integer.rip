@@ -1,0 +1,10 @@
+#lang riposte
+%base := http://localhost:12345
+
+^Content-Type := "application/json"
+
+$payload := { "a": 5, "b": [] }
+
+POST $payload to / responds with 201
+
+/foo is positive integer
