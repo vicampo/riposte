@@ -21,7 +21,8 @@
 
 (module+ main
 
-  (require racket/cmdline)
+  (require racket/cmdline
+           racket/pretty)
 
   (define file-to-process
     (command-line
@@ -32,4 +33,4 @@
     (displayln (format "No such file: ~a" file-to-process))
     (exit 1))
 
-  (parse-file (string->path file-to-process)))
+  (pretty-print (parse-file (string->path file-to-process))))
