@@ -4,6 +4,8 @@
          racket/cmdline
          racket/pretty
          racket/format
+         (only-in racket/port
+                  open-output-nowhere)
          dotenv
          (file "util.rkt")
          (only-in (file "./version.rkt")
@@ -79,13 +81,6 @@
                     (expand-imports s cwd))
                   y))]))
 
-(define (run-program filename cwd)
-  (define parsed (syntax->datum (parse (tokenize filename))))
-  (define expanded (expand-imports parsed cwd))
-  (parameterize ([current-namespace (make-base-empty-namespace)])
-    (namespace-require '(file "./expander.rkt"))
-    (eval expanded)))
-
 (module+ main
 
   (define (complain-about-undefined-var err)
@@ -115,29 +110,38 @@
     (displayln (format "~a" riposte-version))
     (exit 0))
 
+  (define repl-parse (make-rule-parser riposte-repl))
+
+  (define (read-one-toplevel-expr origin port)
+    (match (read-line port)
+      [(? eof-object?)
+       eof]
+      [(? string? l)
+       (repl-parse (tokenize l))]))
+
+  (define (do-setup!)
+    (basic-output-port (current-output-port))
+    (current-read-interaction read-one-toplevel-expr))
+
   (match file-to-process
     [#f
+     (define basic-output-port
+       (make-parameter (open-output-nowhere)))
      (do-setup!)
      (define handler (current-eval))
      (define (new-handler x)
        (with-handlers ([exn:fail:contract:variable? complain-about-undefined-var])
          (handler x)))
-     (parameterize ([current-namespace (make-base-empty-namespace)])
-       (namespace-require '(file "./expander.rkt"))
-       (parameterize ([current-eval new-handler])
-         (break-enabled #t)
-         (with-handlers ([exn:break? (lambda (e)
-                                       (displayln "")
-                                       (read-eval-print-loop))])
-           (read-eval-print-loop))))
+     (parameterize ([current-eval new-handler])
+       (break-enabled #t)
+       (with-handlers ([exn:break? (lambda (e)
+                                     (displayln "")
+                                     (read-eval-print-loop))])
+         (read-eval-print-loop)))
      (displayln "")
      (exit 0)]
-    [(list filename)
-     (set! file-to-process
-           filename)]
     [else
-     (displayln (format "Cannot make sense of commandline argument: ~a" file-to-process))
-     (exit 1)])
+     (displayln (format "Got: ~a" file-to-process))])
 
   (unless (file-exists? file-to-process)
     (displayln (format "No such file: ~a" file-to-process))
@@ -160,4 +164,4 @@
           [else
            (current-directory)]))
 
-  (run-program (string->path file-to-process) cwd))
+  (dynamic-require (string->path file-to-process) #f))
