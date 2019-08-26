@@ -2,7 +2,7 @@
 
 riposte-program : (program-step | import)*
 
-program-step: assignment
+@program-step: assignment
   | echo
   | command
   | exec
@@ -33,7 +33,7 @@ echo: /"echo" [ json-pointer | normal-identifier | head-id ]
 
 unset: /"unset" REQUEST-HEADER-IDENTIFIER
 
-assertion : equality | disequality | inequality | predication
+@assertion : equality | disequality | inequality | predication
 
 equality : expression /"=" expression
 
