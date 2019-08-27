@@ -1,0 +1,4 @@
+#lang riposte
+$payload := { "a" : 4, "b": true, "c": [] }
+$id := 1
+POST $payload to http://localhost:12345/api/flub/{id} responds with 2XX

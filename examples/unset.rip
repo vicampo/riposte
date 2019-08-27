@@ -1,0 +1,3 @@
+#lang riposte
+
+unset ^Content-Type

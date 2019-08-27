@@ -1,0 +1,5 @@
+#lang riposte
+
+%timeout := 5
+
+GET http://localhost:12345/wat responds with 2XX

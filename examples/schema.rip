@@ -1,0 +1,10 @@
+#lang riposte
+
+$schema := {
+  "type": "object",
+  "requiredProperties": [ "age", "weight" ]
+}
+
+POST { "a": true, "b": 3 }
+  to api/flub
+  satisfies schema $schema
