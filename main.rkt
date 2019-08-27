@@ -9,16 +9,20 @@
          parameter-assignment
          normal-assignment
          expression
+         normal-identifier
          json-object
          json-object-item
          json-array
+         json-array-item
+         json-boolean
          command
          uri-template
          uri-template-expression
          uri-template-variable-list
          uri-template-varspec
          has-type
-         json-pointer)
+         json-pointer
+         unset)
 
 (require (file "expander.rkt"))
 

@@ -6,6 +6,7 @@
          #%datum
          riposte-program
          expression
+         normal-identifier
          command
          normal-assignment
          parameter-assignment
@@ -17,18 +18,22 @@
          json-object
          json-object-item
          json-array
+         json-array-item
+         json-boolean
          has-type
-         json-pointer)
+         json-pointer
+         unset)
 
 (require (for-syntax racket/base
                      syntax/parse
                      racket/syntax)
          json-pointer
          net/url
-         (only-in racket/class
-                  send)
+         racket/format
+         racket/pretty
          (file "cmd.rkt")
-         (file "response.rkt"))
+         (file "response.rkt")
+         (file "json.rkt"))
 
 (define-syntax (riposte-program stx)
   (syntax-parse stx
@@ -49,11 +54,28 @@
      #'(begin
          (cmd method uri)
          (response-code-matches? response-code))]
-    [(_ method:string (normal-identifier ident:string) uri (responds-with response-code:string))
-     (with-syntax [(payload (format-id #'ident "~a" (syntax->datum #'ident)))]
-       #'(begin
+    [(_ method:string payload uri (responds-with response-code:string))
+     #'(begin
          (cmd/payload method uri payload)
-         (response-code-matches? response-code)))]))
+         (response-code-matches? response-code))]
+    [(_ method:string payload uri (responds-with response-code:string))
+     #'(begin
+         (cmd/payload method uri payload)
+         (response-code-matches? response-code))]
+    [(_ method:string payload uri (with-headers headers) (responds-with response-code:string))
+     #'(begin
+         (unless (json-object? headers)
+           (error (format "Headers is not a JSON object! ~a" (pretty-print headers))))
+         (for ([(k v) (in-hash headers)])
+           (unless (string? v)
+             (error (format "Value for property \"~a\" is not a string: ~a" k v))))
+         (cmd/payload method uri payload #:headers headers)
+         (response-code-matches? response-code))]))
+
+(define-syntax (normal-identifier stx)
+  (syntax-parse stx
+    [(_ ident:string)
+     (format-id #'ident "~a" (syntax->datum #'ident))]))
 
 (define-syntax (normal-assignment stx)
   (syntax-parse stx
@@ -64,7 +86,12 @@
 (define-syntax (parameter-assignment stx)
   (syntax-parse stx
     [(_ "base" expr)
-     #'(param-base-url (string->url expr))]))
+     #'(param-base-url (string->url expr))]
+    [(_ "timeout" (expression t:integer))
+     #'(begin
+         (unless (> t 0)
+           (error (format "Timeout should be positive; ~a supplied." t)))
+         (param-timeout t))]))
 
 (define-syntax (header-assignment stx)
   (syntax-parse stx
@@ -84,7 +111,7 @@
 (define-syntax (uri-template-variable-list stx)
   (syntax-parse stx
     [(_ e ...)
-     #'(string-append e ...)]))
+     #'(apply string-append (map ~a (list e ...)))]))
 
 (define-syntax (uri-template-varspec stx)
   (syntax-parse stx
@@ -105,6 +132,11 @@
   (syntax-parse stx
     [(_ item ...)
      #'(list item ...)]))
+
+(define-syntax (json-array-item stx)
+  (syntax-parse stx
+    [(_ i)
+     #'i]))
 
 (define-syntax (has-type stx)
   (syntax-parse stx
@@ -128,3 +160,15 @@
      #'(render e)]
     [(_ l:string)
      #'l]))
+
+(define-syntax (unset stx)
+  (syntax-parse stx
+    [(_ header:string)
+     #'(hash-remove! request-headers (string->symbol header))]))
+
+(define-syntax (json-boolean stx)
+  (syntax-parse stx
+    [(_ "true")
+     #'#t]
+    [(_ "false")
+     #'#f]))
