@@ -10,16 +10,13 @@
          param-timeout
          last-response->jsexpr)
 
-(define param-base-url (make-parameter #f))
-
-(define param-timeout (make-parameter #f))
-
 (require (for-syntax racket/base
                      syntax/parse
                      racket/syntax)
          racket/contract
          racket/dict
          racket/match
+         racket/hash
          net/url
          http/request
          http/head
@@ -28,6 +25,10 @@
                   send)
          (file "version.rkt")
          (file "response.rkt"))
+
+(define param-base-url (make-parameter #f))
+
+(define param-timeout (make-parameter #f))
 
 ; string? string? -> void
 (define (cmd method url)
