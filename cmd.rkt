@@ -71,9 +71,13 @@
                          headers
                          read-entity/bytes+response-code)))
 
-(define/contract (cmd/payload method url payload)
-  (string? string? jsexpr? . -> . void)
-  (displayln (format "headers = ~a" request-headers))
+(define/contract (cmd/payload method url payload #:headers [additional-headers (hash)])
+  (->* (string? string? jsexpr?)
+       (#:headers (hash/c symbol? string?))
+       void)
+  (define headers (hash-union (make-immutable-hasheq (hash->list request-headers))
+                              additional-headers))
+  (displayln (format "headers = ~a" headers))
   (define final-url
     (cond [(url? (param-base-url))
            (url->string (combine-url/relative (param-base-url) url))]
@@ -81,11 +85,11 @@
            url]))
   (display (format "~a ~a" method final-url))
   (flush-output)
-  (define result (request/payload method final-url request-headers payload))
+  (define result (request/payload method final-url headers payload))
   (match result
-    [(list code headers body)
+    [(list code response-headers body)
      (displayln (format " responds with ~a" code))
-     (update-last-response! code headers body)]))
+     (update-last-response! code response-headers body)]))
 
 (define/contract (response-code-matches-pattern? received-code expected-code)
   (string? string? . -> . boolean?)
