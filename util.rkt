@@ -5,12 +5,14 @@
          ;render-ejsexprish
          bytes->string
          port->chars
-         equal-jsexprs?)
+         equal-jsexprs?
+         file-content/bytes)
 
 (require racket/function
          racket/contract
          racket/class
          racket/match
+         racket/port
          (only-in racket/list
                   empty?)
          brag/support
@@ -20,6 +22,12 @@
          (only-in ejs
                   ejsexpr?
                   ejsexpr->string))
+
+(define (file-content/bytes path)
+  (let ([p (open-input-file path)])
+    (begin0
+        (port->bytes p)
+      (close-input-port p))))
 
 #;
 (define/contract (ejsexpr->jsexpr x)

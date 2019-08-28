@@ -3,6 +3,7 @@
 (provide run)
 
 (require racket/list
+         racket/match
          racket/contract
          json
          web-server/http/response-structs
@@ -52,7 +53,7 @@
   (response/empty #:code 405))
 
 (define content-type-regexp
-  (byte-regexp "[Cc][Oo][Nn][Tt][Ee][Nn][Tt][-][Tt][Yy][Pp][Ee]"))
+  (byte-regexp #"[Cc][Oo][Nn][Tt][Ee][Nn][Tt][-][Tt][Yy][Pp][Ee]"))
 
 (define (has-json-mime-header req)
   (match (headers-assq* #"Content-Type" (request-headers/raw req))

@@ -22,18 +22,25 @@
          json-boolean
          has-type
          json-pointer
-         unset)
+         unset
+         schema-ref)
 
 (require (for-syntax racket/base
                      syntax/parse
                      racket/syntax)
+         json
          json-pointer
+         argo
          net/url
          racket/format
          racket/pretty
+         racket/port
+         racket/class
          (file "cmd.rkt")
          (file "response.rkt")
-         (file "json.rkt"))
+         (file "json.rkt")
+         (only-in (file "util.rkt")
+                  file-content/bytes))
 
 (define-syntax (riposte-program stx)
   (syntax-parse stx
@@ -70,7 +77,32 @@
            (unless (string? v)
              (error (format "Value for property \"~a\" is not a string: ~a" k v))))
          (cmd/payload method uri payload #:headers headers)
-         (response-code-matches? response-code))]))
+         (response-code-matches? response-code))]
+    [(_ method:string payload uri (positive-satisfies schema))
+     #'(begin
+         (displayln (~a "About to inspect"))
+         (pretty-print schema)
+         (unless (json-schema? schema)
+           (error (format "Purported schema is not actually a JSON Schema:~a~a"
+                          #\newline
+                          (jsexpr->string schema))))
+         (cmd/payload method uri payload)
+         (unless (adheres-to-schema? (last-response->jsexpr) schema)
+           (error "Response does not satisfy schema.")))]
+    [(_ method:string payload uri (with-headers headers) (positive-satisfies schema))
+     #'(begin
+         (unless (json-object? headers)
+           (error (format "Headers is not a JSON object! ~a" (pretty-print headers))))
+         (for ([(k v) (in-hash headers)])
+           (unless (string? v)
+             (error (format "Value for property \"~a\" is not a string: ~a" k v))))
+         (unless (json-schema? schema)
+           (error (format "Purported schema is not actually a JSON Schema:~a~a"
+                          #\newline
+                          (json-pretty-print schema))))
+         (cmd/payload method uri payload #:headers headers)
+         (unless (adheres-to-schema? (send last-response as-json) schema)
+           (error "Response does not satisfy schema.")))]))
 
 (define-syntax (normal-identifier stx)
   (syntax-parse stx
@@ -121,7 +153,7 @@
 (define-syntax (json-object stx)
   (syntax-parse stx
     [(_ item ...)
-     #'(make-hash (list item ...))]))
+     #'(make-immutable-hasheq (list item ...))]))
 
 (define-syntax (json-object-item stx)
   (syntax-parse stx
@@ -172,3 +204,23 @@
      #'#t]
     [(_ "false")
      #'#f]))
+
+(define-syntax (schema-ref stx)
+  (syntax-parse stx
+    [(_ "in" path:string)
+     #'(begin
+         (let ([full-path (build-path (param-cwd) path)])
+           (unless (file-exists? full-path)
+             (error (format "No such file: ~a" (path->string full-path))))
+           (let ([bs (file-content/bytes full-path)])
+             (with-handlers ([exn:fail:contract? (lambda (e)
+                                                   (error (format "Content of ~a is malformed UTF-8." (path->string path))))])
+              (let ([s (bytes->string/utf-8 bs)])
+                (with-handlers ([exn:fail? (lambda (e)
+                                             (error (format "Content of ~a is malformed JSON." (path->string path))))])
+                  (displayln (format "fuck, looking in ~a" (path->string path)))
+                  (string->jsexpr s)))))))]
+    [(_ s)
+     #'(begin
+         (displayln "looking at a literal")
+         s)]))

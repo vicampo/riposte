@@ -1,10 +1,14 @@
 #lang riposte
 
+%base := http://localhost:12345
+
 $schema := {
   "type": "object",
-  "requiredProperties": [ "age", "weight" ]
+  "required": [ "age", "weight" ]
 }
 
-POST { "a": true, "b": 3 }
-  to api/flub
-  satisfies schema $schema
+$payload := { "a": true, "b": 3 }
+
+POST $payload to api/flub satisfies schema $schema
+
+POST $payload to api/flub satisfies schema in schema.json

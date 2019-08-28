@@ -22,7 +22,8 @@
          uri-template-varspec
          has-type
          json-pointer
-         unset)
+         unset
+         schema-ref)
 
 (require (file "expander.rkt"))
 
@@ -37,6 +38,19 @@
                     tokenize))
 
   (define (riposte:read-syntax name in)
+    (displayln (format "Looking at syntax in ~a" name))
+
+    (define-values (dir base is-directory?)
+      (split-path name))
+
+    (define cwd
+      (cond [(path? dir)
+             dir]
+            [else
+             (current-directory)]))
+
+    (param-cwd cwd)
+
     (define parse-tree (parse name (tokenize in)))
     (datum->syntax #f `(module anything riposte
                          ,parse-tree)))
