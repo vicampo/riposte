@@ -35,7 +35,10 @@
   (require (only-in (file "grammar.rkt")
                     parse)
            (only-in (file "tokenizer.rkt")
-                    tokenize))
+                    tokenize)
+           (file "parameters.rkt")
+           syntax/parse
+           syntax/stx)
 
   (define (riposte:read-syntax name in)
     (displayln (format "Looking at syntax in ~a" name))

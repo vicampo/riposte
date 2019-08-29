@@ -39,6 +39,7 @@
          (file "cmd.rkt")
          (file "response.rkt")
          (file "json.rkt")
+         (file "parameters.rkt")
          (only-in (file "util.rkt")
                   file-content/bytes))
 
@@ -209,17 +210,21 @@
   (syntax-parse stx
     [(_ "in" path:string)
      #'(begin
-         (let ([full-path (build-path (param-cwd) path)])
+         (let ([full-path (cond [(path? (param-cwd))
+                                 (build-path (param-cwd) path)]
+                                [else
+                                 (string->path path)])])
+           (displayln (format "Full path is: ~a" (path->string full-path)))
            (unless (file-exists? full-path)
              (error (format "No such file: ~a" (path->string full-path))))
            (let ([bs (file-content/bytes full-path)])
              (with-handlers ([exn:fail:contract? (lambda (e)
-                                                   (error (format "Content of ~a is malformed UTF-8." (path->string path))))])
-              (let ([s (bytes->string/utf-8 bs)])
-                (with-handlers ([exn:fail? (lambda (e)
-                                             (error (format "Content of ~a is malformed JSON." (path->string path))))])
-                  (displayln (format "fuck, looking in ~a" (path->string path)))
-                  (string->jsexpr s)))))))]
+                                                   (error (format "Content of ~a is malformed UTF-8." (path->string full-path))))])
+               (let ([s (bytes->string/utf-8 bs)])
+                 (with-handlers ([exn:fail? (lambda (e)
+                                              (error (format "Content of ~a is malformed JSON." (path->string full-path))))])
+                   (displayln (format "fuck, looking in ~a" (path->string full-path)))
+                   (string->jsexpr s)))))))]
     [(_ s)
      #'(begin
          (displayln "looking at a literal")

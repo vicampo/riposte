@@ -8,3 +8,5 @@ $payload := { "a": 5, "b": [] }
 POST $payload to / responds with 201
 
 /foo is positive integer
+
+/foo is not array

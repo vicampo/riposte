@@ -10,3 +10,22 @@ $uuid := "daf10488-4e6d-4bd5-98b6-cd926dc41e10"
 # -----------------------
 
 GET cart/{uuid} responds with 2XX
+
+#lang riposte
+# ----------------------------------------------------------------------
+# Now add something to the cart:
+# ----------------------------------------------------------------------
+
+$productId := 41966
+$qty := 5
+$campaignId := 1
+
+$payload := {
+  "product_id": $productId,   # we extend the JSON syntax here
+  "campaign_id": $campaignId, # in that you can use Riposte variables
+  "qty": $qty                 # and you can add comments to JSON, too
+}
+
+POST $payload to cart/{uuid}/items responds with 200
+
+$itemId := /items/0/cart_item_id # extract the item ID
