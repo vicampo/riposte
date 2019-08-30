@@ -1,14 +1,11 @@
 #lang riposte
+
 import parameters.rip
-import headers.rip
 
-$payload := {
-  "username": @USERNAME,
-  "password": @PASSWORD
-}
+GET account-details responds with 403
 
-POST $payload to login responds with 200
+import login.rip
 
-$key := /apikey
-^APIKey := $key
-}|
+GET account-details responds with 200
+
+/in-arrears = true
