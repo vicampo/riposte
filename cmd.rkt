@@ -8,7 +8,8 @@
          last-response
          param-base-url
          param-timeout
-         last-response->jsexpr)
+         last-response->jsexpr
+         json-pointer-exists?)
 
 (require (for-syntax racket/base
                      syntax/parse
@@ -21,6 +22,7 @@
          http/request
          http/head
          json
+         json-pointer
          (only-in racket/class
                   send)
          (file "version.rkt")
@@ -173,6 +175,18 @@
          (error "Previous response has a malformed body.")]
         [else
          (send last-response as-jsexpr)]))
+
+(define (json-pointer-exists? jp)
+  (cond [(not (response-received?))
+         (error (format "No response received; cannot evaluate JSON Pointer \"~a\"." jp))]
+        [(not (response-has-body?))
+         (error (format "Previous response has an empty body; cannot evaluate JSON Pointer \"~a\"." jp))]
+        [(not (response-well-formed?))
+         (error (format "Previous response has a malformed body; cannot evaluate JSON Pointer \"~a\"." jp))]
+        [else
+         (with-handlers ([exn:fail? (lambda (err)
+                                      (error (format "JSON Pointer \"~a\" does not exist." jp)))])
+           (json-pointer-value jp (send last-response as-jsexpr)))]))
 
 (define/contract (update-last-response! code headers body)
   ((integer-in 100 599) (and/c immutable? (hash/c symbol? string?)) bytes? . -> . void)
