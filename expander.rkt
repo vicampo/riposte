@@ -254,12 +254,6 @@
          (displayln "looking at a literal")
          s)]))
 
-#;
-(define-syntax (import stx)
-  (syntax-parse stx
-    [(_ path:string)
-     #'(dynamic-require (expand-path path) #f)]))
-
 (define-syntax (expand-path stx)
   (syntax-parse stx
     [(_ path:string)
