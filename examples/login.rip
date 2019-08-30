@@ -1,0 +1,12 @@
+#lang riposte
+
+import parameters.rip
+
+$payload := {
+  "username": @USERNAME,
+  "password": @PASSWORD
+}
+
+POST $payload to login responds with 200
+
+^APIKey := /apikey
