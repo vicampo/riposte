@@ -1380,6 +1380,14 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(cons (or #\( #\)) _)
+     (define s (~a (car chars)))
+     (define new-position (add-position start (car chars)))
+     (define t (position-token (token (string->symbol s) s)
+                               start
+                               new-position))
+     (cons t (initial (cdr chars)
+                      new-position))]
     [(cons #\/ _)
      (define result (json-pointer chars start))
      (append (lexer-result-tokens result)
@@ -1839,6 +1847,39 @@ RIPOSTE
                     (token-struct 'integer "integer" #f #f #f #f #f)
                     (position 18 1 17)
                     (position 25 1 24))))))
+
+(module+ test
+  (let ([program "$foo := /bar (negative integer)"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "foo" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct ':= #f #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 8 1 7))
+                   (position-token
+                    (token-struct 'JSON-POINTER "/bar" #f #f #f #f #f)
+                    (position 9 1 8)
+                    (position 13 1 12))
+                   (position-token
+                    (token-struct '|(| "(" #f #f #f #f #f)
+                    (position 14 1 13)
+                    (position 15 1 14))
+                   (position-token
+                    (token-struct 'negative "negative" #f #f #f #f #f)
+                    (position 15 1 14)
+                    (position 23 1 22))
+                   (position-token
+                    (token-struct 'integer "integer" #f #f #f #f #f)
+                    (position 24 1 23)
+                    (position 31 1 30))
+                   (position-token
+                    (token-struct '|)| ")" #f #f #f #f #f)
+                    (position 31 1 30)
+                    (position 32 1 31))))))
 
 (module+ main
 
