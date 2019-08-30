@@ -7,6 +7,18 @@ $payload := { "a": 5, "b": [] }
 
 POST $payload to / responds with 201
 
+/foo is number
+
 /foo is positive integer
 
 /foo is not array
+
+/foo is not negative integer
+
+/foo is not null
+
+/foo is not object
+
+/foo is not boolean
+
+/foo is not string
