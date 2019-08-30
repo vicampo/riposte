@@ -1,0 +1,3 @@
+#lang riposte
+%base := https://cool.test/api/v2/
+%timeout := 30
