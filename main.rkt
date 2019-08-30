@@ -10,6 +10,7 @@
          normal-assignment
          expression
          normal-identifier
+         env-identifier
          json-object
          json-object-item
          json-array
@@ -23,7 +24,8 @@
          has-type
          json-pointer
          unset
-         schema-ref)
+         schema-ref
+         jp-existence)
 
 (require (file "expander.rkt"))
 

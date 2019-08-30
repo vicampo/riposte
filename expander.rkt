@@ -7,6 +7,7 @@
          riposte-program
          expression
          normal-identifier
+         env-identifier
          command
          normal-assignment
          parameter-assignment
@@ -23,7 +24,8 @@
          has-type
          json-pointer
          unset
-         schema-ref)
+         schema-ref
+         jp-existence)
 
 (require (for-syntax racket/base
                      syntax/parse
@@ -36,6 +38,7 @@
          racket/pretty
          racket/port
          racket/class
+         racket/match
          (file "cmd.rkt")
          (file "response.rkt")
          (file "json.rkt")
@@ -110,11 +113,27 @@
     [(_ ident:string)
      (format-id #'ident "~a" (syntax->datum #'ident))]))
 
+(define-syntax (env-identifier stx)
+  (syntax-parse stx
+    [(_ ident:string fallback:string)
+     #'(match (getenv ident)
+         [(? string? s)
+          s]
+         [else
+          fallback])]
+    [(_ ident:string)
+     #'(getenv ident)]))
+
 (define-syntax (normal-assignment stx)
   (syntax-parse stx
     [(_ ident:string expr)
      (with-syntax [(name (format-id #'ident "~a" (syntax->datum #'ident)))]
-       #'(define name expr))]))
+       #'(define name expr))]
+    [(_ ident:string expr "(" type ")")
+     (with-syntax [(name (format-id #'ident "~a" (syntax->datum #'ident)))]
+       #'(begin
+           (define name expr)
+           (has-type name "is" type)))]))
 
 (define-syntax (parameter-assignment stx)
   (syntax-parse stx
@@ -192,7 +211,10 @@
     [(_ (expression e))
      #'(render e)]
     [(_ l:string)
-     #'l]))
+     #'l]
+    [(_ i:id)
+     (define s (symbol->string (syntax-e #'i)))
+     #`(render #,s)]))
 
 (define-syntax (unset stx)
   (syntax-parse stx
@@ -229,3 +251,8 @@
      #'(begin
          (displayln "looking at a literal")
          s)]))
+
+(define-syntax (jp-existence stx)
+  (syntax-parse stx
+    [(_ jp:string "exists")
+     #'(json-pointer-exists? jp)]))
