@@ -25,7 +25,8 @@
          json-pointer
          unset
          schema-ref
-         jp-existence)
+         jp-existence
+         equality)
 
 (require (for-syntax racket/base
                      syntax/parse
@@ -44,13 +45,14 @@
          (file "json.rkt")
          (file "parameters.rkt")
          (only-in (file "util.rkt")
-                  file-content/bytes))
+                  file-content/bytes
+                  equal-jsexprs?))
 
 (define-syntax (riposte-program stx)
   (syntax-parse stx
     [(_ step ...)
      #'(begin
-        step ...)]))
+         step ...)]))
 
 (define-syntax (expression stx)
   (syntax-parse stx
@@ -122,7 +124,11 @@
          [else
           fallback])]
     [(_ ident:string)
-     #'(getenv ident)]))
+     #'(match (getenv ident)
+         [(? string? s)
+          s]
+         [else
+          (error (format "Environment variable \"~a\" not set and no fallback was provided." ident))])]))
 
 (define-syntax (normal-assignment stx)
   (syntax-parse stx
@@ -135,10 +141,12 @@
            (define name expr)
            (has-type name "is" type)))]))
 
+
 (define-syntax (parameter-assignment stx)
   (syntax-parse stx
     [(_ "base" expr)
-     #'(param-base-url (string->url expr))]
+     #'(begin
+         (param-base-url (string->url expr)))]
     [(_ "timeout" (expression t:integer))
      #'(begin
          (unless (> t 0)
@@ -232,27 +240,48 @@
   (syntax-parse stx
     [(_ "in" path:string)
      #'(begin
-         (let ([full-path (cond [(path? (param-cwd))
-                                 (build-path (param-cwd) path)]
-                                [else
-                                 (string->path path)])])
-           (displayln (format "Full path is: ~a" (path->string full-path)))
-           (unless (file-exists? full-path)
-             (error (format "No such file: ~a" (path->string full-path))))
-           (let ([bs (file-content/bytes full-path)])
-             (with-handlers ([exn:fail:contract? (lambda (e)
-                                                   (error (format "Content of ~a is malformed UTF-8." (path->string full-path))))])
-               (let ([s (bytes->string/utf-8 bs)])
-                 (with-handlers ([exn:fail? (lambda (e)
-                                              (error (format "Content of ~a is malformed JSON." (path->string full-path))))])
-                   (displayln (format "fuck, looking in ~a" (path->string full-path)))
-                   (string->jsexpr s)))))))]
+         (let* ([full-path (expand-path path)]
+                [bs (file-content/bytes (expand-path path))])
+           (with-handlers ([exn:fail:contract? (lambda (e)
+                                                 (error (format "Content of ~a is malformed UTF-8." (path->string full-path))))])
+             (let ([s (bytes->string/utf-8 bs)])
+               (with-handlers ([exn:fail? (lambda (e)
+                                            (error (format "Content of ~a is malformed JSON." (path->string full-path))))])
+                 (displayln (format "fuck, looking in ~a" (path->string full-path)))
+                 (string->jsexpr s))))))]
     [(_ s)
      #'(begin
          (displayln "looking at a literal")
          s)]))
 
+#;
+(define-syntax (import stx)
+  (syntax-parse stx
+    [(_ path:string)
+     #'(dynamic-require (expand-path path) #f)]))
+
+(define-syntax (expand-path stx)
+  (syntax-parse stx
+    [(_ path:string)
+     #'(let ([p (cond [(path? (param-cwd))
+                       (build-path (param-cwd) path)]
+                      [else
+                       (string->path path)])])
+         (unless (file-exists? p)
+           (error (format "No such file: ~a" (path->string p))))
+         p)]))
+
 (define-syntax (jp-existence stx)
   (syntax-parse stx
     [(_ jp:string "exists")
      #'(json-pointer-exists? jp)]))
+
+(define-syntax (equality stx)
+  (syntax-parse stx
+    [(_ lhs rhs)
+     #`(unless (equal-jsexprs? lhs rhs)
+         (error (format "Equation fails: ~a is ~a, but ~a is ~a."
+                        (render lhs)
+                        (json-pretty-print lhs)
+                        (render rhs)
+                        (json-pretty-print rhs))))]))

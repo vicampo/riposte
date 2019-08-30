@@ -25,7 +25,8 @@
          json-pointer
          unset
          schema-ref
-         jp-existence)
+         jp-existence
+         equality)
 
 (require (file "expander.rkt"))
 
