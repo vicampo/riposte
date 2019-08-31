@@ -9,3 +9,5 @@ import login.rip
 GET account-details responds with 200
 
 /in-arrears = true
+
+/in_arrears does not exist
