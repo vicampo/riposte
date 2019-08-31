@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide run)
+(provide run
+         dispatch-rules)
 
 (require racket/list
          racket/match
@@ -10,6 +11,7 @@
          web-server/http/request-structs
          web-server/http/cookie
          web-server/servlet-env
+         web-server/dispatch
          net/cookie)
 
 (module+ test
