@@ -52,7 +52,9 @@
          [#f (error (format "Environment variable \"~a\" undefined." id))]
          [else #t])]
       [(or (? symbol?)
-           (? string?))
+           (? string?)
+           (? number?)
+           (? boolean?))
        #t]
       [(? list?)
        (for ([x thing])
