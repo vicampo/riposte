@@ -3,11 +3,9 @@
 
 ^Content-Type := "application/json"
 
-$payload := { "a": 5, "b": [] }
+POST { "a": 5, "b": [] } to /foo responds with 200
 
-POST $payload to / responds with 201
-
-/foo is number
+/foo is not string
 
 /foo is positive integer
 
@@ -22,3 +20,11 @@ POST $payload to / responds with 201
 /foo is not boolean
 
 /foo is not string
+
+POST { "a": 5, "b": true } to /bar responds with 200
+
+/bar is non empty string
+
+/bar is not integer
+
+/bar is not positive integer
