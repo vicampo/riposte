@@ -9,7 +9,8 @@
          param-base-url
          param-timeout
          last-response->jsexpr
-         json-pointer-exists?)
+         json-pointer-exists?
+         json-pointer-does-not-exist?)
 
 (require (for-syntax racket/base
                      syntax/parse
@@ -25,8 +26,13 @@
          json-pointer
          (only-in racket/class
                   send)
+         (only-in misc1/syntax
+                  with-output-string)
+         (only-in argo
+                  json-pretty-print)
          (file "version.rkt")
-         (file "response.rkt"))
+         (file "response.rkt")
+         (file "json.rkt"))
 
 (define param-base-url (make-parameter #f))
 
@@ -187,6 +193,30 @@
          (with-handlers ([exn:fail? (lambda (err)
                                       (error (format "JSON Pointer \"~a\" does not exist." jp)))])
            (json-pointer-value jp (send last-response as-jsexpr)))]))
+
+(define (json-pointer-does-not-exist? jp)
+  (cond [(not (response-received?))
+         (error (format "No response received; cannot evaluate JSON Pointer \"~a\"." jp))]
+        [(not (response-has-body?))
+         (error (format "Previous response has an empty body; cannot evaluate JSON Pointer \"~a\"." jp))]
+        [(not (response-well-formed?))
+         (error (format "Previous response has a malformed body; cannot evaluate JSON Pointer \"~a\"." jp))]
+        [else
+         (define js (send last-response as-jsexpr))
+         (cond [(or (json-object? js)
+                    (json-array? js))
+                (with-handlers ([exn:fail? (lambda (err) (void))])
+                  (define v (json-pointer-value jp js))
+                  (define msg (with-output-string
+                                (displayln (format "JSON Pointer \"~a\" does exist. The value is:" jp))
+                                (displayln (json-pretty-print v))))
+                  (error msg))]
+               [else
+                (define msg (with-output-string
+                              (displayln (format "The previous response is neither an array nor an object, so we cannot evaluate JSON Pointer \"~a\"." jp))
+                              (displayln "Previous response was:")
+                              (displayln (json-pretty-print js))))
+                  (error msg)])]))
 
 (define/contract (update-last-response! code headers body)
   ((integer-in 100 599) (and/c immutable? (hash/c symbol? string?)) bytes? . -> . void)
