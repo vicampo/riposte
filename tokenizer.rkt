@@ -34,9 +34,16 @@
 (module+ test
   (require rackunit))
 
+(define (header-char? x)
+  (define i (char->integer x))
+  (or (= i 45) ; dash
+      (and (> i 47) (< i 58)) ; digits
+      (and (> i 64) (< i 91)) ; uppercase digits
+      (and (> i 96) (< i 123))))
+
 #|
 
-Identifiers: $ followed by a sequence of letters, numbers, and '_'
+Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 |#
 
@@ -139,7 +146,7 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
 (define/contract (char-identifier? x)
   (char? . -> . boolean?)
   (match x
-    [(or (? char-alphabetic?) #\_)
+    [(or (? char-alphabetic?) #\_ #\-)
      #t]
     [else
      #f]))
@@ -253,6 +260,21 @@ Identifiers: $ followed by a sequence of letters, numbers, and '_'
      ;(log-error "header name chars: ~a" ident-chars)
      (define token-content (token 'REQUEST-HEADER-IDENTIFIER (list->string ident-chars)))
      (define end-position (add-position start (cons #\^ ident-chars)))
+     (define id/token (position-token token-content
+                                      start
+                                      end-position))
+     (lexer-result end-position
+                   (list id/token)
+                   (drop chars (add1 (length ident-chars))))]))
+
+(define/contract (response-header-identifier chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(or (list (? header-char?) ..1 #\^)
+         (list-rest (? header-char?) ..1 #\^ _))
+     (define ident-chars (takef chars (lambda (c) (not (char=? c #\^)))))
+     (define token-content (token 'RESPONSE-HEADER-IDENTIFIER (list->string ident-chars)))
+     (define end-position (add-position start (append ident-chars (list #\^))))
      (define id/token (position-token token-content
                                       start
                                       end-position))
@@ -1365,6 +1387,12 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list (? header-char?) ..1 #\^)
+         (list-rest (? header-char?) ..1 #\^ _))
+     (define result (response-header-identifier chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list-rest #\% #\b #\a #\s #\e _)
      (define result (base-parameter chars start))
      (append (lexer-result-tokens result)
@@ -1514,6 +1542,30 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list #\a #\b #\s #\e #\n #\t)
+         (list-rest #\a #\b #\s #\e #\n #\t _))
+     (define result (consume-keyword "absent" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\s #\t #\a #\r #\t #\s)
+         (list-rest #\s #\t #\a #\r #\t #\s _))
+     (define result (consume-keyword "starts" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\e #\n #\d #\s)
+         (list-rest #\e #\n #\d #\s _))
+     (define result (consume-keyword "ends" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\p #\r #\e #\s #\e #\n #\t)
+         (list-rest #\p #\r #\e #\s #\e #\n #\t _))
+     (define result (consume-keyword "present" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(or (list #\a #\r #\r #\a #\y)
          (list-rest #\a #\r #\r #\a #\y _))
      (define result (consume-keyword "array" chars start))
@@ -1576,7 +1628,8 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(list-rest #\u #\n #\s #\e #\t _)
+    [(or (list #\u #\n #\s #\e #\t)
+         (list-rest #\u #\n #\s #\e #\t _))
      (define result (consume-keyword "unset" chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
@@ -1976,6 +2029,50 @@ RIPOSTE
                     (token-struct 'string "string" #f #f #f #f #f)
                     (position 10 1 9)
                     (position 16 1 15))))))
+
+(module+ test
+  (let ([program "Content-Type^ is absent"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 14 1 13))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 15 1 14)
+                    (position 17 1 16))
+                   (position-token
+                    (token-struct 'absent "absent" #f #f #f #f #f)
+                    (position 18 1 17)
+                    (position 24 1 23))))))
+
+(module+ test
+  (let ([program "Content-Type^ is present"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 14 1 13))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 15 1 14)
+                    (position 17 1 16))
+                   (position-token
+                    (token-struct 'present "present" #f #f #f #f #f)
+                    (position 18 1 17)
+                    (position 25 1 24))))))
+
+(module+ test
+  (let ([program "Content-Type^ starts with \"whatever\""])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program "Content-Type^ ends with \"utf-8\""])
+    (check-equal? (tokenize program)
+                  (list))))
 
 (module+ main
 
