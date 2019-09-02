@@ -43,7 +43,14 @@
 
 (define/contract (make-response code headers body)
   ((integer-in 100 599) (and/c immutable? (hash/c symbol? string?)) bytes? . -> . response?)
+  (define (lowercase k v)
+    (cons (string->symbol
+           (string-downcase
+            (symbol->string k)))
+          v))
+  (define headers/lowercased
+    (make-immutable-hash (hash-map headers lowercase)))
   (new response%
        [code code]
-       [headers headers]
+       [headers headers/lowercased]
        [body/raw body]))
