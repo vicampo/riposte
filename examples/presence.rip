@@ -1,0 +1,17 @@
+#lang riposte
+
+import parameters.rip
+
+$content-type := "whatever,charset=utf-8"
+
+GET /frack/{content-type}
+
+Content-Type^ is present
+
+Content-Type^ starts with "whatever"
+
+Content-Type^ ends with "utf-8"
+
+Bontent-Type^ is absent
+
+Server^ = "Racket"
