@@ -5,7 +5,6 @@
          ;render-ejsexprish
          bytes->string
          port->chars
-         equal-jsexprs?
          file-content/bytes)
 
 (require racket/function
@@ -94,45 +93,3 @@
      (list)]
     [(? char? c)
      (cons c (port->chars ip))]))
-
-(define (equal-arrays? jsarr1 jsarr2)
-  (cond [(empty? jsarr1)
-         (empty? jsarr2)]
-        [(empty? jsarr2)
-         #f]
-        [else
-         (equal-jsexprs? (car jsarr1) (car jsarr2))]))
-
-(define (equal-value-for-property? prop jsobj1 jsobj2)
-  (and (hash-has-key? jsobj1 prop)
-       (hash-has-key? jsobj2 prop)
-       (equal-jsexprs? (hash-ref jsobj1 prop)
-                       (hash-ref jsobj2 prop))))
-
-(define (equal-objects? jsobj1 jsobj2)
-  (define keys1 (hash-keys jsobj1))
-  (define keys2 (hash-keys jsobj2))
-  (and (equal? keys1 keys2)
-       (andmap (lambda (k)
-                 (equal-value-for-property? k jsobj1 jsobj2))
-               keys1)))
-
-(define (equal-jsexprs? jsexpr1 jsexpr2)
-  (match jsexpr1
-    ['null
-     (eq? jsexpr2 'null)]
-    [#t
-     (eq? jsexpr2 #t)]
-    [#f
-     (eq? jsexpr2 #f)]
-    [(? string?)
-     (equal? jsexpr2 jsexpr1)]
-    [(? number?)
-     (and (number? jsexpr2)
-          (= jsexpr1 jsexpr2))]
-    [(? list?)
-     (and (list? jsexpr2)
-          (equal-arrays? jsexpr1 jsexpr2))]
-    [(? hash?)
-     (and (hash? jsexpr2)
-          (equal-objects? jsexpr1 jsexpr2))]))
