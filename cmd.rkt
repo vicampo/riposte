@@ -10,7 +10,8 @@
          param-timeout
          last-response->jsexpr
          json-pointer-exists?
-         json-pointer-does-not-exist?)
+         json-pointer-does-not-exist?
+         fetch-response-header)
 
 (require (for-syntax racket/base
                      syntax/parse
@@ -220,8 +221,20 @@
 
 (define/contract (update-last-response! code headers body)
   ((integer-in 100 599) (and/c immutable? (hash/c symbol? string?)) bytes? . -> . void)
+  (log-error "Updating last response with headers: ~a" headers)
   (set! last-response
         (make-response code headers body)))
+
+(define (get-response-headers)
+  (cond [(response-received?)
+         (send last-response get-headers)]
+        [else
+         (error "Cannot fetch response headers because we haven't received a response yet!")]))
+
+(define (fetch-response-header name)
+  (define headers (get-response-headers))
+  (define k (string->symbol (string-downcase name)))
+  (hash-ref headers k #f))
 
 (define/contract (read-entity/bytes+response-code in h)
   (input-port? string? . -> . (list/c exact-integer? dict? bytes?))
