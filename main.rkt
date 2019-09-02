@@ -26,7 +26,10 @@
          unset
          schema-ref
          jp-existence
-         equality)
+         equality
+         header-presence
+         response-head-id
+         sequence-predicate)
 
 (require (file "expander.rkt"))
 
