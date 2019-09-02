@@ -48,10 +48,13 @@ inequality : expression ("<" | ">") expression
   | has-element-count
   | header-presence
   | jp-existence
+  | sequence-predicate
 
 has-type: expression "is" [ "not" ] json-type
 
 adjective-applies: expression "is" (sequence-adjective | arithmetical-adjective | object-adjective )
+
+sequence-predicate: expression ("starts" | "ends" ) "with" expression
 
 has-element-count: expression "has"
   "at" [ "least" | "most" ]
@@ -67,13 +70,15 @@ jp-existence: JSON-POINTER
   [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER) ]
   [ "and" "is" [ "non" ] "empty" ]
 
-header-presence: HEADER-REF "is" ("absent" | "present")
+header-presence: RESPONSE-HEADER-IDENTIFIER /"is" ("absent" | "present")
 
 json-type : "boolean" | json-number-type | "null" | json-sequence-type | json-object-type
 
+@json-boolean-type: "boolean" | "true" | "false"
+
 json-sequence-type: [ sequence-adjective ] ( "string" | "array" )
 
-json-number-type: [ arithmetical-adjective ] ( "number" | "integer" | "float" )
+@json-number-type: [ arithmetical-adjective ] ( "number" | "integer" | "float" )
 
 json-object-type: [ object-adjective ] "object"
 
