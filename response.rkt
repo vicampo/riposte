@@ -30,6 +30,8 @@
                  (send this as-jsexpr)))]))
     (define/public (get-code)
       code)
+    (define/public (get-headers)
+      headers)
     (define/public (body-is-string?)
       (string? (bytes->string body/raw)))
     (define/public (body-bytes-length)
