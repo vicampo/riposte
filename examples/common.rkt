@@ -1,7 +1,8 @@
 #lang racket/base
 
 (provide run
-         dispatch-rules)
+         dispatch-rules
+         make-header)
 
 (require racket/list
          racket/match
