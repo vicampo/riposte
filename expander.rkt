@@ -26,7 +26,10 @@
          unset
          schema-ref
          jp-existence
-         equality)
+         equality
+         header-presence
+         response-head-id
+         sequence-predicate)
 
 (require (for-syntax racket/base
                      racket/match
@@ -46,8 +49,7 @@
          (file "json.rkt")
          (file "parameters.rkt")
          (only-in (file "util.rkt")
-                  file-content/bytes
-                  equal-jsexprs?))
+                  file-content/bytes))
 
 (define-syntax (riposte-program stx)
   (syntax-parse stx
@@ -368,3 +370,43 @@
                         (json-pretty-print lhs)
                         (render rhs)
                         (json-pretty-print rhs))))]))
+
+(define-syntax (header-presence stx)
+  (syntax-parse stx
+    [(_ header:string "present")
+     #'(when (eq? #f (fetch-response-header header))
+         (error (format "Header ~a missing from previous response." header)))]
+    [(_ header:string "absent")
+     #'(unless (eq? #f (fetch-response-header header))
+         (error (format "Header ~a present in previous response." header)))]))
+
+(define-syntax (response-head-id stx)
+  (syntax-parse stx
+    [(_ h:string)
+     #'(cond [(response-received?)
+              (match (fetch-response-header h)
+                [(? string? s)
+                 s]
+                [else
+                 (error (format "Previous response does not have header \"~a\"." h))])]
+             [else
+              (error (format "No response received yet; cannot look for response header \"~a\"." h))])]))
+
+(define-syntax (sequence-predicate stx)
+  (syntax-parse stx
+    [(_ e1 "starts" "with" e2)
+     #'(begin
+         (unless (or (string? e1) (list? e1))
+           (error (format "~a holds neither a string nor an array!" (render e1))))
+         (unless (or (string? e2) (list? e2))
+           (error (format "~a holds neither a string nor an array!" (render e2))))
+         (unless (starts-with? e1 e2)
+           (error (format "~a does not start with ~a" (render e1) (render e2)))))]
+    [(_ e1 "ends" "with" e2)
+     #'(begin
+         (unless (or (string? e1) (list? e1))
+           (error (format "~a holds neither a string nor an array!" (render e1))))
+         (unless (or (string? e2) (list? e2))
+           (error (format "~a holds neither a string nor an array!" (render e2))))
+         (unless (ends-with? e1 e2)
+           (error (format "~a (~a) does not end with ~a (~a)." (render e1) e1 (render e2) e2))))]))
