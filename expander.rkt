@@ -383,14 +383,15 @@
 (define-syntax (response-head-id stx)
   (syntax-parse stx
     [(_ h:string)
-     #'(cond [(response-received?)
-              (match (fetch-response-header h)
-                [(? string? s)
-                 s]
-                [else
-                 (error (format "Previous response does not have header \"~a\"." h))])]
-             [else
-              (error (format "No response received yet; cannot look for response header \"~a\"." h))])]))
+     #'(cond
+         [(response-received?)
+          (match (fetch-response-header h)
+            [(? string? s)
+             s]
+            [else
+             (error (format "Previous response does not have header \"~a\"." h))])]
+         [else
+          (error (format "No response received yet; cannot look for response header \"~a\"." h))])]))
 
 (define-syntax (sequence-predicate stx)
   (syntax-parse stx
