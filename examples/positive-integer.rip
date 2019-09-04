@@ -5,26 +5,34 @@
 
 POST { "a": 5, "b": [] } to /foo responds with 200
 
-/foo is not string
+/foo exists
 
-/foo is positive integer
+/foo is not a string
 
-/foo is not array
+/foo is a positive integer
 
-/foo is not negative integer
+/foo is not an array
 
-/foo is not null
+/foo is not a negative integer
 
-/foo is not object
+/foo is non null
 
-/foo is not boolean
+/foo is not an object
 
-/foo is not string
+/foo is not a boolean
+
+/foo is not a string
+
+/bar does not exist
 
 POST { "a": 5, "b": true } to /bar responds with 200
 
-/bar is non empty string
+/bar exists
 
-/bar is not integer
+/bar is a non empty string
 
-/bar is not positive integer
+/bar is not an integer
+
+/bar is not a positive integer
+
+/foo does not exist
