@@ -1481,8 +1481,21 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(list-rest #\e #\m #\p #\t #\y _)
+    [(or (list #\e #\m #\p #\t #\y)
+         (list-rest #\e #\m #\p #\t #\y _))
      (define result (consume-keyword "empty" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\e #\v #\e #\n)
+         (list-rest #\e #\v #\e #\n _))
+     (define result (consume-keyword "even" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\o #\d #\d)
+         (list-rest #\o #\d #\d _))
+     (define result (consume-keyword "odd" chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -1521,7 +1534,20 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(list-rest #\a #\n #\d _)
+    [(or (list #\a)
+         (list-rest #\a (? char-whitespace?) _))
+     (define result (consume-keyword "a" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\a #\n)
+         (list-rest #\a #\n (? char-whitespace?) _))
+     (define result (consume-keyword "an" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\a #\n #\d)
+         (list-rest #\a #\n #\d (? char-whitespace?) _))
      (define result (consume-keyword "and" chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
@@ -2067,12 +2093,120 @@ RIPOSTE
 (module+ test
   (let ([program "Content-Type^ starts with \"whatever\""])
     (check-equal? (tokenize program)
-                  (list))))
+                  (list
+                   (position-token
+                    (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 14 1 13))
+                   (position-token
+                    (token-struct 'starts "starts" #f #f #f #f #f)
+                    (position 15 1 14)
+                    (position 21 1 20))
+                   (position-token
+                    (token-struct 'with "with" #f #f #f #f #f)
+                    (position 22 1 21)
+                    (position 26 1 25))
+                   (position-token
+                    (token-struct 'JSON-STRING "whatever" #f #f #f #f #f)
+                    (position 27 1 26)
+                    (position 36 1 35))))))
 
 (module+ test
   (let ([program "Content-Type^ ends with \"utf-8\""])
     (check-equal? (tokenize program)
-                  (list))))
+                  (list
+                   (position-token
+                    (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 14 1 13))
+                   (position-token
+                    (token-struct 'ends "ends" #f #f #f #f #f)
+                    (position 15 1 14)
+                    (position 19 1 18))
+                   (position-token
+                    (token-struct 'with "with" #f #f #f #f #f)
+                    (position 20 1 19)
+                    (position 24 1 23))
+                   (position-token
+                    (token-struct 'JSON-STRING "utf-8" #f #f #f #f #f)
+                    (position 25 1 24)
+                    (position 31 1 30))))))
+
+(module+ test
+  (let ([program "$a is even"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 3 1 2))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 4 1 3)
+                    (position 6 1 5))
+                   (position-token
+                    (token-struct 'even "even" #f #f #f #f #f)
+                    (position 7 1 6)
+                    (position 11 1 10))))))
+
+(module+ test
+  (let ([program "$a is odd"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 3 1 2))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 4 1 3)
+                    (position 6 1 5))
+                   (position-token
+                    (token-struct 'odd "odd" #f #f #f #f #f)
+                    (position 7 1 6)
+                    (position 10 1 9))))))
+
+(module+ test
+  (let ([program "$a is an integer"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 3 1 2))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 4 1 3)
+                    (position 6 1 5))
+                   (position-token
+                    (token-struct 'an "an" #f #f #f #f #f)
+                    (position 7 1 6)
+                    (position 9 1 8))
+                   (position-token
+                    (token-struct 'integer "integer" #f #f #f #f #f)
+                    (position 10 1 9)
+                    (position 17 1 16))))))
+
+(module+ test
+  (let ([program "$s is a string"])
+    (check-equal? (tokenize program)
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "s" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 3 1 2))
+                   (position-token
+                    (token-struct 'is "is" #f #f #f #f #f)
+                    (position 4 1 3)
+                    (position 6 1 5))
+                   (position-token
+                    (token-struct 'a "a" #f #f #f #f #f)
+                    (position 7 1 6)
+                    (position 8 1 7))
+                   (position-token
+                    (token-struct 'string "string" #f #f #f #f #f)
+                    (position 9 1 8)
+                    (position 15 1 14))))))
 
 (module+ main
 
