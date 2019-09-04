@@ -10,8 +10,6 @@
          (file "util.rkt")
          (only-in (file "./version.rkt")
                   riposte-version)
-         (only-in (file "reader.rkt")
-                  read-syntax)
          (file "grammar.rkt")
          (only-in (file "tokenizer.rkt")
                   tokenize)
@@ -103,45 +101,12 @@
      [("--env") f
                 "Specify an environment file to use (can be specified multiple times)"
                 (opt-dotenvs (cons f (opt-dotenvs)))]
-     #:args ([args #f])
+     #:args (args)
      args))
 
   (when (opt-version)
     (displayln (format "~a" riposte-version))
     (exit 0))
-
-  (define repl-parse (make-rule-parser riposte-repl))
-
-  (define (read-one-toplevel-expr origin port)
-    (match (read-line port)
-      [(? eof-object?)
-       eof]
-      [(? string? l)
-       (repl-parse (tokenize l))]))
-
-  (define (do-setup!)
-    (basic-output-port (current-output-port))
-    (current-read-interaction read-one-toplevel-expr))
-
-  (match file-to-process
-    [#f
-     (define basic-output-port
-       (make-parameter (open-output-nowhere)))
-     (do-setup!)
-     (define handler (current-eval))
-     (define (new-handler x)
-       (with-handlers ([exn:fail:contract:variable? complain-about-undefined-var])
-         (handler x)))
-     (parameterize ([current-eval new-handler])
-       (break-enabled #t)
-       (with-handlers ([exn:break? (lambda (e)
-                                     (displayln "")
-                                     (read-eval-print-loop))])
-         (read-eval-print-loop)))
-     (displayln "")
-     (exit 0)]
-    [else
-     (displayln (format "Got: ~a" file-to-process))])
 
   (unless (file-exists? file-to-process)
     (displayln (format "No such file: ~a" file-to-process))
