@@ -42,7 +42,6 @@ disequality : expression /"!=" expression
 inequality : expression ("<" | ">") expression
 
 @predication : has-type
-  | adjective-applies
   | has-property
   | has-length
   | has-element-count
@@ -50,14 +49,18 @@ inequality : expression ("<" | ">") expression
   | jp-existence
   | sequence-predicate
 
-has-type: expression "is" [ "not" ] json-type
+has-type: expression "is" [ "non" ] adjective
+  | expression "is" [ "not" ] ( "a" | "an" ) [ [ "non" ] adjective ] json-type
 
-adjective-applies: expression "is" (sequence-adjective | arithmetical-adjective | object-adjective )
+@adjective: sequence-adjective
+  | arithmetical-adjective
+  | object-adjective
+  | "null"
 
-sequence-predicate: expression ("starts" | "ends" ) "with" expression
+@sequence-predicate: expression ("starts" | "ends" ) "with" expression
 
 has-element-count: expression "has"
-  "at" [ "least" | "most" ]
+  [ "at" ( "least" | "most" ) ]
   expression
   ( "properties" | "elements" | "characters" )
 
@@ -72,21 +75,21 @@ jp-existence: JSON-POINTER
 
 header-presence: RESPONSE-HEADER-IDENTIFIER /"is" ("absent" | "present")
 
-json-type : "boolean" | json-number-type | "null" | json-sequence-type | json-object-type
-
-@json-boolean-type: "boolean" | "true" | "false"
-
-json-sequence-type: [ sequence-adjective ] ( "string" | "array" )
-
-@json-number-type: [ arithmetical-adjective ] ( "number" | "integer" | "float" )
+@json-type : "null"
+  | "boolean"
+  | "string"
+  | "number"
+  | "integer"
+  | "object"
+  | "array"
 
 json-object-type: [ object-adjective ] "object"
 
 object-adjective: [ "non" ] "empty"
 
-arithmetical-adjective: [ "non" ] ( "positive" | "negative" )
+@arithmetical-adjective: [ "non" ] ( "positive" | "negative" | "even" | "odd" )
 
-sequence-adjective: [ "non" ] "empty"
+@sequence-adjective: [ "non" ] "empty"
 
 @assignment : normal-assignment | parameter-assignment | header-assignment
 
