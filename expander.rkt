@@ -44,6 +44,7 @@
          racket/port
          racket/class
          racket/match
+         racket/string
          (file "cmd.rkt")
          (file "response.rkt")
          (file "json.rkt")
@@ -142,7 +143,7 @@
      (with-syntax [(name (format-id #'ident "~a" (syntax->datum #'ident)))]
        #'(begin
            (define name expr)
-           (has-type name "is" type)))]))
+           (has-type name "is" "a" type)))]))
 
 
 (define-syntax (parameter-assignment stx)
@@ -203,100 +204,56 @@
 
 (define-syntax (has-type stx)
   (syntax-parse stx
-    [(_ expr "is" type)
-     (match (syntax->datum #'type)
-       [(list 'json-type type)
-        (match type
-          [(list-rest 'json-number-type more)
-           (define number-block
-             #'(unless (number? expr)
-                 (error (format "~a is not a number!" (render expr)))))
-           (match more
-             [(list (list 'arithmetical-adjective adj) type)
-              (define type-block
-                (match type
-                  ["integer" #'(unless (integer? expr)
-                                 (error (format "~a is not an integer!" (render expr))))]
-                  ["float" #'(when (integer? expr)
-                               (error (format "~a is an integer (hence not a float)!" (render expr))))]
-                  ["number" #'(unless (number? expr)
-                                (error (format "~a is not a number!" (render expr))))]
-                  [else
-                   (error (format "Unknown JSON type \"~a\"." type))]))
-              (define adjective-block
-                (match adj
-                  ["positive" #'(unless (> expr 0)
-                                  (error (format "~a is not positive!" (render expr))))]
-                  ["negative" #'(unless (< expr 0)
-                                  (error (format "~a is not negative!" (render expr))))]
-                  [else
-                   (error (format "Unknown adjective \"~a\"." adj))]))
-              #`(begin
-                  #,number-block
-                  #,type-block
-                  #,adjective-block)]
-             [(list "number")
-              number-block])]
-          [(list 'json-sequence-type "string")
-           #'(unless (string? expr)
-               (error (format "~a is not a string!" (render expr))))]
-          [(list 'json-sequence-type (list 'sequence-adjective "empty") "string")
-           #'(begin
-               (unless (string? expr)
-                 (error (format "~a is not a string!" (render expr))))
-               (unless (string=? "" expr)
-                 (error (format "~a is non-empty string!"))))]
-          [(list 'json-sequence-type (list 'sequence-adjective "non" "empty") "string")
-           #'(begin
-               (unless (string? expr)
-                 (error (format "~a is not a string!" (render expr))))
-               (when (string=? "" expr)
-                 (error (format "~a is the empty string!"))))]
-          [(list 'json-sequence-type "array")
-           #'(unless (list? expr)
-               (error (format "~a is not an array!" (render expr))))])])]
-    [(_ expr "is" "not" type)
-     (match (syntax->datum #'type)
-       [(list 'json-type type)
-        (match type
-          [(list 'json-sequence-type "array")
-           #'(when (list? expr)
-               (error (format "~a is an array!" (render expr))))]
-          [(list 'json-sequence-type "string")
-           #'(when (string? expr)
-               (error (format "~a is a string!" (render expr))))]
-          [(list 'json-object-type "object")
-           #'(when (hash? expr)
-               (error (format "~a is an object!" (render expr))))]
-          ["null"
-           #'(when (eq? 'null expr)
-               (error (format "~a is null!" (render expr))))]
-          ["boolean"
-           #'(when (boolean? expr)
-               (error (format "~a is a boolean!" (render expr))))]
-          [(list 'json-number-type "integer")
-           #'(when (integer? expr)
-               (error (format "~a is an integer!" (render expr))))]
-          [(list 'json-number-type "float")
-           #'(cond [(number? expr)
-                    (unless (integer? expr)
-                      (error (format "~a is an integer (hence not a float)!" (render expr))))]
-                   [else (void)])]
-          [(list 'json-number-type "number")
-           #'(when (number? expr)
-               (error (format "~a is a number!" (render expr))))]
-          [(list 'json-number-type (list 'arithmetical-adjective "negative") "integer")
-           #'(cond [(integer? expr)
-                    (when (< expr 0)
-                      (error (format "~a is negative!" (render expr))))]
-                   [else
-                    (void)])]
-          [(list 'json-number-type (list 'arithmetical-adjective "positive") "integer")
-           #'(cond [(integer? expr)
-                    (when (> expr 0)
-                      (error (format "~a is positive!" (render expr))))]
-                   [else
-                    (void)])])])]))
+    [(_ expr "is" "a" "string")
+     #'(unless (string? expr)
+         (error (format "~a is not a string!" (render expr))))]
+    [(_ expr "is" "null")
+     #'(unless (eq? expr 'null)
+         (error (format "~a is not null!" (render expr))))]
+    [(_ expr "is" "non" "null")
+     #'(when (eq? expr 'null)
+         (error (format "~a is null!" (render expr))))]
+    [(_ expr "is" "an" "integer")
+     #'(unless (integer? expr)
+         (error (format "~a is not an integer!" (render expr))))]
+    [(_ expr "is" "a" "positive" "integer")
+     #'(begin
+         (has-type expr "is" "an" "integer")
+         (unless (> expr 0)
+           (error (format "~a is not positive!" (render expr)))))]
+    [(_ expr "is" "a" "negative" "integer")
+     #'(begin
+         (has-type expr "is" "an" "integer")
+         (unless (< expr 0)
+           (error (format "~a is not negative!" (render expr)))))]
+    [(_ expr "is" "a" "non" "empty" "string")
+     #'(begin
+         (has-type expr "is" "a" "string")
+         (unless (non-empty-string? expr)
+           (error (format "~a is the empty string!" (render expr)))))]
+    [(_ expr "is" "not" "a" "boolean")
+     #'(when (boolean? expr)
+         (error (format "~a is a boolean!" (render expr))))]
+    [(_ expr "is" "not" "a" "string")
+     #'(when (string? expr)
+         (error (format "~a is a string!" (render expr))))]
+    [(_ expr "is" "not" "an" "array")
+     #'(when (list? expr)
+         (error (format "~a is an array!" (render expr))))]
+    [(_ expr "is" "not" "an" "integer")
+     #'(when (integer? expr)
+         (error (format "~a is an integer!" (render expr))))]
+    [(_ expr "is" "not" "an" "object")
+     #'(when (hash? expr)
+         (error (format "~a is an object!" (render expr))))]
+    [(_ expr "is" "not" "a" "positive" "integer")
+     #'(when (and (integer? expr)
+                  (> expr 0))
+         (error (format "~a is not a positive integer!" (render expr))))]
+    [(_ expr "is" "not" "a" "negative" "integer")
+     #'(when (and (integer? expr)
+                  (< expr 0))
+         (error (format "~a is not a negative integer!" (render expr))))]))
 
 (define-syntax (json-pointer stx)
   (syntax-parse stx
