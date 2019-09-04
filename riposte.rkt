@@ -4,19 +4,11 @@
          racket/cmdline
          racket/pretty
          racket/format
-         (only-in racket/port
-                  open-output-nowhere)
          dotenv
          (file "util.rkt")
          (only-in (file "./version.rkt")
                   riposte-version)
-         (file "grammar.rkt")
-         (only-in (file "tokenizer.rkt")
-                  tokenize)
-         racket/contract
-         brag/support
-         racket/match
-         (file "./setup.rkt"))
+         racket/contract)
 
 (define/contract opt-version
   parameter?
@@ -56,40 +48,7 @@
   (displayln (format "FAIL: ~a" (exn-message e)))
   (exit 1))
 
-(define/contract (expand-imports program cwd)
-  (any/c path? . -> . any/c)
-  (match program
-    [(list)
-     (list)]
-    [(or (? string?) (? number?) (? boolean?))
-     program]
-    [(list 'import (? string? filename))
-     (define path (build-path cwd filename))
-     (unless (file-exists? path)
-       (error (format "Cannot import program at \"~a\": no such file." (path->string path))))
-     (define-values (dir base is-directory?)
-       (split-path path))
-     (define tokens (tokenize path))
-     (define parse-tree (parse tokens))
-     (expand-imports (syntax->datum parse-tree) dir)]
-    [(list 'schema-ref "in" (? string? filename))
-     (list 'schema-ref "in" (path->string (build-path cwd filename)))]
-    [(cons (? symbol? x) y)
-     (cons x (map (lambda (s)
-                    (expand-imports s cwd))
-                  y))]))
-
 (module+ main
-
-  (define (complain-about-undefined-var err)
-    (displayln (format "Undefined identifier \"~a\"." (exn:fail:contract:variable-id err))))
-
-  (define (cancelling-prompt)
-    (define (resume e)
-      (displayln "")
-      (cancelling-prompt))
-    (with-handlers ([exn:break? resume])
-      (read-eval-print-loop)))
 
   (define file-to-process
     (command-line
@@ -112,21 +71,8 @@
     (displayln (format "No such file: ~a" file-to-process))
     (exit 1))
 
-  (define-values (dir base is-directory?)
-    (split-path file-to-process))
-
-  (when is-directory?
-    (displayln (format "Given file is actually a directory: ~a" file-to-process))
-    (exit 1))
-
   (run! (check-dotenvs (opt-dotenvs)))
 
   (run! (dotenv-load! (opt-dotenvs)))
-
-  (define cwd
-    (cond [(path? dir)
-           dir]
-          [else
-           (current-directory)]))
 
   (dynamic-require (string->path file-to-process) #f))
