@@ -86,7 +86,10 @@
 
   (define (riposte:read-syntax name in)
     (define-values (dir base is-directory?)
-      (split-path name))
+      (cond [(path-string? name)
+             (split-path name)]
+            [else
+             (values #f #f #f)]))
 
     (define cwd
       (cond [(path? dir)
