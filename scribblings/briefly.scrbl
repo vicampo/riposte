@@ -14,7 +14,10 @@ Let's take a look at some little Riposte scripts.
 # with this
 %base := https://api.example.com:8441/v1/
 
-$uuid := @UUID # @ is how you access environment variables
+$uuid := @UUID with fallback "abc"
+# @ABC is how you access environment variables
+# if the variable is not set, you can specify
+# a fallback
 }|
 
 Normal variables (here, @tt{$uuid}) have the @tt{$} sigil in front of them. There are a handful of global variables which use @tt{%} as their sigil (here, @tt{%base}). Headers form their own kind of “namespace“ for variables; their sigil is @tt{^} (here, @tt{^Content-Type}). In all cases, @tt{:=} is the way you assign a value to a variable.
@@ -71,8 +74,8 @@ Here's another Riposte script that logs in to our iOS API:
 @codeblock[#:keep-lang-line? #f]|{
 #lang riposte
 $loginPayload := {
-  "email": @EMAIL,
-  "password": @PASSWORD
+  "email": @EMAIL with fallback "user@example.com",
+  "password": @PASSWORD with fallback "password"
 }
 
 POST $loginPayload to auth/login responds with 2XX

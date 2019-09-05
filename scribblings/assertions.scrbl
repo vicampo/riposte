@@ -47,7 +47,7 @@ You can use these words as-is. Thus:
 
 @codeblock[#:keep-lang-line? #f #:line-numbers #f]|{
 #lang riposte
-$foo is integer
+$foo is an integer
 }|
 
 is an assertion that succeeds provided that the value held by @tt{$foo} is indeed an integer.
@@ -58,7 +58,7 @@ You can assert that a value does not have a certain type by using @tt{not}. Thus
 
 @codeblock[#:keep-lang-line? #f #:line-numbers #f]|{
 #lang riposte
-$bar is not array
+$bar is not an array
 }|
 
 works provided that @tt{$bar} is not an array.

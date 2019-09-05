@@ -24,12 +24,12 @@ Then, in another Riposte script, @tt{login.rip}, we can import these two to set 
 
 @codeblock[#:keep-lang-line? #f]|{
 #lang riposte
-import parameters.rip
-import headers.rip
+import examples/parameters.rip
+import examples/headers.rip
 
 $payload := {
-  "username": @USERNAME,
-  "password": @PASSWORD
+  "username": @USERNAME with fallback "jesse",
+  "password": @PASSWORD with fallback "password"
 }
 
 POST $payload to login responds with 200
@@ -42,7 +42,7 @@ The @tt{POST} command here gets executed here with the parameters and headers se
 
 @codeblock[#:keep-lang-line? #f]|{
 #lang riposte
-import "login.rip"
+import examples/login.rip
 
 # You can refer to $key
 
