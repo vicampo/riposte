@@ -30,6 +30,7 @@ page](https://github.com/vicampo/riposte/issues).
         "no" } responds with 2XX`, `GET /foo with additional cookies {
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
+   - A REPL.
 
 ## [0.11.0] - 2019-09-01
 
