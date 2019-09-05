@@ -4,6 +4,7 @@
          racket/cmdline
          racket/pretty
          racket/format
+         racket/string
          dotenv
          (file "util.rkt")
          (only-in (file "./version.rkt")
@@ -72,4 +73,8 @@
 
   (run! (dotenv-load! (opt-dotenvs)))
 
-  (dynamic-require (string->path file-to-process) #f))
+  (with-handlers ([exn? (lambda (err)
+                          (displayln (string-trim (exn-message err))
+                                     (current-error-port))
+                          (exit 1))])
+    (dynamic-require (string->path file-to-process) #f)))
