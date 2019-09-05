@@ -205,12 +205,17 @@
          (define js (send last-response as-jsexpr))
          (cond [(or (json-object? js)
                     (json-array? js))
-                (with-handlers ([exn:fail? (lambda (err) (void))])
-                  (define v (json-pointer-value jp js))
-                  (define msg (with-output-string
-                                (displayln (format "JSON Pointer \"~a\" does exist. The value is:" jp))
-                                (displayln (json-pretty-print v))))
-                  (error msg))]
+                (define val
+                  (with-handlers ([exn:fail? (lambda (err)
+                                               (void))])
+                    (json-pointer-value jp js)))
+                (cond [(void? val)
+                       (void)]
+                      [else
+                       (define msg (with-output-string
+                                     (displayln (format "JSON Pointer \"~a\" does exist. The value is:" jp))
+                                     (displayln (json-pretty-print val))))
+                       (error msg)])]
                [else
                 (define msg (with-output-string
                               (displayln (format "The previous response is neither an array nor an object, so we cannot evaluate JSON Pointer \"~a\"." jp))
