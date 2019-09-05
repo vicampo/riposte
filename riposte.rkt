@@ -44,10 +44,6 @@
       (error "Cannot read environment file ~a" (path->string p))
       (exit 1))))
 
-(define (fail-program e)
-  (displayln (format "FAIL: ~a" (exn-message e)))
-  (exit 1))
-
 (module+ main
 
   (define file-to-process
