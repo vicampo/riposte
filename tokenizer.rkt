@@ -76,7 +76,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 (define/contract (import-filename chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "import-filename: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -120,7 +119,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 (define/contract (import chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "import: ~a" chars)
   (match chars
     [(list #\i #\m #\p #\o #\r #\t)
      (define end-position (add-position start (string->list "import")))
@@ -172,7 +170,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 (define/contract (read-header-name-chars cs)
   ((listof char?) . -> . (listof char?))
-  ;(log-error "read-header-name-chars: ~a" cs)
   (match cs
     [(list)
      (list)]
@@ -191,7 +188,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
      (error "Unexpected end-of-file found!")]
     [(cons #\$ cs)
      (define ident-chars (read-identifier-chars cs))
-     ;(log-error "read ~a identifier chars: ~a" (length ident-chars) ident-chars)
      (define token-content (token 'IDENTIFIER (list->string ident-chars)))
      (define end-position (add-position start (cons #\$ ident-chars)))
      (define id/token (position-token token-content
@@ -257,7 +253,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                     (position-col start)))]
     [(cons #\^ cs)
      (define ident-chars (read-header-name-chars cs))
-     ;(log-error "header name chars: ~a" ident-chars)
      (define token-content (token 'REQUEST-HEADER-IDENTIFIER (list->string ident-chars)))
      (define end-position (add-position start (cons #\^ ident-chars)))
      (define id/token (position-token token-content
@@ -351,7 +346,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 (define/contract (uri-template:template chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "uri template: template: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -389,7 +383,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 (define/contract (uri-template chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "uri-template: ~a" chars)
   (match chars
     [(list (? char-whitespace?) ...)
      (lexer-result start
@@ -463,18 +456,15 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 (define/contract (json-string chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "json-string: ~a" chars)
   (match chars
     [(list-rest #\" (not #\") ... #\" _)
      (define idx-of-double-quote (index-of (cdr chars) #\" char=?))
      (define string-chars (take (cdr chars) idx-of-double-quote))
-     ;(log-error "string-chars: ~a" string-chars)
      (define new-position (add-position start (cons #\" string-chars)))
      (define string/token (position-token (token 'JSON-STRING (list->string string-chars))
                                           start
                                           new-position))
      (define remaining-chars (drop chars (+ idx-of-double-quote 2)))
-     ;(log-error "remaining chars: ~a" remaining-chars)
      (lexer-result new-position
                    (list string/token)
                    remaining-chars)]))
@@ -542,9 +532,7 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 (define/contract (eat-whitespace chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "eat-whitespace: ~a" chars)
   (define (consume cs)
-    ;(log-error "consume: ~a" cs)
     (match cs
       [(list)
        (list)]
@@ -553,12 +541,8 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
       [else
        (list)]))
   (define consumed (consume chars))
-  ;(log-error "consumed ~a whitespace chars" (length consumed))
-  ;(log-error "consumed chars: ~a" consumed)
   (define remaining-chars (drop chars (length consumed)))
-  ;(log-error "remaining characters: ~a" remaining-chars)
   (define new-position (add-position start consumed))
-  ;(log-error "new position: ~a" new-position)
   (lexer-result new-position
                 (list)
                 remaining-chars))
@@ -644,7 +628,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (lex-json-object-items chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "lex-json-object-items: ~a" chars)
   (match chars
     [(cons (? char-whitespace?) _)
      (lex-json-object-items (cdr chars)
@@ -719,7 +702,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (lex-jsonish-stuff chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "lex-jsonish: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -786,7 +768,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (read-http-method-chars cs)
   ((listof char?) . -> . (listof char?))
-  ;(log-error "read-http-method-chars: ~a" cs)
   (match cs
     [(list)
      (list)]
@@ -814,7 +795,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (after-http-method-payload chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "after-http-method-payload: ~a" chars)
   (match chars
     [(cons (? char-whitespace? c) _)
      (after-http-method-payload (cdr chars)
@@ -838,7 +818,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
 
 (define/contract (after-http-method chars start)
   ((listof char?) position? . -> . lexer-result?)
-  ;(log-error "after-http-method: ~a" chars)
   (match chars
     [(list)
      (lexer-result start
@@ -960,7 +939,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                     (position 8 1 7)))))
   (let* ([program "POST { \"hi\": \"there\" } to whatever"]
          [result (http-method (string->list program) (position 1 1 0))])
-    (log-error "~a" program)
     (check-equal? (lexer-result-tokens result)
                   (list
                    (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))

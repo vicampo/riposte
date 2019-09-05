@@ -62,7 +62,6 @@
    jsexpr?
    . -> .
    (list/c exact-integer? (and/c immutable? (hash/c symbol? string?)) bytes?))
-  (log-error "~a ~a with payload ~a" method url payload)
   (define (network-fail e)
     (error (format "Failed to connect to ~a!" url)))
   (define (died e)
@@ -86,7 +85,6 @@
        void)
   (define headers (hash-union (make-immutable-hasheq (hash->list request-headers))
                               additional-headers))
-  (displayln (format "headers = ~a" headers))
   (define final-url
     (cond [(url? (param-base-url))
            (url->string (combine-url/relative (param-base-url) url))]
@@ -221,7 +219,6 @@
 
 (define/contract (update-last-response! code headers body)
   ((integer-in 100 599) (and/c immutable? (hash/c symbol? string?)) bytes? . -> . void)
-  (log-error "Updating last response with headers: ~a" headers)
   (set! last-response
         (make-response code headers body)))
 

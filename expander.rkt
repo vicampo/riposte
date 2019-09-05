@@ -90,7 +90,6 @@
          (response-code-matches? response-code))]
     [(_ method:string payload uri (positive-satisfies schema))
      #'(begin
-         (displayln (~a "About to inspect"))
          (pretty-print schema)
          (unless (json-schema? schema)
            (error (format "Purported schema is not actually a JSON Schema:~a~a"
@@ -293,11 +292,9 @@
              (let ([s (bytes->string/utf-8 bs)])
                (with-handlers ([exn:fail? (lambda (e)
                                             (error (format "Content of ~a is malformed JSON." (path->string full-path))))])
-                 (displayln (format "fuck, looking in ~a" (path->string full-path)))
                  (string->jsexpr s))))))]
     [(_ s)
      #'(begin
-         (displayln "looking at a literal")
          s)]))
 
 (define-syntax (expand-path stx)
