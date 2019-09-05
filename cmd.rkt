@@ -191,7 +191,8 @@
         [else
          (with-handlers ([exn:fail? (lambda (err)
                                       (error (format "JSON Pointer \"~a\" does not exist." jp)))])
-           (json-pointer-value jp (send last-response as-jsexpr)))]))
+           (json-pointer-value jp (send last-response as-jsexpr))
+           (void))]))
 
 (define (json-pointer-does-not-exist? jp)
   (cond [(not (response-received?))
