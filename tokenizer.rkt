@@ -2222,7 +2222,8 @@ RIPOSTE
     (string->path file-to-process))
 
   (unless (file-exists? file-to-process/path)
-    (displayln (format "No such file: ~a" file-to-process))
+    (displayln (format "No such file: ~a" file-to-process)
+               (current-error-port))
     (exit 1))
 
   (pretty-print
