@@ -30,7 +30,8 @@
      filename))
 
   (unless (file-exists? file-to-process)
-    (displayln (format "No such file: ~a" file-to-process))
+    (displayln (format "No such file: ~a" file-to-process)
+               (current-error-port))
     (exit 1))
 
   (pretty-print (parse-file (string->path file-to-process))))

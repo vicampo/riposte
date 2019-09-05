@@ -64,7 +64,8 @@
     (exit 0))
 
   (unless (file-exists? file-to-process)
-    (displayln (format "No such file: ~a" file-to-process))
+    (displayln (format "No such file: ~a" file-to-process)
+               (current-error-port))
     (exit 1))
 
   (run! (check-dotenvs (opt-dotenvs)))
