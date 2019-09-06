@@ -287,6 +287,8 @@
      #'(render e)]
     [(_ l:string)
      #'l]
+    [(_ n:number)
+     #'n]
     [(_ i:id)
      (define s (symbol->string (syntax-e #'i)))
      #`(render #,s)]))
