@@ -1439,6 +1439,18 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list #\< #\=)
+         (list-rest #\< #\= (? char-whitespace?) _))
+     (define result (consume-keyword "<=" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\> #\=)
+         (list-rest #\> #\= (? char-whitespace?) _))
+     (define result (consume-keyword ">=" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons (or #\= #\< #\> #\+ #\-) _)
      (define result (consume-keyword (~a (car chars)) chars start))
      (append (lexer-result-tokens result)
@@ -2185,6 +2197,26 @@ RIPOSTE
                     (token-struct 'string "string" #f #f #f #f #f)
                     (position 9 1 8)
                     (position 15 1 14))))))
+
+(module+ test
+  (let ([program "$a < $b"])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program "$a <= $b"])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program "$a > $b"])
+    (check-equal? (tokenize program)
+                  (list))))
+
+(module+ test
+  (let ([program "$a >= $b"])
+    (check-equal? (tokenize program)
+                  (list))))
 
 (module+ main
 
