@@ -100,10 +100,13 @@ parameter-assignment: PARAMETER /":=" (uri-template | expression)
 header-assignment: REQUEST-HEADER-IDENTIFIER /":=" expression
 
 command:
-    HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with ]
-  | HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] (responds-with | satisfies) [ /"and" emptiness ]
- | HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] responds-with /"and" (satisfies | emptiness)
-  | HTTP-METHOD [ (id | json-expression) /"to" ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
+    HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with ]
+  | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] (responds-with | satisfies) [ /"and" emptiness ]
+ | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] responds-with /"and" (satisfies | emptiness)
+| HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
+
+@payload: id
+  | json-expression
 
 with-headers: /"with" /"headers" ( normal-identifier | json-object )
 
