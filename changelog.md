@@ -32,12 +32,13 @@ page](https://github.com/vicampo/riposte/issues).
         without cookie "session" responds with 2XX`.
    - A REPL.
 
-## [0.11.0] - 2019-09-01
+## [0.11.0] - 2019-09-06
 
 ### Removed
 
-- Support for linting Riposte scripts. (This will come back,
-  I promise!)
+- Support for "plain" Riposte scripts. Riposte scripts now need to
+  start with "#lang riposte", after which there needs to be at least
+  one newline.
 
 ### Changed
 

@@ -19,6 +19,8 @@
   parameter?
   (make-parameter (list)))
 
+(define opt-lint (make-parameter #f))
+
 (define/contract (default-error-handler e)
   (exn? . -> . any)
   (log-error "~a" (exn-message e))
@@ -53,6 +55,8 @@
      #:once-each
      [("--version") "Print the version"
                     (opt-version #t)]
+     [("--lint") "Check syntax"
+                 (opt-lint #t)]
      #:multi
      [("--env") f
                 "Specify an environment file to use (can be specified multiple times)"
@@ -77,4 +81,6 @@
                           (displayln (string-trim (exn-message err))
                                      (current-error-port))
                           (exit 1))])
-    (dynamic-require (string->path file-to-process) #f)))
+    (dynamic-require (string->path file-to-process)
+                     (cond [(opt-lint) (void)]
+                           [else #f]))))
