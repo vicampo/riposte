@@ -117,7 +117,8 @@ emptiness: "is" [ "non" ] "empty"
 
 responds-with: /"responds" /"with" HTTP-STATUS-CODE
 
-schema-ref: id
+schema-ref: IDENTIFIER
+  | json-expression
   | "at" uri-template
   | "in" FILENAME
 
