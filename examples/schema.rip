@@ -12,3 +12,5 @@ $payload := { "a": true, "b": 3 }
 POST $payload to api/flub satisfies schema $schema
 
 POST $payload to api/flub satisfies schema in schema.json
+
+POST $payload to api/flub does not satisfy schema { "type": "string" }
