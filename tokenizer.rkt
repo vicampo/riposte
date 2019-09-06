@@ -32,7 +32,10 @@
    [characters (listof char?)]))
 
 (module+ test
-  (require rackunit))
+  (require rackunit
+           syntax/parse/define)
+  (define-simple-macro (check-tokenize s result)
+    (check-equal? (tokenize s) result)))
 
 (define (header-char? x)
   (define i (char->integer x))
@@ -1542,7 +1545,14 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(list-rest #\s #\a #\t #\i #\s #\f #\i #\e #\s _)
+    [(or (list #\s #\a #\t #\i #\s #\f #\y)
+         (list-rest #\s #\a #\t #\i #\s #\f #\y (? char-whitespace?) _))
+     (define result (consume-keyword "satisfy" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\s #\a #\t #\i #\s #\f #\i #\e #\s)
+         (list-rest #\s #\a #\t #\i #\s #\f #\i #\e #\s (? char-whitespace?) _))
      (define result (consume-keyword "satisfies" chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
@@ -1679,592 +1689,639 @@ import foo.rip
 $a := 4.567
 RIPOSTE
                  ])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'import #f #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 7 1 6))
-                   (position-token
-                    (token-struct 'FILENAME "foo.rip" #f #f #f #f #f)
-                    (position 8 1 7)
-                    (position 15 1 14))
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 16 2 0)
-                    (position 18 2 2))
-                   (position-token
-                    (token-struct ':= #f #f #f #f #f #f)
-                    (position 19 2 3)
-                    (position 21 2 5))
-                   (position-token
-                    (token-struct 'NUMBER 4567/1000 #f #f #f #f #f)
-                    (position 22 2 6)
-                    (position 27 2 11))))))
+    (check-tokenize program
+                    (list
+                     (position-token
+                      (token-struct 'import #f #f #f #f #f #f)
+                      (position 1 1 0)
+                      (position 7 1 6))
+                     (position-token
+                      (token-struct 'FILENAME "foo.rip" #f #f #f #f #f)
+                      (position 8 1 7)
+                      (position 15 1 14))
+                     (position-token
+                      (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                      (position 16 2 0)
+                      (position 18 2 2))
+                     (position-token
+                      (token-struct ':= #f #f #f #f #f #f)
+                      (position 19 2 3)
+                      (position 21 2 5))
+                     (position-token
+                      (token-struct 'NUMBER 4567/1000 #f #f #f #f #f)
+                      (position 22 2 6)
+                      (position 27 2 11))))))
 
 (module+ test
-  (let ([program "$a := { \"foo\": true, \"bar\": $bar } $b := false"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct ':= #f #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct '|{| #f #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 8 1 7))
-                   (position-token
-                    (token-struct 'JSON-STRING "foo" #f #f #f #f #f)
-                    (position 9 1 8)
-                    (position 13 1 12))
-                   (position-token
-                    (token-struct ': #f #f #f #f #f #f)
-                    (position 13 1 12)
-                    (position 14 1 13))
-                   (position-token
-                    (token-struct 'true "true" #f #f #f #f #f)
-                    (position 15 1 14)
-                    (position 19 1 18))
-                   (position-token
-                    (token-struct '|,| #f #f #f #f #f #f)
-                    (position 19 1 18)
-                    (position 20 1 19))
-                   (position-token
-                    (token-struct 'JSON-STRING "bar" #f #f #f #f #f)
-                    (position 21 1 20)
-                    (position 25 1 24))
-                   (position-token
-                    (token-struct ': #f #f #f #f #f #f)
-                    (position 25 1 24)
-                    (position 26 1 25))
-                   (position-token
-                    (token-struct 'IDENTIFIER "bar" #f #f #f #f #f)
-                    (position 27 1 26)
-                    (position 31 1 30))
-                   (position-token
-                    (token-struct '|}| #f #f #f #f #f #f)
-                    (position 32 1 31)
-                    (position 33 1 32))
-                   (position-token
-                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
-                    (position 34 1 33)
-                    (position 36 1 35))
-                   (position-token
-                    (token-struct ':= #f #f #f #f #f #f)
-                    (position 37 1 36)
-                    (position 39 1 38))
-                   (position-token
-                    (token-struct 'false "false" #f #f #f #f #f)
-                    (position 40 1 39)
-                    (position 45 1 44))))))
+  (check-tokenize
+   "$a := { \"foo\": true, \"bar\": $bar } $b := false"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct ':= #f #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct '|{| #f #f #f #f #f #f)
+     (position 7 1 6)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'JSON-STRING "foo" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 13 1 12))
+    (position-token
+     (token-struct ': #f #f #f #f #f #f)
+     (position 13 1 12)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'true "true" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 19 1 18))
+    (position-token
+     (token-struct '|,| #f #f #f #f #f #f)
+     (position 19 1 18)
+     (position 20 1 19))
+    (position-token
+     (token-struct 'JSON-STRING "bar" #f #f #f #f #f)
+     (position 21 1 20)
+     (position 25 1 24))
+    (position-token
+     (token-struct ': #f #f #f #f #f #f)
+     (position 25 1 24)
+     (position 26 1 25))
+    (position-token
+     (token-struct 'IDENTIFIER "bar" #f #f #f #f #f)
+     (position 27 1 26)
+     (position 31 1 30))
+    (position-token
+     (token-struct '|}| #f #f #f #f #f #f)
+     (position 32 1 31)
+     (position 33 1 32))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 34 1 33)
+     (position 36 1 35))
+    (position-token
+     (token-struct ':= #f #f #f #f #f #f)
+     (position 37 1 36)
+     (position 39 1 38))
+    (position-token
+     (token-struct 'false "false" #f #f #f #f #f)
+     (position 40 1 39)
+     (position 45 1 44)))))
 
 (module+ test
-  (let ([program "$a := [ 4 ]"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct ':= #f #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct '|[| #f #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 8 1 7))
-                   (position-token
-                    (token-struct 'NUMBER 4 #f #f #f #f #f)
-                    (position 9 1 8)
-                    (position 10 1 9))
-                   (position-token
-                    (token-struct '|]| #f #f #f #f #f #f)
-                    (position 11 1 10)
-                    (position 12 1 11))))))
+  (check-tokenize
+   "$a := [ 4 ]"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct ':= #f #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct '|[| #f #f #f #f #f #f)
+     (position 7 1 6)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'NUMBER 4 #f #f #f #f #f)
+     (position 9 1 8)
+     (position 10 1 9))
+    (position-token
+     (token-struct '|]| #f #f #f #f #f #f)
+     (position 11 1 10)
+     (position 12 1 11)))))
 
 (module+ test
-  (let ([program "%base := http://foo.example.com"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'PARAMETER "base" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct ':= #f #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 9 1 8))
-                   (position-token
-                    (token-struct 'URI-TEMPLATE-LITERAL "http://foo.example.com" #f #f #f #f #f)
-                    (position 10 1 9)
-                    (position 32 1 31))))))
+  (check-tokenize
+   "%base := http://foo.example.com"
+   (list
+    (position-token
+     (token-struct 'PARAMETER "base" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 6 1 5))
+    (position-token
+     (token-struct ':= #f #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8))
+    (position-token
+     (token-struct 'URI-TEMPLATE-LITERAL "http://foo.example.com" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 32 1 31)))))
 
 (module+ test
-  (let ([program "%timeout := 45"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'PARAMETER "timeout" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 9 1 8))
-                   (position-token
-                    (token-struct ':= #f #f #f #f #f #f)
-                    (position 10 1 9)
-                    (position 12 1 11))
-                   (position-token
-                    (token-struct 'NUMBER 45 #f #f #f #f #f)
-                    (position 13 1 12)
-                    (position 15 1 14))))))
+  (check-tokenize
+   "%timeout := 45"
+   (list
+    (position-token
+     (token-struct 'PARAMETER "timeout" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 9 1 8))
+    (position-token
+     (token-struct ':= #f #f #f #f #f #f)
+     (position 10 1 9)
+     (position 12 1 11))
+    (position-token
+     (token-struct 'NUMBER 45 #f #f #f #f #f)
+     (position 13 1 12)
+     (position 15 1 14)))))
 
 (module+ test
-  (let ([program "unset ^Content-Type"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'unset "unset" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'REQUEST-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 20 1 19))))))
+  (check-tokenize
+   "unset ^Content-Type"
+   (list
+    (position-token
+     (token-struct 'unset "unset" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'REQUEST-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 20 1 19)))))
 
 (module+ test
-  (let ([program "POST $payload to api/flub with headers $heads responds with 2XX"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'HTTP-METHOD "POST" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'IDENTIFIER "payload" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 14 1 13))
-                   (position-token
-                    (token-struct 'to "to" #f #f #f #f #f)
-                    (position 15 1 14)
-                    (position 17 1 16))
-                   (position-token
-                    (token-struct 'URI-TEMPLATE-LITERAL "api/flub" #f #f #f #f #f)
-                    (position 18 1 17)
-                    (position 26 1 25))
-                   (position-token
-                    (token-struct 'with "with" #f #f #f #f #f)
-                    (position 27 1 26)
-                    (position 31 1 30))
-                   (position-token
-                    (token-struct 'headers "headers" #f #f #f #f #f)
-                    (position 32 1 31)
-                    (position 39 1 38))
-                   (position-token
-                    (token-struct 'IDENTIFIER "heads" #f #f #f #f #f)
-                    (position 40 1 39)
-                    (position 46 1 45))
-                   (position-token
-                    (token-struct 'responds #f #f #f #f #f #f)
-                    (position 47 1 46)
-                    (position 55 1 54))
-                   (position-token
-                    (token-struct 'with #f #f #f #f #f #f)
-                    (position 56 1 55)
-                    (position 60 1 59))
-                   (position-token
-                    (token-struct 'HTTP-STATUS-CODE "2XX" #f #f #f #f #f)
-                    (position 61 1 60)
-                    (position 64 1 63))))))
+  (check-tokenize
+   "POST $payload to api/flub with headers $heads responds with 2XX"
+   (list
+    (position-token
+     (token-struct 'HTTP-METHOD "POST" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'IDENTIFIER "payload" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'to "to" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 17 1 16))
+    (position-token
+     (token-struct 'URI-TEMPLATE-LITERAL "api/flub" #f #f #f #f #f)
+     (position 18 1 17)
+     (position 26 1 25))
+    (position-token
+     (token-struct 'with "with" #f #f #f #f #f)
+     (position 27 1 26)
+     (position 31 1 30))
+    (position-token
+     (token-struct 'headers "headers" #f #f #f #f #f)
+     (position 32 1 31)
+     (position 39 1 38))
+    (position-token
+     (token-struct 'IDENTIFIER "heads" #f #f #f #f #f)
+     (position 40 1 39)
+     (position 46 1 45))
+    (position-token
+     (token-struct 'responds #f #f #f #f #f #f)
+     (position 47 1 46)
+     (position 55 1 54))
+    (position-token
+     (token-struct 'with #f #f #f #f #f #f)
+     (position 56 1 55)
+     (position 60 1 59))
+    (position-token
+     (token-struct 'HTTP-STATUS-CODE "2XX" #f #f #f #f #f)
+     (position 61 1 60)
+     (position 64 1 63)))))
 
 (module+ test
-  (let ([program "$foo is integer"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "foo" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 8 1 7))
-                   (position-token
-                    (token-struct 'integer "integer" #f #f #f #f #f)
-                    (position 9 1 8)
-                    (position 16 1 15))))))
+  (check-tokenize
+   "$foo is integer"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "foo" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'integer "integer" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 16 1 15)))))
 
 (module+ test
-  (let ([program "$bar is not array"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "bar" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 8 1 7))
-                   (position-token
-                    (token-struct 'not "not" #f #f #f #f #f)
-                    (position 9 1 8)
-                    (position 12 1 11))
-                   (position-token
-                    (token-struct 'array "array" #f #f #f #f #f)
-                    (position 13 1 12)
-                    (position 18 1 17))))))
-
-; /foo is positive integer
+  (check-tokenize
+   "$bar is not array"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "bar" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'not "not" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 12 1 11))
+    (position-token
+     (token-struct 'array "array" #f #f #f #f #f)
+     (position 13 1 12)
+     (position 18 1 17)))))
 
 (module+ test
-  (let ([program "/foo is positive integer"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'JSON-POINTER "/foo" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 8 1 7))
-                   (position-token
-                    (token-struct 'positive "positive" #f #f #f #f #f)
-                    (position 9 1 8)
-                    (position 17 1 16))
-                   (position-token
-                    (token-struct 'integer "integer" #f #f #f #f #f)
-                    (position 18 1 17)
-                    (position 25 1 24))))))
+  (check-tokenize
+   "/foo is positive integer"
+   (list
+    (position-token
+     (token-struct 'JSON-POINTER "/foo" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'positive "positive" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 17 1 16))
+    (position-token
+     (token-struct 'integer "integer" #f #f #f #f #f)
+     (position 18 1 17)
+     (position 25 1 24)))))
 
 (module+ test
-  (let ([program "$foo := /bar (negative integer)"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "foo" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct ':= #f #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 8 1 7))
-                   (position-token
-                    (token-struct 'JSON-POINTER "/bar" #f #f #f #f #f)
-                    (position 9 1 8)
-                    (position 13 1 12))
-                   (position-token
-                    (token-struct '|(| "(" #f #f #f #f #f)
-                    (position 14 1 13)
-                    (position 15 1 14))
-                   (position-token
-                    (token-struct 'negative "negative" #f #f #f #f #f)
-                    (position 15 1 14)
-                    (position 23 1 22))
-                   (position-token
-                    (token-struct 'integer "integer" #f #f #f #f #f)
-                    (position 24 1 23)
-                    (position 31 1 30))
-                   (position-token
-                    (token-struct '|)| ")" #f #f #f #f #f)
-                    (position 31 1 30)
-                    (position 32 1 31))))))
+  (check-tokenize
+   "$foo := /bar (negative integer)"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "foo" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 5 1 4))
+    (position-token
+     (token-struct ':= #f #f #f #f #f #f)
+     (position 6 1 5)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'JSON-POINTER "/bar" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 13 1 12))
+    (position-token
+     (token-struct '|(| "(" #f #f #f #f #f)
+     (position 14 1 13)
+     (position 15 1 14))
+    (position-token
+     (token-struct 'negative "negative" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 23 1 22))
+    (position-token
+     (token-struct 'integer "integer" #f #f #f #f #f)
+     (position 24 1 23)
+     (position 31 1 30))
+    (position-token
+     (token-struct '|)| ")" #f #f #f #f #f)
+     (position 31 1 30)
+     (position 32 1 31)))))
 
 (module+ test
-  (let ([program "$x is number"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "x" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'number "number" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 13 1 12))))))
+  (check-tokenize
+   "$x is number"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "x" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'number "number" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 13 1 12)))))
 
 (module+ test
-  (let ([program "$x is not object"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "x" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'not "not" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 10 1 9))
-                   (position-token
-                    (token-struct 'object "object" #f #f #f #f #f)
-                    (position 11 1 10)
-                    (position 17 1 16))))))
+  (check-tokenize
+   "$x is not object"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "x" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'not "not" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 10 1 9))
+    (position-token
+     (token-struct 'object "object" #f #f #f #f #f)
+     (position 11 1 10)
+     (position 17 1 16)))))
 
 (module+ test
-  (let ([program "$x is boolean"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "x" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'boolean "boolean" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 14 1 13))))))
+  (check-tokenize
+   "$x is boolean"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "x" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'boolean "boolean" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 14 1 13)))))
 
 (module+ test
-  (let ([program "$john is string"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "john" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 9 1 8))
-                   (position-token
-                    (token-struct 'string "string" #f #f #f #f #f)
-                    (position 10 1 9)
-                    (position 16 1 15))))))
+  (check-tokenize
+   "$john is string"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "john" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8))
+    (position-token
+     (token-struct 'string "string" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 16 1 15)))))
 
 (module+ test
-  (let ([program "Content-Type^ is absent"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 14 1 13))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 15 1 14)
-                    (position 17 1 16))
-                   (position-token
-                    (token-struct 'absent "absent" #f #f #f #f #f)
-                    (position 18 1 17)
-                    (position 24 1 23))))))
+  (check-tokenize
+   "Content-Type^ is absent"
+   (list
+    (position-token
+     (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 17 1 16))
+    (position-token
+     (token-struct 'absent "absent" #f #f #f #f #f)
+     (position 18 1 17)
+     (position 24 1 23)))))
 
 (module+ test
-  (let ([program "Content-Type^ is present"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 14 1 13))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 15 1 14)
-                    (position 17 1 16))
-                   (position-token
-                    (token-struct 'present "present" #f #f #f #f #f)
-                    (position 18 1 17)
-                    (position 25 1 24))))))
+  (check-tokenize
+   "Content-Type^ is present"
+   (list
+    (position-token
+     (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 17 1 16))
+    (position-token
+     (token-struct 'present "present" #f #f #f #f #f)
+     (position 18 1 17)
+     (position 25 1 24)))))
 
 (module+ test
-  (let ([program "Content-Type^ starts with \"whatever\""])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 14 1 13))
-                   (position-token
-                    (token-struct 'starts "starts" #f #f #f #f #f)
-                    (position 15 1 14)
-                    (position 21 1 20))
-                   (position-token
-                    (token-struct 'with "with" #f #f #f #f #f)
-                    (position 22 1 21)
-                    (position 26 1 25))
-                   (position-token
-                    (token-struct 'JSON-STRING "whatever" #f #f #f #f #f)
-                    (position 27 1 26)
-                    (position 36 1 35))))))
+  (check-tokenize
+   "Content-Type^ starts with \"whatever\""
+   (list
+    (position-token
+     (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'starts "starts" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 21 1 20))
+    (position-token
+     (token-struct 'with "with" #f #f #f #f #f)
+     (position 22 1 21)
+     (position 26 1 25))
+    (position-token
+     (token-struct 'JSON-STRING "whatever" #f #f #f #f #f)
+     (position 27 1 26)
+     (position 36 1 35)))))
 
 (module+ test
-  (let ([program "Content-Type^ ends with \"utf-8\""])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 14 1 13))
-                   (position-token
-                    (token-struct 'ends "ends" #f #f #f #f #f)
-                    (position 15 1 14)
-                    (position 19 1 18))
-                   (position-token
-                    (token-struct 'with "with" #f #f #f #f #f)
-                    (position 20 1 19)
-                    (position 24 1 23))
-                   (position-token
-                    (token-struct 'JSON-STRING "utf-8" #f #f #f #f #f)
-                    (position 25 1 24)
-                    (position 31 1 30))))))
+  (check-tokenize
+   "Content-Type^ ends with \"utf-8\""
+   (list
+    (position-token
+     (token-struct 'RESPONSE-HEADER-IDENTIFIER "Content-Type" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'ends "ends" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 19 1 18))
+    (position-token
+     (token-struct 'with "with" #f #f #f #f #f)
+     (position 20 1 19)
+     (position 24 1 23))
+    (position-token
+     (token-struct 'JSON-STRING "utf-8" #f #f #f #f #f)
+     (position 25 1 24)
+     (position 31 1 30)))))
 
 (module+ test
-  (let ([program "$a is even"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'even "even" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 11 1 10))))))
+  (check-tokenize
+   "$a is even"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'even "even" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 11 1 10)))))
 
 (module+ test
-  (let ([program "$a is odd"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'odd "odd" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 10 1 9))))))
+  (check-tokenize
+   "$a is odd"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'odd "odd" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 10 1 9)))))
 
 (module+ test
-  (let ([program "$a is an integer"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'an "an" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 9 1 8))
-                   (position-token
-                    (token-struct 'integer "integer" #f #f #f #f #f)
-                    (position 10 1 9)
-                    (position 17 1 16))))))
+  (check-tokenize
+   "$a is an integer"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'an "an" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8))
+    (position-token
+     (token-struct 'integer "integer" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 17 1 16)))))
 
 (module+ test
-  (let ([program "$s is a string"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "s" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct 'is "is" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'a "a" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 8 1 7))
-                   (position-token
-                    (token-struct 'string "string" #f #f #f #f #f)
-                    (position 9 1 8)
-                    (position 15 1 14))))))
+  (check-tokenize
+   "$s is a string"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "s" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'a "a" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'string "string" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 15 1 14)))))
 
 (module+ test
-  (let ([program "$a < $b"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct '< "<" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 8 1 7))))))
+  (check-tokenize
+   "$a < $b"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct '< "<" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 8 1 7)))))
 
 (module+ test
-  (let ([program "$a <= $b"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct '<= "<=" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 9 1 8))))))
+  (check-tokenize
+   "$a <= $b"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct '<= "<=" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8)))))
 
 (module+ test
-  (let ([program "$a > $b"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct '> ">" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 8 1 7))))))
+  (check-tokenize
+   "$a > $b"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct '> ">" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 8 1 7)))))
 
 (module+ test
-  (let ([program "$a >= $b"])
-    (check-equal? (tokenize program)
-                  (list
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 3 1 2))
-                   (position-token
-                    (token-struct '>= ">=" #f #f #f #f #f)
-                    (position 4 1 3)
-                    (position 6 1 5))
-                   (position-token
-                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
-                    (position 7 1 6)
-                    (position 9 1 8))))))
+  (check-tokenize
+   "$a >= $b"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct '>= ">=" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8)))))
+
+(module+ test
+  (check-tokenize
+   "GET /foo does not satisfy schema { \"type\": \"array\" }"
+   (list
+    (position-token
+     (token-struct 'HTTP-METHOD "GET" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 4 1 3))
+    (position-token
+     (token-struct 'URI-TEMPLATE-LITERAL "/foo" #f #f #f #f #f)
+     (position 5 1 4)
+     (position 9 1 8))
+    (position-token
+     (token-struct 'does "does" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'not "not" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 18 1 17))
+    (position-token
+     (token-struct 'satisfy "satisfy" #f #f #f #f #f)
+     (position 19 1 18)
+     (position 26 1 25))
+    (position-token
+     (token-struct 'schema "schema" #f #f #f #f #f)
+     (position 27 1 26)
+     (position 33 1 32))
+    (position-token
+     (token-struct '|{| #f #f #f #f #f #f)
+     (position 34 1 33)
+     (position 35 1 34))
+    (position-token
+     (token-struct 'JSON-STRING "type" #f #f #f #f #f)
+     (position 36 1 35)
+     (position 41 1 40))
+    (position-token
+     (token-struct ': #f #f #f #f #f #f)
+     (position 41 1 40)
+     (position 42 1 41))
+    (position-token
+     (token-struct 'JSON-STRING "array" #f #f #f #f #f)
+     (position 43 1 42)
+     (position 49 1 48))
+    (position-token
+     (token-struct '|}| #f #f #f #f #f #f)
+     (position 50 1 49)
+     (position 51 1 50)))))
 
 (module+ main
 
