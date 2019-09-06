@@ -47,12 +47,16 @@
          racket/class
          racket/match
          racket/string
+         racket/hash
+         racket/list
+         br/define
          (file "cmd.rkt")
          (file "response.rkt")
          (file "json.rkt")
          (file "parameters.rkt")
          (only-in (file "util.rkt")
-                  file-content/bytes))
+                  file-content/bytes
+                  hash-remove*))
 
 (define-syntax (riposte-program stx)
   (syntax-parse stx
@@ -63,57 +67,133 @@
 (define-syntax (expression stx)
   (syntax-parse stx
     [(_ e)
-     #'e]))
+     #'e]
+    [(_ e1 "+" e2)
+     #'(cond [(string? e1)
+              (unless (string? e2)
+                (error (format "~a works out to a string, but ~a is not a string. Addition is not defined in this case." (render e1) (render e2))))
+              (string-append e1 e2)]
+             [(hash? e1)
+              (unless (hash? e2)
+                (error (format "~a works out to be an object, but ~a is not an object. Addition is not defined in this case." (render e1) (render e2))))
+              (hash-union e1 e2)]
+             [(number? e1)
+              (unless (number? e2)
+                (error (format "~a works out to be a number, but ~a is not a number. Addition is not defined in this case." (render e1) (render e2))))
+              (+ e1 e2)]
+             [(list? e1)
+              (unless (list? e2)
+                (error (format "~a works out to be an array, but ~a is not an array. Addition is not defined in this case." (render e1) (render e2))))
+              (append e1 e2)]
+             [(eq? 'null e1)
+              (error (format "~a is null; addition is not defined." (render e1)))]
+             [(boolean? e1)
+              (error (format "~a is a boolean; addition is not defined."))])]
+    [(_ e1 "-" e2)
+     #'(cond [(string? e1)
+              (unless (string? e2)
+                (error (format "~a works out to a string, but ~a is not a string. Subtraction is not defined in this case." (render e1) (render e2))))
+              (string-replace e1 e2 "")]
+             [(hash? e1)
+              (unless (hash? e2)
+                (error (format "~a works out to be an object, but ~a is not an object. Subtraction is not defined in this case." (render e1) (render e2))))
+              (hash-remove* e1 (hash-keys e2))]
+             [(number? e1)
+              (unless (number? e2)
+                (error (format "~a works out to be a number, but ~a is not a number. Subtraction is not defined in this case." (render e1) (render e2))))
+              (- e1 e2)]
+             [(list? e1)
+              (unless (list? e2)
+                (error (format "~a works out to be an array, but ~a is not an array. Subtraction is not defined in this case." (render e1) (render e2))))
+              (remove* e1 e2 equal-jsexprs?)]
+             [(eq? 'null e1)
+              (error (format "~a is null; subtraction is not defined." (render e1)))]
+             [(boolean? e1)
+              (error (format "~a is a boolean; subtraction is not defined."))])]
+    [(_ e1 "*" e2)
+     #'(cond [(string? e1)
+              (cond [(integer? e2)
+                     (when (< e2 0)
+                       (error (format "~a works out to a string, but ~a is a negative integer. Multiplication is not defined in this case." (render e1) (render e2))))
+                     (apply string-append
+                            (for/list ([n (in-range 1 e2)])
+                              e1))]
+                    [(number? e2)
+                     (error (format "~a works out to be a s tring, but ~a is not a positive integer. Multiplication is not defined in this case." (render e1) (render e2)))]
+                    [else
+                     (error (format "~a works out to a string, but ~a is not an integer. Multiplication is not defined in this case." (render e1) (render e2)))])]
+             [(hash? e1)
+              (error (format "~a works out to be an object; multiplication is not defined in this case." (render e1)))]
+             [(integer? e1)
+              (cond [(< e1 0)
+                     (error (format "~a works out to be a negative integer; multiplication not defined in this case." (render e1)))]
+                    [(string? e2)
+                     (apply string-append
+                            (for/list ([n (in-range 1 e1)])
+                              e2))]
+                    [else
+                     (error "~a works out to be a positive integer, but ~a is not a string. Multiplication not defined in this case." (render e1) (render e2))])]
+             [(number? e1)
+              (error (format "~a works out to be a non-integer real number; multiplication not defined in this case." (render e1)))]
+             [(list? e1)
+              (error (format "~a works out to be an array; multiplciation is not defined in this case." (render e1)))]
+             [(eq? 'null e1)
+              (error (format "~a is null; multiplication is not defined." (render e1)))]
+             [(boolean? e1)
+              (error (format "~a is a boolean; multiplication is not defined."))])]))
 
-(define-syntax (command stx)
-  (syntax-parse stx
-    [(_ method:string uri)
-     #'(cmd method uri)]
-    [(_ method:string uri (responds-with response-code:string))
-     #'(begin
-         (cmd method uri)
-         (response-code-matches? response-code))]
-    [(_ method:string payload uri (responds-with response-code:string))
-     #'(begin
-         (cmd/payload method uri payload)
-         (response-code-matches? response-code))]
-    [(_ method:string payload uri (responds-with response-code:string))
-     #'(begin
-         (cmd/payload method uri payload)
-         (response-code-matches? response-code))]
-    [(_ method:string payload uri (with-headers headers) (responds-with response-code:string))
-     #'(begin
-         (unless (json-object? headers)
-           (error (format "Headers is not a JSON object! ~a" (pretty-print headers))))
-         (for ([(k v) (in-hash headers)])
-           (unless (string? v)
-             (error (format "Value for property \"~a\" is not a string: ~a" k v))))
-         (cmd/payload method uri payload #:headers headers)
-         (response-code-matches? response-code))]
-    [(_ method:string payload uri (positive-satisfies schema))
-     #'(begin
-         (pretty-print schema)
-         (unless (json-schema? schema)
-           (error (format "Purported schema is not actually a JSON Schema:~a~a"
-                          #\newline
-                          (jsexpr->string schema))))
-         (cmd/payload method uri payload)
-         (unless (adheres-to-schema? (last-response->jsexpr) schema)
-           (error "Response does not satisfy schema.")))]
-    [(_ method:string payload uri (with-headers headers) (positive-satisfies schema))
-     #'(begin
-         (unless (json-object? headers)
-           (error (format "Headers is not a JSON object! ~a" (pretty-print headers))))
-         (for ([(k v) (in-hash headers)])
-           (unless (string? v)
-             (error (format "Value for property \"~a\" is not a string: ~a" k v))))
-         (unless (json-schema? schema)
-           (error (format "Purported schema is not actually a JSON Schema:~a~a"
-                          #\newline
-                          (json-pretty-print schema))))
-         (cmd/payload method uri payload #:headers headers)
-         (unless (adheres-to-schema? (send last-response as-json) schema)
-           (error "Response does not satisfy schema.")))]))
+(define-macro-cases command
+  [(_ METHOD URI)
+   #'(cmd METHOD URI)]
+  [(_ METHOD URI (responds-with CODE))
+   #'(begin
+       (cmd METHOD URI)
+       (response-code-matches? CODE))]
+  [(_ METHOD PAYLOAD URI (responds-with CODE))
+   #'(begin
+       (cmd/payload METHOD URI PAYLOAD)
+       (response-code-matches? CODE))]
+  [(_ METHOD PAYLOAD URI (with-headers HEADERS) (responds-with CODE))
+   #'(begin
+       (unless (json-object? HEADERS)
+         (error (format "Headers is not a JSON object! ~a" (pretty-print HEADERS))))
+       (for ([(k v) (in-hash HEADERS)])
+         (unless (string? v)
+           (error (format "Value for property \"~a\" is not a string: ~a" k v))))
+       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS)
+       (response-code-matches? CODE))]
+  [(_ METHOD PAYLOAD URI (positive-satisfies SCHEMA))
+   #'(begin
+       (unless (json-schema? SCHEMA)
+         (error (format "1. Purported schema is not actually a JSON Schema:~a~a"
+                        #\newline
+                        (pretty-print SCHEMA))))
+       (cmd/payload METHOD URI PAYLOAD)
+       (unless (adheres-to-schema? (last-response->jsexpr) SCHEMA)
+         (error "Response does not satisfy schema.")))]
+  [(_ METHOD PAYLOAD URI (negative-satisfies SCHEMA))
+   #'(begin
+       (unless (json-schema? SCHEMA)
+         (error (format "2. Purported schema is not actually a JSON Schema:~a~a"
+                        #\newline
+                        (pretty-print SCHEMA))))
+       (cmd/payload METHOD URI PAYLOAD)
+       (when (adheres-to-schema? (last-response->jsexpr) SCHEMA)
+         (error "Response does satisfy schema!")))]
+  [(_ METHOD PAYLOAD URI (with-headers HEADERS) (positive-satisfies SCHEMA))
+   #'(begin
+       (unless (json-object? HEADERS)
+         (error (format "Headers is not a JSON object! ~a" (pretty-print HEADERS))))
+       (for ([(k v) (in-hash HEADERS)])
+         (unless (string? v)
+           (error (format "Value for property \"~a\" is not a string: ~a" k v))))
+       (unless (json-schema? SCHEMA)
+         (error (format "3. Purported schema is not actually a JSON Schema:~a~a"
+                        #\newline
+                        (json-pretty-print SCHEMA))))
+       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS)
+       (unless (adheres-to-schema? (send last-response as-json) SCHEMA)
+         (error "Response does not satisfy schema.")))])
 
 (define-syntax (normal-identifier stx)
   (syntax-parse stx
@@ -305,21 +385,23 @@
     [(_ "false")
      #'#f]))
 
-(define-syntax (schema-ref stx)
-  (syntax-parse stx
-    [(_ "in" path:string)
-     #'(begin
-         (let* ([full-path (expand-path path)]
-                [bs (file-content/bytes (expand-path path))])
-           (with-handlers ([exn:fail:contract? (lambda (e)
-                                                 (error (format "Content of ~a is malformed UTF-8." (path->string full-path))))])
-             (let ([s (bytes->string/utf-8 bs)])
-               (with-handlers ([exn:fail? (lambda (e)
-                                            (error (format "Content of ~a is malformed JSON." (path->string full-path))))])
-                 (string->jsexpr s))))))]
-    [(_ s)
-     #'(begin
-         s)]))
+(define-macro-cases schema-ref
+  [(_ "in" PATH)
+   #'(begin
+       (let* ([full-path (expand-path PATH)]
+              [bs (file-content/bytes (expand-path PATH))])
+         (with-handlers ([exn:fail:contract? (lambda (e)
+                                               (error (format "Content of ~a is malformed UTF-8." (path->string full-path))))])
+           (let ([s (bytes->string/utf-8 bs)])
+             (with-handlers ([exn:fail? (lambda (e)
+                                          (error (format "Content of ~a is malformed JSON." (path->string full-path))))])
+               (string->jsexpr s))))))]
+  [(_ (json-object E ...))
+   #'(json-object E ...)]
+  [(_ S)
+   (syntax-parse #'S
+     [s:string
+      #'(normal-identifier s)])])
 
 (define-syntax (expand-path stx)
   (syntax-parse stx
@@ -337,7 +419,41 @@
     [(_ jp:string "exists")
      #'(json-pointer-exists? jp)]
     [(_ jp:string "does" "not" "exist")
-     #'(json-pointer-does-not-exist? jp)]))
+     #'(json-pointer-does-not-exist? jp)]
+    [(_ jp:string "exists" "and" "is" "empty")
+     #'(let ([v (fetch-json-pointer-value jp)])
+         (cond [(string? v)
+                (unless (string=? "" v)
+                  (error (format "JSON Pointer \"~a\" is a non-empty string (its value is \"~a\"." jp (json-pretty-print v))))]
+               [(list? v)
+                (unless (empty? v)
+                  (error (format "JSON Pointer \"~a\" is a non-empty array (it is ~a)" jp (json-pretty-print v))))]
+               [(hash? v)
+                (unless (hash-empty? v)
+                  (error (format "JSON Pointer \"~a\" is a non-empty object (is value is ~a)" jp (json-pretty-print v))))]
+               [(number? v)
+                (error "JSON Pointer \"~a\" refers to a number; it is neither empty nor non-empty." jp)]
+               [(boolean? v)
+                (error "JSON Pointer \"~a\" refers to a boolean; it is neither empty nor non-empty." jp)]
+               [(eq? 'null v)
+                (error "JSON Pointer \"~a\" refers to the null value, which is neither empty nor non-empty.")]))]
+    [(_ jp:string "exists" "and" "is" "non" "empty")
+     #'(let ([v (fetch-json-pointer-value jp)])
+         (cond [(string? v)
+                (when (string=? "" v)
+                  (error (format "JSON Pointer \"~a\" is the empty string!" jp)))]
+               [(list? v)
+                (when (empty? v)
+                  (error (format "JSON Pointer \"~a\" is the empty array!" jp)))]
+               [(hash? v)
+                (when (hash-empty? v)
+                  (error (format "JSON Pointer \"~a\" is the empty object!" jp)))]
+               [(number? v)
+                (error "JSON Pointer \"~a\" refers to a number; it is neither empty nor non-empty." jp)]
+               [(boolean? v)
+                (error "JSON Pointer \"~a\" refers to a boolean; it is neither empty nor non-empty." jp)]
+               [(eq? 'null v)
+                (error "JSON Pointer \"~a\" refers to the null value, which is neither empty nor non-empty.")]))]))
 
 (define-syntax (equality stx)
   (syntax-parse stx
