@@ -129,9 +129,7 @@ expression: json-pointer
   | json-expression
   | id
   | head-id
-  | expression "*" expression
-  | expression "+" expression
-  | ( "length" "(" expression ")" )
+  | expression ("*" | "+" | "-") expression
 
 json-pointer: JSON-POINTER | (JSON-POINTER "relative" "to" normal-identifier)
 
