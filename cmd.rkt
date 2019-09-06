@@ -9,6 +9,7 @@
          param-base-url
          param-timeout
          last-response->jsexpr
+         fetch-json-pointer-value
          json-pointer-exists?
          json-pointer-does-not-exist?
          fetch-response-header)
@@ -181,7 +182,7 @@
         [else
          (send last-response as-jsexpr)]))
 
-(define (json-pointer-exists? jp)
+(define (fetch-json-pointer-value jp)
   (cond [(not (response-received?))
          (error (format "No response received; cannot evaluate JSON Pointer \"~a\"." jp))]
         [(not (response-has-body?))
@@ -191,8 +192,12 @@
         [else
          (with-handlers ([exn:fail? (lambda (err)
                                       (error (format "JSON Pointer \"~a\" does not exist." jp)))])
-           (json-pointer-value jp (send last-response as-jsexpr))
-           (void))]))
+           (json-pointer-value jp (send last-response as-jsexpr)))]))
+
+(define (json-pointer-exists? jp)
+  (begin0
+      (fetch-json-pointer-value jp)
+    (void)))
 
 (define (json-pointer-does-not-exist? jp)
   (cond [(not (response-received?))
