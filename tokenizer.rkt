@@ -1454,7 +1454,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons (or #\= #\< #\> #\+ #\-) _)
+    [(cons (or #\= #\< #\> #\+ #\- #\*) _)
      (define result (consume-keyword (~a (car chars)) chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
