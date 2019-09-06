@@ -5,7 +5,8 @@
          ;render-ejsexprish
          bytes->string
          port->chars
-         file-content/bytes)
+         file-content/bytes
+         hash-remove*)
 
 (require racket/function
          racket/contract
@@ -93,3 +94,9 @@
      (list)]
     [(? char? c)
      (cons c (port->chars ip))]))
+
+(define (hash-remove* h1 keys)
+  (match keys
+    ['() h1]
+    [(cons k ks)
+     (hash-remove* (hash-remove h1 k) ks)]))
