@@ -2323,6 +2323,105 @@ RIPOSTE
      (position 50 1 49)
      (position 51 1 50)))))
 
+(module+ test
+  (check-tokenize
+   "$a := $b * $c"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct ':= #f #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8))
+    (position-token
+     (token-struct '* "*" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 11 1 10))
+    (position-token
+     (token-struct 'IDENTIFIER "c" #f #f #f #f #f)
+     (position 12 1 11)
+     (position 14 1 13)))))
+
+(module+ test
+  (check-tokenize
+   "POST { \"sum\": $a } to /jay responds with 201"
+   (list
+    (position-token
+     (token-struct 'HTTP-METHOD "POST" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 5 1 4))
+    (position-token
+     (token-struct '|{| #f #f #f #f #f #f)
+     (position 6 1 5)
+     (position 7 1 6))
+    (position-token
+     (token-struct 'JSON-STRING "sum" #f #f #f #f #f)
+     (position 8 1 7)
+     (position 12 1 11))
+    (position-token
+     (token-struct ': #f #f #f #f #f #f)
+     (position 12 1 11)
+     (position 13 1 12))
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 14 1 13)
+     (position 16 1 15))
+    (position-token
+     (token-struct '|}| #f #f #f #f #f #f)
+     (position 17 1 16)
+     (position 18 1 17))
+    (position-token
+     (token-struct 'to "to" #f #f #f #f #f)
+     (position 19 1 18)
+     (position 21 1 20))
+    (position-token
+     (token-struct 'URI-TEMPLATE-LITERAL "/jay" #f #f #f #f #f)
+     (position 22 1 21)
+     (position 26 1 25))
+    (position-token
+     (token-struct 'responds #f #f #f #f #f #f)
+     (position 27 1 26)
+     (position 35 1 34))
+    (position-token
+     (token-struct 'with #f #f #f #f #f #f)
+     (position 36 1 35)
+     (position 40 1 39))
+    (position-token
+     (token-struct 'HTTP-STATUS-CODE "201" #f #f #f #f #f)
+     (position 41 1 40)
+     (position 44 1 43)))))
+
+(module+ test
+  (check-tokenize
+   "$a := $b - $c"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct ':= #f #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8))
+    (position-token
+     (token-struct '- "-" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 11 1 10))
+    (position-token
+     (token-struct 'IDENTIFIER "c" #f #f #f #f #f)
+     (position 12 1 11)
+     (position 14 1 13)))))
+
 (module+ main
 
   (require racket/cmdline
