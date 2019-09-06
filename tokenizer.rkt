@@ -2201,22 +2201,70 @@ RIPOSTE
 (module+ test
   (let ([program "$a < $b"])
     (check-equal? (tokenize program)
-                  (list))))
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 3 1 2))
+                   (position-token
+                    (token-struct '< "<" #f #f #f #f #f)
+                    (position 4 1 3)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 8 1 7))))))
 
 (module+ test
   (let ([program "$a <= $b"])
     (check-equal? (tokenize program)
-                  (list))))
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 3 1 2))
+                   (position-token
+                    (token-struct '<= "<=" #f #f #f #f #f)
+                    (position 4 1 3)
+                    (position 6 1 5))
+                   (position-token
+                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+                    (position 7 1 6)
+                    (position 9 1 8))))))
 
 (module+ test
   (let ([program "$a > $b"])
     (check-equal? (tokenize program)
-                  (list))))
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 3 1 2))
+                   (position-token
+                    (token-struct '> ">" #f #f #f #f #f)
+                    (position 4 1 3)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 8 1 7))))))
 
 (module+ test
   (let ([program "$a >= $b"])
     (check-equal? (tokenize program)
-                  (list))))
+                  (list
+                   (position-token
+                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 3 1 2))
+                   (position-token
+                    (token-struct '>= ">=" #f #f #f #f #f)
+                    (position 4 1 3)
+                    (position 6 1 5))
+                   (position-token
+                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+                    (position 7 1 6)
+                    (position 9 1 8))))))
 
 (module+ main
 
