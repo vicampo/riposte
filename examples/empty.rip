@@ -1,0 +1,25 @@
+#lang riposte
+
+%base := http://localhost:12345
+
+GET /robby responds with 200
+
+/foo exists and is non empty
+
+/bar exists and is non empty
+
+$a := /foo
+
+$b := /bar
+
+$c := $a + $b
+
+$d := $a - $b
+
+$e := $a * $b
+
+POST { "sum": $c, "difference": $d, "product": $e } to /jay responds with 201
+
+Location^ is present
+
+Location^ ends with "/zee"
