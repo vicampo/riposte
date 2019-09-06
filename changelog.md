@@ -47,6 +47,10 @@ page](https://github.com/vicampo/riposte/issues).
   /bar`. In this version, the keyword `to` needs to be used
   to separate the payload from the URL. Thus, one now should
   write `POST $foo to /bar`.
+- It used to be that the the syntax for request payloads required one
+  to use an identifier: `POST $foo /bar`. But now you can use
+  abritrary JSON expressions (including using variables): `POST { "a":
+  $a } /bar` works.
 
 ## [0.10.0] - 2018-10-30
 
