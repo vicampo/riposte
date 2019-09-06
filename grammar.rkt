@@ -39,7 +39,7 @@ equality : expression /"=" expression
 
 disequality : expression /"!=" expression
 
-inequality : expression ("<" | ">") expression
+inequality : expression ("<" | ">" | "<=" | ">=") expression
 
 @predication : has-type
   | has-property

@@ -11,6 +11,20 @@ POST { "a": 5, "b": [] } to /foo responds with 200
 
 /foo is a positive integer
 
+/foo < 5
+
+/foo > 2
+
+/foo <= 4
+
+/foo >= 3
+
+/foo is an even integer
+
+/foo = 4
+
+/foo is not an odd integer
+
 /foo is not an array
 
 /foo is not a negative integer

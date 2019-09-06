@@ -27,6 +27,7 @@
          schema-ref
          jp-existence
          equality
+         inequality
          header-presence
          response-head-id
          sequence-predicate)
@@ -34,6 +35,7 @@
 (require (for-syntax racket/base
                      racket/match
                      syntax/parse
+                     syntax/stx
                      racket/syntax)
          json
          json-pointer
@@ -215,6 +217,18 @@
     [(_ expr "is" "an" "integer")
      #'(unless (integer? expr)
          (error (format "~a is not an integer!" (render expr))))]
+    [(_ expr "is" "an" "even" "integer")
+     #'(begin
+         (unless (integer? expr)
+           (error (format "~a is not an integer!" (render expr))))
+         (unless (even? expr)
+           (error (format "~a is not even!" (render expr)))))]
+    [(_ expr "is" "an" "odd" "integer")
+     #'(begin
+         (unless (integer? expr)
+           (error (format "~a is not an integer!" (render expr))))
+         (unless (odd? expr)
+           (error (format "~a is not odd!" (render expr)))))]
     [(_ expr "is" "a" "positive" "integer")
      #'(begin
          (has-type expr "is" "an" "integer")
@@ -252,7 +266,15 @@
     [(_ expr "is" "not" "a" "negative" "integer")
      #'(when (and (integer? expr)
                   (< expr 0))
-         (error (format "~a is not a negative integer!" (render expr))))]))
+         (error (format "~a is not a negative integer!" (render expr))))]
+    [(_ expr "is" "not" "an" "even" "integer")
+     #'(when (and (integer? expr)
+                  (even? expr))
+         (error (format "~a is not an even integer!" (render expr))))]
+    [(_ expr "is" "not" "an" "odd" "integer")
+     #'(when (and (integer? expr)
+                  (odd? expr))
+         (error (format "~a is not an odd integer!" (render expr))))]))
 
 (define-syntax (json-pointer stx)
   (syntax-parse stx
@@ -324,6 +346,21 @@
                         (json-pretty-print lhs)
                         (render rhs)
                         (json-pretty-print rhs))))]))
+
+(define-syntax (inequality stx)
+  (syntax-parse stx
+    [(_ e1 "<" e2)
+     #'(unless (< e1 e2)
+         (error (format "~a is not less than ~a!" (render e1) (render e2))))]
+    [(_ e1 "<=" e2)
+     #'(unless (<= e1 e2)
+         (error (format "~a is not less than or equal to ~a!" (render e1) (render e2))))]
+    [(_ e1 ">" e2)
+     #'(unless (> e1 e2)
+         (error (format "~a is not greater than ~a!" (render e1) (render e2))))]
+    [(_ e1 ">=" e2)
+     #'(unless (> e1 e2)
+         (error (format "~a is not greater or equal to ~a!" (render e1) (render e2))))]))
 
 (define-syntax (header-presence stx)
   (syntax-parse stx

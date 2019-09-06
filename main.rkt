@@ -27,6 +27,7 @@
          schema-ref
          jp-existence
          equality
+         inequality
          header-presence
          response-head-id
          sequence-predicate)
