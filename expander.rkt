@@ -354,7 +354,40 @@
     [(_ expr "is" "not" "an" "odd" "integer")
      #'(when (and (integer? expr)
                   (odd? expr))
-         (error (format "~a is not an odd integer!" (render expr))))]))
+         (error (format "~a is not an odd integer!" (render expr))))]
+    [(_ expr "is" "empty")
+     #'(cond [(string? expr)
+              (unless (string=? "" expr)
+                (error (format "\"~a\" is a non-empty string (its value is \"~a\"." (render expr) (json-pretty-print expr))))]
+             [(list? expr)
+              (unless (empty? expr)
+                (error (format "\"~a\" is a non-empty array (it is ~a)" (render expr) (json-pretty-print expr))))]
+             [(hash? expr)
+              (unless (hash-empty? expr)
+                (error (format "\"~a\" is a non-empty object (is value is ~a)" (render expr) (json-pretty-print expr))))]
+             [(number? expr)
+              (error "\"~a\" refers to a number; it is neither empty nor non-empty." (render expr))]
+             [(boolean? v)
+              (error "\"~a\" refers to a boolean; it is neither empty nor non-empty." (render expr))]
+             [(eq? 'null expr)
+              (error (format "~a refers to the null value, which is neither empty nor non-empty." (render expr)))])]
+    [(_ expr "is" "non" "empty")
+     #'(let ([v (fetch-json-pointer-value expr)])
+         (cond [(string? v)
+                (when (string=? "" v)
+                  (error (format "~a is the empty string!" (render expr))))]
+               [(list? v)
+                (when (empty? v)
+                  (error (format "~a is the empty array!" (render expr))))]
+               [(hash? v)
+                (when (hash-empty? v)
+                  (error (format "~a is the empty object!" (render expr))))]
+               [(number? v)
+                (error "~a refers to a number; it is neither empty nor non-empty." (render expr))]
+               [(boolean? v)
+                (error "~a refers to a boolean; it is neither empty nor non-empty." (render expr))]
+               [(eq? 'null v)
+                (error (format "~a refers to the null value, which is neither empty nor non-empty." (render expr)))]))]))
 
 (define-syntax (json-pointer stx)
   (syntax-parse stx
@@ -421,39 +454,35 @@
     [(_ jp:string "does" "not" "exist")
      #'(json-pointer-does-not-exist? jp)]
     [(_ jp:string "exists" "and" "is" "empty")
-     #'(let ([v (fetch-json-pointer-value jp)])
-         (cond [(string? v)
-                (unless (string=? "" v)
-                  (error (format "JSON Pointer \"~a\" is a non-empty string (its value is \"~a\"." jp (json-pretty-print v))))]
-               [(list? v)
-                (unless (empty? v)
-                  (error (format "JSON Pointer \"~a\" is a non-empty array (it is ~a)" jp (json-pretty-print v))))]
-               [(hash? v)
-                (unless (hash-empty? v)
-                  (error (format "JSON Pointer \"~a\" is a non-empty object (is value is ~a)" jp (json-pretty-print v))))]
-               [(number? v)
-                (error "JSON Pointer \"~a\" refers to a number; it is neither empty nor non-empty." jp)]
-               [(boolean? v)
-                (error "JSON Pointer \"~a\" refers to a boolean; it is neither empty nor non-empty." jp)]
-               [(eq? 'null v)
-                (error "JSON Pointer \"~a\" refers to the null value, which is neither empty nor non-empty.")]))]
+     #'(begin
+         (unless (json-pointer-exists? jp)
+           (error (format "JSON Pointer ~a does not exist." jp)))
+         (has-type (json-pointer jp) "is" "empty"))]
     [(_ jp:string "exists" "and" "is" "non" "empty")
-     #'(let ([v (fetch-json-pointer-value jp)])
-         (cond [(string? v)
-                (when (string=? "" v)
-                  (error (format "JSON Pointer \"~a\" is the empty string!" jp)))]
-               [(list? v)
-                (when (empty? v)
-                  (error (format "JSON Pointer \"~a\" is the empty array!" jp)))]
-               [(hash? v)
-                (when (hash-empty? v)
-                  (error (format "JSON Pointer \"~a\" is the empty object!" jp)))]
-               [(number? v)
-                (error "JSON Pointer \"~a\" refers to a number; it is neither empty nor non-empty." jp)]
-               [(boolean? v)
-                (error "JSON Pointer \"~a\" refers to a boolean; it is neither empty nor non-empty." jp)]
-               [(eq? 'null v)
-                (error "JSON Pointer \"~a\" refers to the null value, which is neither empty nor non-empty.")]))]))
+     #'(begin
+         (unless (json-pointer-exists? jp)
+           (error (format "JSON Pointer ~a does not exist." jp)))
+         (has-type (json-pointer jp) "is" "non" "empty"))]
+    [(_ jp:string "exists" "and" "is" "positive")
+     #'(begin
+         (unless (json-pointer-exists? jp)
+           (error (format "JSON Pointer ~a does not exist." jp)))
+         (has-type (json-pointer jp) "is" "positive"))]
+    [(_ jp:string "exists" "and" "is" "non" "positive")
+     #'(begin
+         (unless (json-pointer-exists? jp)
+           (error (format "JSON Pointer ~a does not exist." jp)))
+         (has-type (json-pointer jp) "is" "non" "positive"))]
+    [(_ jp:string "exists" "and" "is" "negative")
+     #'(begin
+         (unless (json-pointer-exists? jp)
+           (error (format "JSON Pointer ~a does not exist." jp)))
+         (has-type (json-pointer jp) "is" "negative"))]
+    [(_ jp:string "exists" "and" "is" "non" "negative")
+     #'(begin
+         (unless (json-pointer-exists? jp)
+           (error (format "JSON Pointer ~a does not exist." jp)))
+         (has-type (json-pointer jp) "is" "non" "negative"))]))
 
 (define-syntax (equality stx)
   (syntax-parse stx

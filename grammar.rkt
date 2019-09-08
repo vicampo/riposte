@@ -71,7 +71,9 @@ has-property: expression ("has" | "does" "not" "have") "property" expression
 jp-existence: JSON-POINTER
   ("exists" | ("does" "not" "exist"))
   [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER) ]
-  [ "and" "is" [ "non" ] "empty" ]
+  [ "and" "is" jp-value-adjective ]
+
+@jp-value-adjective: [ "non" ] ("empty" | "negative" | "positive")
 
 header-presence: RESPONSE-HEADER-IDENTIFIER /"is" ("absent" | "present")
 
