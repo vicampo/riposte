@@ -8,9 +8,13 @@ GET /robby responds with 200
 
 /bar exists and is non empty
 
-$a := /foo
+/baz exists and is positive
 
-$b := /bar
+/bomb exists and is non negative
+
+$a := /baz
+
+$b := /bomb
 
 $c := $a + $b
 
