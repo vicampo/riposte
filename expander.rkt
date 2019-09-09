@@ -61,7 +61,8 @@
 (define-syntax (riposte-program stx)
   (syntax-parse stx
     [(_ step ...)
-     #'(begin
+     #`(begin
+         (check-environment-variables (riposte-program step ...))
          step ...)]))
 
 (define-syntax (expression stx)
@@ -228,7 +229,12 @@
      (with-syntax [(name (format-id #'ident "~a" (syntax->datum #'ident)))]
        #'(begin
            (define name expr)
-           (has-type name "is" "a" type)))]))
+           (has-type name "is" "a" type)))]
+    [(_ ident:string expr "(" adjective type ")")
+     (with-syntax [(name (format-id #'ident "~a" (syntax->datum #'ident)))]
+       #'(begin
+           (define name expr)
+           (has-type name "is" "a" adjective type)))]))
 
 
 (define-syntax (parameter-assignment stx)
@@ -456,12 +462,8 @@
              (with-handlers ([exn:fail? (lambda (e)
                                           (error (format "Content of ~a is malformed JSON." (path->string full-path))))])
                (string->jsexpr s))))))]
-  [(_ (json-object E ...))
-   #'(json-object E ...)]
-  [(_ S)
-   (syntax-parse #'S
-     [s:string
-      #'(normal-identifier s)])])
+  [(_ E)
+   #'E])
 
 (define-syntax (expand-path stx)
   (syntax-parse stx
@@ -572,3 +574,154 @@
            (error (format "~a holds neither a string nor an array!" (render e2))))
          (unless (ends-with? e1 e2)
            (error (format "~a (~a) does not end with ~a (~a)." (render e1) e1 (render e2) e2))))]))
+
+(define-macro-cases check-environment-variables
+  ; the first two cases are the nut of the whole thing; everything else is just
+  ; breaking the program up, recursively hunting for references to environment
+  ; variables:
+  [(_ (env-identifier ENV))
+   #'(unless (string? (getenv ENV))
+       (error (format "Environment variable ~a is not set!" ENV)))]
+  [(_ (env-identifier ENV FALLBACK))
+   #'(void)]
+
+  ; the remaining cases just break the program up:
+  [(_ (riposte-program))
+   #'(void)]
+  [(_ (riposte-program S STEP ...))
+   #'(begin
+       (check-environment-variables S)
+       (check-environment-variables (riposte-program STEP ...)))]
+  [(_ (json-array))
+   #'(void)]
+  [(_ (json-array ITEM ITEMS ...))
+   #'(begin
+       (check-environment-variables ITEM)
+       (check-environment-variables (json-array ITEMS ...)))]
+  [(_ (json-array-item VALUE))
+   #'(check-environment-variables VALUE)]
+  [(_ (json-object))
+   #'(void)]
+  [(_ (json-object ITEM ITEMS ...))
+   #'(begin
+       (check-environment-variables ITEM)
+       (check-environment-variables (json-object ITEMS ...)))]
+  [(_ (json-object-item KEY VALUE))
+   #'(check-environment-variables VALUE)]
+  [(_ (json-boolean B))
+   #'(void)]
+  [(_ (parameter-assignment PARAM VAL))
+   #'(check-environment-variables VAL)]
+  [(_ (uri-template T ...))
+   #'(void)]
+
+  ; the command forms:
+  [(_ (command METHOD URI))
+   #'(check-environment-variables URI)]
+  [(_ (command METHOD URI (responds-with CODE)))
+   #'(check-environment-variables URI)]
+  [(_ (command METHOD PAYLOAD URI (responds-with CODE)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables URI))]
+  [(_ (command METHOD PAYLOAD URI (with-headers HEADERS)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables HEADERS)
+       (check-environment-variables URI))]
+  [(_ (command METHOD PAYLOAD URI (with-headers HEADERS) (responds-with CODE)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables HEADERS)
+       (check-environment-variables URI))]
+  [(_ (command METHOD PAYLOAD URI (positive-satisfies SCHEMA)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables URI)
+       (check-environment-variables SCHEMA))]
+  [(_ (command METHOD PAYLOAD URI (negative-satisfies SCHEMA)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables URI)
+       (check-environment-variables SCHEMA))]
+
+  [(_ (schema-ref S))
+   #'(check-environment-variables S)]
+  [(_ (schema-ref "in" FILE))
+   #'(void)]
+  [(_ (jp-existence WHATEVER ...))
+   #'(void)]
+  [(_ (normal-assignment VAR VAL "(" TYPE ")"))
+   #'(check-environment-variables VAL)]
+  [(_ (normal-assignment VAR VAL "(" ADJECTIVE TYPE ")"))
+   #'(check-environment-variables VAL)]
+  [(_ (normal-assignment VAR VAL "(" "non" ADJECTIVE TYPE ")"))
+   #'(check-environment-variables VAL)]
+  [(_ (normal-assignment VAR VAL))
+   #'(check-environment-variables VAL)]
+  [(_ (header-assignment H V))
+   #'(check-environment-variables V)]
+  [(_ (expression E))
+   #'(check-environment-variables E)]
+  [(_ (expression E1 "+" E2))
+   #'(begin
+       (check-environment-variables E1)
+       (check-environment-variables E2))]
+  [(_ (expression E1 "-" E2))
+   #'(begin
+       (check-environment-variables E1)
+       (check-environment-variables E2))]
+  [(_ (expression E1 "*" E2))
+   #'(begin
+       (check-environment-variables E1)
+       (check-environment-variables E2))]
+  [(_ (json-pointer JP))
+   #'(void)]
+  [(_ (normal-identifier ID))
+   #'(void)]
+  [(_ (header-presence HEAD ABSENT-OR-PRESENT))
+   #'(void)]
+  [(_ (sequence-predicate E1 "starts" "with" E2))
+   #'(begin
+       (check-environment-variables E1)
+       (check-environment-variables E2))]
+  [(_ (sequence-predicate E1 "ends" "with" E2))
+   #'(begin
+       (check-environment-variables E1)
+       (check-environment-variables E2))]
+  [(_ (response-head-id H))
+   #'(void)]
+  [(_ (has-type E "is" "non" WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "a" WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "a" ADJECTIVE WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "a" "non" ADJECTIVE WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "an" ADJECTIVE WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "not" "a" WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "not" "a" ADJECTIVE WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "not" "an" WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "not" "an" ADJECTIVE WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (equality LHS RHS))
+   #'(begin
+       (check-environment-variables LHS)
+       (check-environment-variables RHS))]
+  [(_ (inequality E1 REL E2))
+   #'(begin
+       (check-environment-variables E1)
+       (check-environment-variables E2))]
+  [else
+   (syntax-parse caller-stx
+     [(_ s:string)
+      #'(void)]
+     [(_ n:number)
+      #'(void)]
+     [else
+      (error (format "We are really down on our luck here with ~a" caller-stx))])])
