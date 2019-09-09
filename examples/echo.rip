@@ -1,0 +1,17 @@
+#lang riposte
+
+%base := http://localhost:12345
+
+GET /users/~mflatt
+
+echo # show the whole response
+
+GET /users/~jay
+
+echo /name # echo a JSON Pointer
+
+$a := /title
+
+echo $a # echo a variable
+
+echo Content-Type^ # show a response header
