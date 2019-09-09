@@ -85,8 +85,6 @@ header-presence: RESPONSE-HEADER-IDENTIFIER /"is" ("absent" | "present")
   | "object"
   | "array"
 
-json-object-type: [ object-adjective ] "object"
-
 object-adjective: [ "non" ] "empty"
 
 @arithmetical-adjective: [ "non" ] ( "positive" | "negative" | "even" | "odd" )
