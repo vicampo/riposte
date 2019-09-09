@@ -192,15 +192,11 @@
         [(not (response-well-formed?))
          (error (format "Previous response has a malformed body; cannot evaluate JSON Pointer \"~a\"." jp))]
         [else
-         (with-handlers ([exn:fail? (lambda (err)
-                                      (error (format "JSON Pointer \"~a\" does not exist." jp)))])
+         (with-handlers ([exn:fail? (const (void))])
            (json-pointer-value jp (send last-response as-jsexpr)))]))
 
 (define (json-pointer-exists? jp)
-  (with-handlers ([exn:fail? (const #f)])
-    (begin0
-        (fetch-json-pointer-value jp)
-      #t)))
+  (not (void? (fetch-json-pointer-value jp))))
 
 (define (json-pointer-does-not-exist? jp)
   (cond [(not (response-received?))
