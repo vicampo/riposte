@@ -10,7 +10,7 @@ GET /robby responds with 200
 
 /baz exists and is positive
 
-/bomb exists and is non negative
+/bomb exists and is negative
 
 $a := /baz
 
