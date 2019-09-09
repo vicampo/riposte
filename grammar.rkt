@@ -93,7 +93,7 @@ object-adjective: [ "non" ] "empty"
 
 @assignment : normal-assignment | parameter-assignment | header-assignment
 
-normal-assignment: IDENTIFIER /":=" expression [ "(" json-type ")" ]
+normal-assignment: IDENTIFIER /":=" expression [ "(" [ adjective ] json-type ")" ]
 
 parameter-assignment: PARAMETER /":=" (uri-template | expression)
 
