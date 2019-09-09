@@ -102,7 +102,6 @@
 
     (define parse-tree (parse name (tokenize in)))
     (define imports-expanded (expand-imports parse-tree cwd))
-    (check-environment-variables (syntax->datum imports-expanded))
     (datum->syntax #f `(module anything riposte
                          ,imports-expanded)))
 
