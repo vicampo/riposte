@@ -28,6 +28,8 @@
          json-pointer
          (only-in racket/class
                   send)
+         (only-in racket/function
+                  const)
          (only-in misc1/syntax
                   with-output-string)
          (only-in argo
@@ -195,9 +197,10 @@
            (json-pointer-value jp (send last-response as-jsexpr)))]))
 
 (define (json-pointer-exists? jp)
-  (begin0
-      (fetch-json-pointer-value jp)
-    (void)))
+  (with-handlers ([exn:fail? (const #f)])
+    (begin0
+        (fetch-json-pointer-value jp)
+      #t)))
 
 (define (json-pointer-does-not-exist? jp)
   (cond [(not (response-received?))
