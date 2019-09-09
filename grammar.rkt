@@ -57,7 +57,7 @@ has-type: expression "is" [ "non" ] adjective
   | object-adjective
   | "null"
 
-@sequence-predicate: expression ("starts" | "ends" ) "with" expression
+sequence-predicate: expression ("starts" | "ends" ) "with" expression
 
 has-element-count: expression "has"
   [ "at" ( "least" | "most" ) ]
