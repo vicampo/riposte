@@ -2,11 +2,14 @@
 
 (provide run
          dispatch-rules
-         make-header)
+         make-header
+         request->jsexpr)
 
 (require racket/list
          racket/match
          racket/contract
+         (only-in racket/function
+                  const)
          json
          web-server/http/response-structs
          web-server/http/request-structs
@@ -71,6 +74,13 @@
                  #:stateless? #t
                  #:command-line? #t
                  #:servlet-regexp (regexp ".*")))
+
+(define (request->jsexpr req)
+  (with-handlers ([exn:fail:contract? (const (void))]
+                  [exn? (lambda (err)
+                          (log-error "Unexpected non-contract error: ~a" (exn-message err))
+                          (void))])
+    (bytes->jsexpr (request-post-data/raw req))))
 
 (provide/contract
  [response/jsexpr
