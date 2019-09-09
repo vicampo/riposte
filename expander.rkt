@@ -125,16 +125,20 @@
              [(hash? e1)
               (error (format "~a works out to be an object; multiplication is not defined in this case." (render e1)))]
              [(integer? e1)
-              (cond [(< e1 0)
-                     (error (format "~a works out to be a negative integer; multiplication not defined in this case." (render e1)))]
-                    [(string? e2)
+              (cond [(string? e2)
+                     (unless (< e1 0)
+                       (error (format "~a works out to be a negative integer; multiplication not defined in this case." (render e1))))
                      (apply string-append
                             (for/list ([n (in-range 1 e1)])
                               e2))]
+                    [(number? e2)
+                     (* e1 e2)]
                     [else
-                     (error "~a works out to be a positive integer, but ~a is not a string. Multiplication not defined in this case." (render e1) (render e2))])]
+                     (error (format "~a works out to be a positive integer, but ~a is not a string. Multiplication not defined in this case." (render e1) (render e2)))])]
              [(number? e1)
-              (error (format "~a works out to be a non-integer real number; multiplication not defined in this case." (render e1)))]
+              (unless (number? e2)
+                (error (format "~a works out to be a non-integer number, but ~a is not a number. Multiplication not defined in this case." (render e1) (render e2))))
+              (* e1 e2)]
              [(list? e1)
               (error (format "~a works out to be an array; multiplciation is not defined in this case." (render e1)))]
              [(eq? 'null e1)
@@ -294,6 +298,9 @@
     [(_ expr "is" "non" "null")
      #'(when (eq? expr 'null)
          (error (format "~a is null!" (render expr))))]
+    [(_ expr "is" "a" "number")
+     #'(unless (number? expr)
+         (error (format "~a is not a number!" (render expr))))]
     [(_ expr "is" "an" "integer")
      #'(unless (integer? expr)
          (error (format "~a is not an integer!" (render expr))))]
@@ -372,7 +379,7 @@
              [(eq? 'null expr)
               (error (format "~a refers to the null value, which is neither empty nor non-empty." (render expr)))])]
     [(_ expr "is" "non" "empty")
-     #'(let ([v (fetch-json-pointer-value expr)])
+     #'(let ([v expr])
          (cond [(string? v)
                 (when (string=? "" v)
                   (error (format "~a is the empty string!" (render expr))))]
@@ -387,7 +394,27 @@
                [(boolean? v)
                 (error "~a refers to a boolean; it is neither empty nor non-empty." (render expr))]
                [(eq? 'null v)
-                (error (format "~a refers to the null value, which is neither empty nor non-empty." (render expr)))]))]))
+                (error (format "~a refers to the null value, which is neither empty nor non-empty." (render expr)))]))]
+    [(_ expr "is" "positive")
+     #'(begin
+         (has-type expr "is" "a" "number")
+         (unless (> expr 0)
+           (error (format "~a is not positive!" (render expr)))))]
+    [(_ expr "is" "non" "positive")
+     #'(begin
+         (has-type expr "is" "a" "number")
+         (when (> expr 0)
+           (error (format "~a is not positive!" (render expr)))))]
+    [(_ expr "is" "negative")
+     #'(begin
+         (has-type expr "is" "a" "number")
+         (unless (< expr 0)
+           (error (format "~a is not negative!" (render expr)))))]
+    [(_ expr "is" "non" "negative")
+     #'(begin
+         (has-type expr "is" "a" "number")
+         (when (< expr 0)
+           (error (format "~a is negative!" (render expr)))))]))
 
 (define-syntax (json-pointer stx)
   (syntax-parse stx
@@ -450,38 +477,34 @@
 (define-syntax (jp-existence stx)
   (syntax-parse stx
     [(_ jp:string "exists")
-     #'(json-pointer-exists? jp)]
+     #'(unless (json-pointer-exists? jp)
+         (error (format "Hey: JSON Pointer ~a does not exist." jp)))]
     [(_ jp:string "does" "not" "exist")
-     #'(json-pointer-does-not-exist? jp)]
+     #'(when (json-pointer-exists? jp)
+         (error (format "JSON Pointer ~a exists!" jp)))]
     [(_ jp:string "exists" "and" "is" "empty")
      #'(begin
-         (unless (json-pointer-exists? jp)
-           (error (format "JSON Pointer ~a does not exist." jp)))
+         (jp-existence jp "exists")
          (has-type (json-pointer jp) "is" "empty"))]
     [(_ jp:string "exists" "and" "is" "non" "empty")
      #'(begin
-         (unless (json-pointer-exists? jp)
-           (error (format "JSON Pointer ~a does not exist." jp)))
+         (jp-existence jp "exists")
          (has-type (json-pointer jp) "is" "non" "empty"))]
     [(_ jp:string "exists" "and" "is" "positive")
      #'(begin
-         (unless (json-pointer-exists? jp)
-           (error (format "JSON Pointer ~a does not exist." jp)))
+         (jp-existence jp "exists")
          (has-type (json-pointer jp) "is" "positive"))]
     [(_ jp:string "exists" "and" "is" "non" "positive")
      #'(begin
-         (unless (json-pointer-exists? jp)
-           (error (format "JSON Pointer ~a does not exist." jp)))
+         (jp-existence jp "exists")
          (has-type (json-pointer jp) "is" "non" "positive"))]
     [(_ jp:string "exists" "and" "is" "negative")
      #'(begin
-         (unless (json-pointer-exists? jp)
-           (error (format "JSON Pointer ~a does not exist." jp)))
+         (jp-existence jp "exists")
          (has-type (json-pointer jp) "is" "negative"))]
     [(_ jp:string "exists" "and" "is" "non" "negative")
      #'(begin
-         (unless (json-pointer-exists? jp)
-           (error (format "JSON Pointer ~a does not exist." jp)))
+         (jp-existence jp "exists")
          (has-type (json-pointer jp) "is" "non" "negative"))]))
 
 (define-syntax (equality stx)
