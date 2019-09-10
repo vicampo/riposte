@@ -1,0 +1,35 @@
+#lang riposte
+
+%base := https://localhost:12345
+
+exec password.sh
+
+/username exists and is a non empty string
+
+exec password.sh with arguments [ "--quiet" ]
+
+/username does not exist
+
+$a := "--timestamp"
+
+$b := "--password"
+
+exec password.sh with arguments [ $a, $b ]
+
+/timestamp exists and is a non empty string
+
+/password exists and is a non empty
+
+$args := [ $a, $b ]
+
+exec password.sh with arguments $args
+
+$user := /username
+
+$pass := /password
+
+POST { "username": $user, "password": $pass } to /login responds with 2XX
+
+$token := /token
+
+echo $token
