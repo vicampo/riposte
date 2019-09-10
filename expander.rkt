@@ -494,7 +494,7 @@
   (syntax-parse stx
     [(_ jp:string "exists")
      #'(unless (json-pointer-exists? jp)
-         (error (format "Hey: JSON Pointer ~a does not exist." jp)))]
+         (error (format "JSON Pointer ~a does not exist." jp)))]
     [(_ jp:string "does" "not" "exist")
      #'(when (json-pointer-exists? jp)
          (error (format "JSON Pointer ~a exists!" jp)))]
