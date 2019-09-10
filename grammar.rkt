@@ -27,7 +27,11 @@ uri-template-variable-modifier-prefix: ":" NUMBER
 
 digit: ZERO | ONE | NON-ZERO-NON-ONE-DIGIT
 
-exec: EXEC URI
+exec: /"exec" FILENAME
+  | /"exec" FILENAME /"with" /"arguments" normal-identifier
+  | /"exec" FILENAME /"with" /"arguments" "[" [ exec-arg-item (/"," exec-arg-item)* ] "]"
+
+exec-arg-item: normal-identifier | JSON-STRING
 
 echo: /"echo" [ json-pointer | normal-identifier | head-id ]
 

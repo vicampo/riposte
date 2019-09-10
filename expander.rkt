@@ -31,7 +31,8 @@
          header-presence
          response-head-id
          sequence-predicate
-         echo)
+         echo
+         exec)
 
 (require (for-syntax racket/base
                      racket/match
@@ -521,7 +522,11 @@
     [(_ jp:string "exists" "and" "is" "non" "negative")
      #'(begin
          (jp-existence jp "exists")
-         (has-type (json-pointer jp) "is" "non" "negative"))]))
+         (has-type (json-pointer jp) "is" "non" "negative"))]
+    [(_ jp:string "exists" "and" "is" "a" "non" "empty" "string")
+     #'(begin
+         (jp-existence jp "exists")
+         (has-type (json-pointer jp) "is" "a" "non" "empty" "string"))]))
 
 (define-syntax (equality stx)
   (syntax-parse stx
@@ -614,6 +619,39 @@
        (unless (response-header-exists? ID)
          (error (format "Response does not contain header \"~a\"." ID)))
        (displayln (format "~a = ~a" (render (response-head-id ID)) (fetch-response-header ID))))])
+
+(define-macro-cases exec
+  [(_ FILENAME)
+   #'(begin
+       (unless (file-exists? FILENAME)
+         (error (format "No such file: ~a" FILENAME)))
+       (define result (process*/ports (open-output-bytes)
+                                      #f
+                                      (open-output-bytes)
+                                      FILENAME))
+       (define ip (list-ref result 0))
+       (define op (list-ref result 1))
+       (define pid (list-ref result 2))
+       (define ep (list-ref result 3))
+       (define runner (list-ref result 4))
+       (runner 'wait) ; execute the thing until we're done
+       (define exit-code (runner 'status))
+       (unless (integer? exit-code)
+         (error (format "We still seem to be running ~a" FILENAME)))
+       (unless (= exit-code 0)
+         (define error-output (port->string ep))
+         (error
+          (with-output-string
+            (displayln (format "Failed to execute ~a with no arguments!" FILENAME))
+            (displayln (format "The exit code was ~a." exit-code))
+            (cond [(string=? "" error-output)
+                   (displayln "No error output was received.")]
+                  [else
+                   (displayln "The error output was:")
+                   (displayln error-output)]))))
+       (port->bytes op))]
+  [else
+   (error "WTF? exec this")])
 
 (define-macro-cases check-environment-variables
   ; the first two cases are the nut of the whole thing; everything else is just
@@ -761,6 +799,18 @@
    #'(void)]
   [(_ (echo WHATEVER))
    #'(void)]
+  [(_ (exec FILE))
+   #'(check-environment-variables FILE)]
+  [(_ (exec FILE (normal-identifier ID)))
+   #'(check-environment-variables (normal-identifier ID))]
+  [(_ (exec FILE "[" "]"))
+   #'(void)]
+  [(_ (exec FILE "[" ARG ARGS ... "]"))
+   #'(begin
+       (check-environment-variables ARG)
+       (check-environment-variables (exec FILE "[" ARGS ... "]")))]
+  [(_ (exec-arg-item I))
+   #'(check-environment-variables I)]
   [else
    (syntax-parse caller-stx
      [(_ s:string)

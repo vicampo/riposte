@@ -107,19 +107,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                    (list filename/token)
                    remaining-chars)]))
 
-(define/contract (after-import)
-  (-> (or/c false/c position-token?))
-  (define c (peek-char))
-  (match c
-    [(? eof-object?)
-     (read-char)
-     #f]
-    [(? char-whitespace?)
-     (read-char)
-     (after-import)]
-    [else
-     (import-filename)]))
-
 (define/contract (import chars start)
   ((listof char?) position? . -> . lexer-result?)
   (match chars
@@ -137,6 +124,30 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                                           end-position))
      (define chars-of-keyword (take chars (string-length "import")))
      (define remaining-chars (drop chars (string-length "import")))
+     (define filename/result (import-filename remaining-chars
+                                              end-position))
+     (lexer-result (lexer-result-end-position filename/result)
+                   (cons import/token
+                         (lexer-result-tokens filename/result))
+                   (lexer-result-characters filename/result))]))
+
+(define/contract (exec chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(list #\e #\x #\e #\c)
+     (define end-position (add-position start (string->list "exec")))
+     (lexer-result end-position
+                   (list (position-token (token 'exec "exec"))
+                         start
+                         end-position)
+                   (list))]
+    [(list-rest #\e #\x #\e #\c more)
+     (define end-position (add-position start (string->list "exec")))
+     (define import/token (position-token (token 'exec "exec")
+                                          start
+                                          end-position))
+     (define chars-of-keyword (take chars (string-length "exec")))
+     (define remaining-chars (drop chars (string-length "exec")))
      (define filename/result (import-filename remaining-chars
                                               end-position))
      (lexer-result (lexer-result-end-position filename/result)
@@ -582,7 +593,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                                   (lexer-result-tokens tail/result))])]
     [(cons #\] _)
      (define end-position (add-position start (car chars)))
-     (define t (position-token (token "]")
+     (define t (position-token (token (string->symbol "]") "]")
                                start
                                end-position))
      (lexer-result end-position
@@ -590,7 +601,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                    (cdr chars))]
     [(cons #\, _)
      (define after-comma-position (add-position start (car chars)))
-     (define t (position-token (token ",")
+     (define t (position-token (token (string->symbol ",") ",")
                                start
                                after-comma-position))
      (define next-item/result (lex-jsonish-stuff (cdr chars)
@@ -619,7 +630,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                      (add-position start (car chars)))]
     [(cons #\[ _)
      (define after-opening-token/position (add-position start (car chars)))
-     (define opening-token (position-token (token "[")
+     (define opening-token (position-token (token (string->symbol "[") "[")
                                            start
                                            after-opening-token/position))
      (define items/result (lex-json-array-items (cdr chars)
@@ -645,7 +656,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                                   (lexer-result-tokens tail/result))])]
     [(cons #\, _)
      (define after-comma-position (add-position start (car chars)))
-     (define t (position-token (token ",")
+     (define t (position-token (token (string->symbol ",") ",")
                                start
                                after-comma-position))
      (define next-item/result (lex-json-object-items (cdr chars)
@@ -656,7 +667,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                                   (lexer-result-tokens next-item/result))])]
     [(cons #\} _)
      (define end-position (add-position start (car chars)))
-     (define t (position-token (token "}")
+     (define t (position-token (token (string->symbol "}") "}")
                                start
                                end-position))
      (lexer-result end-position
@@ -672,7 +683,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
         (define colon-position (add-position (lexer-result-end-position property/result)
                                              whitespace-chars))
         (define after-colon-position (add-position colon-position #\:))
-        (define colon-token (position-token (token ":")
+        (define colon-token (position-token (token (string->symbol ":") ":")
                                             colon-position
                                             after-colon-position))
         (define value/result (lex-jsonish-stuff (cdr after-whitespace-chars)
@@ -1353,6 +1364,11 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(list-rest #\e #\x #\e #\c (? char-whitespace?) _)
+     (define result (exec chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons #\$ more)
      (define result (identifier chars start))
      (append (lexer-result-tokens result)
@@ -1625,6 +1641,12 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
     [(or (list #\s #\t #\r #\i #\n #\g)
          (list-rest #\s #\t #\r #\i #\n #\g _))
      (define result (consume-keyword "string" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\a #\r #\g #\u #\m #\e #\n #\t #\s)
+         (list-rest #\a #\r #\g #\u #\m #\e #\n #\t #\s (? char-whitespace?) _))
+     (define result (consume-keyword "arguments" chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -2421,6 +2443,90 @@ RIPOSTE
      (token-struct 'IDENTIFIER "c" #f #f #f #f #f)
      (position 12 1 11)
      (position 14 1 13)))))
+
+(module+ test
+  (check-tokenize "exec foo.sh"
+                  (list
+                   (position-token
+                    (token-struct 'import #f #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 12 1 11)))))
+
+(module+ test
+  (check-tokenize "exec foo.sh with arguments [ \"--quiet\" ]"
+                  (list
+                   (position-token
+                    (token-struct 'import #f #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 12 1 11))
+                   (position-token
+                    (token-struct 'with "with" #f #f #f #f #f)
+                    (position 13 1 12)
+                    (position 17 1 16))
+                   (position-token
+                    (token-struct 'arguments "arguments" #f #f #f #f #f)
+                    (position 18 1 17)
+                    (position 27 1 26))
+                   (position-token
+                    (token-struct '|[| #f #f #f #f #f #f)
+                    (position 28 1 27)
+                    (position 29 1 28))
+                   (position-token
+                    (token-struct 'JSON-STRING "--quiet" #f #f #f #f #f)
+                    (position 30 1 29)
+                    (position 38 1 37))
+                   (position-token
+                    (token-struct '|]| #f #f #f #f #f #f)
+                    (position 39 1 38)
+                    (position 40 1 39)))))
+
+(module+ test
+  (check-tokenize "exec foo.sh with arguments [ $a, $b ]"
+                  (list
+                   (position-token
+                    (token-struct 'import #f #f #f #f #f #f)
+                    (position 1 1 0)
+                    (position 5 1 4))
+                   (position-token
+                    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
+                    (position 6 1 5)
+                    (position 12 1 11))
+                   (position-token
+                    (token-struct 'with "with" #f #f #f #f #f)
+                    (position 13 1 12)
+                    (position 17 1 16))
+                   (position-token
+                    (token-struct 'arguments "arguments" #f #f #f #f #f)
+                    (position 18 1 17)
+                    (position 27 1 26))
+                   (position-token
+                    (token-struct '|[| #f #f #f #f #f #f)
+                    (position 28 1 27)
+                    (position 29 1 28))
+                   (position-token
+                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+                    (position 30 1 29)
+                    (position 32 1 31))
+                   (position-token
+                    (token-struct '|,| #f #f #f #f #f #f)
+                    (position 32 1 31)
+                    (position 33 1 32))
+                   (position-token
+                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+                    (position 34 1 33)
+                    (position 36 1 35))
+                   (position-token
+                    (token-struct '|]| #f #f #f #f #f #f)
+                    (position 37 1 36)
+                    (position 38 1 37)))))
 
 (module+ main
 
