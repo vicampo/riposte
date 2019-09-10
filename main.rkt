@@ -30,7 +30,8 @@
          inequality
          header-presence
          response-head-id
-         sequence-predicate)
+         sequence-predicate
+         echo)
 
 (require (file "expander.rkt"))
 

@@ -30,7 +30,8 @@
          inequality
          header-presence
          response-head-id
-         sequence-predicate)
+         sequence-predicate
+         echo)
 
 (require (for-syntax racket/base
                      racket/match
@@ -42,6 +43,7 @@
          argo
          net/url
          racket/format
+         racket/function
          racket/pretty
          racket/port
          racket/class
@@ -57,6 +59,14 @@
          (only-in (file "util.rkt")
                   file-content/bytes
                   hash-remove*))
+
+(define (comment-out-line s)
+  (string-append "# " s))
+
+(define (comment-out-lines str)
+  (define lines (string-split str (~a #\newline)))
+  (apply string-append
+         (map comment-out-line lines)))
 
 (define-syntax (riposte-program stx)
   (syntax-parse stx
@@ -427,6 +437,23 @@
     [(_ jp:string)
      #'(json-pointer-value jp (last-response->jsexpr))]))
 
+(define-macro-cases render
+  [(_ (expression e))
+   #'(render e)]
+  [(_ (normal-identifier ID))
+   #'(~a #\$ (syntax-e #'ID))]
+  [(_ (response-head-id ID))
+   #'(~a (syntax-e #'ID) #\^)]
+  [else
+   (syntax-parse caller-stx
+    [(_ l:string)
+     #'l]
+    [(_ n:number)
+     #'n]
+    [(_ i:id)
+     #'(~a #\$ (symbol->string (syntax-e #'i)))])])
+
+#;
 (define-syntax (render stx)
   (syntax-parse stx
     [(_ (expression e))
@@ -575,6 +602,32 @@
          (unless (ends-with? e1 e2)
            (error (format "~a (~a) does not end with ~a (~a)." (render e1) e1 (render e2) e2))))]))
 
+(define-macro-cases echo
+  [(_)
+   #'(begin
+       (unless (response-received?)
+         (error "No response has been received yet! Cannot echo."))
+       (define body (with-handlers ([exn:fail:contract? (const "# (response body is invalid UTF-8!)")])
+                      (bytes->string/utf-8 (send last-response get-body/raw))))
+       (displayln (comment-out-lines body)))]
+  [(_ (json-pointer JP))
+   #'(begin
+       (unless (response-received?)
+         (error (format "No response has been received yet! Cannot echo JSON Pointer ~a." JP)))
+       (unless (json-pointer-exists? JP)
+         (error (format "JSON Pointer ~a does not exist!" JP)))
+       (displayln (format "~a = ~a" (render JP) (json-pretty-print (fetch-json-pointer-value JP)))))]
+  [(_ (normal-identifier ID))
+   (with-syntax [(name (format-id #'ID "~a" (syntax->datum #'ID)))]
+     #'(displayln (format "~a = ~a" (render (normal-identifier ID)) (json-pretty-print name))))]
+  [(_ (response-head-id ID))
+   #'(begin
+       (unless (response-received?)
+         (error (format "No response has been received yet! Cannot echo response header \"~a\"." ID)))
+       (unless (response-header-exists? ID)
+         (error (format "Response does not contain header \"~a\"." ID)))
+       (displayln (format "~a = ~a" (render (response-head-id ID)) (fetch-response-header ID))))])
+
 (define-macro-cases check-environment-variables
   ; the first two cases are the nut of the whole thing; everything else is just
   ; breaking the program up, recursively hunting for references to environment
@@ -717,6 +770,10 @@
    #'(begin
        (check-environment-variables E1)
        (check-environment-variables E2))]
+  [(_ (echo))
+   #'(void)]
+  [(_ (echo WHATEVER))
+   #'(void)]
   [else
    (syntax-parse caller-stx
      [(_ s:string)
