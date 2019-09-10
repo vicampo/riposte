@@ -12,7 +12,8 @@
          fetch-json-pointer-value
          json-pointer-exists?
          json-pointer-does-not-exist?
-         fetch-response-header)
+         fetch-response-header
+         response-header-exists?)
 
 (require (for-syntax racket/base
                      syntax/parse
@@ -242,6 +243,9 @@
   (define headers (get-response-headers))
   (define k (string->symbol (string-downcase name)))
   (hash-ref headers k #f))
+
+(define (response-header-exists? name)
+  (string? (fetch-response-header name)))
 
 (define/contract (read-entity/bytes+response-code in h)
   (input-port? string? . -> . (list/c exact-integer? dict? bytes?))
