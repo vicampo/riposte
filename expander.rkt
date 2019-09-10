@@ -32,7 +32,8 @@
          response-head-id
          sequence-predicate
          echo
-         exec)
+         exec
+         exec-arg-item)
 
 (require (for-syntax racket/base
                      racket/match
@@ -47,12 +48,14 @@
          racket/function
          racket/pretty
          racket/port
+         racket/system
          racket/class
          racket/match
          racket/string
          racket/hash
          racket/list
          br/define
+         misc1/syntax
          (file "cmd.rkt")
          (file "response.rkt")
          (file "json.rkt")
@@ -445,6 +448,8 @@
    #'(~a #\$ (syntax-e #'ID))]
   [(_ (response-head-id ID))
    #'(~a (syntax-e #'ID) #\^)]
+  [(_ (json-pointer JP))
+   #'JP]
   [else
    (syntax-parse caller-stx
     [(_ l:string)
@@ -625,33 +630,48 @@
    #'(begin
        (unless (file-exists? FILENAME)
          (error (format "No such file: ~a" FILENAME)))
-       (define result (process*/ports (open-output-bytes)
-                                      #f
-                                      (open-output-bytes)
-                                      FILENAME))
-       (define ip (list-ref result 0))
-       (define op (list-ref result 1))
-       (define pid (list-ref result 2))
-       (define ep (list-ref result 3))
-       (define runner (list-ref result 4))
-       (runner 'wait) ; execute the thing until we're done
-       (define exit-code (runner 'status))
-       (unless (integer? exit-code)
-         (error (format "We still seem to be running ~a" FILENAME)))
-       (unless (= exit-code 0)
-         (define error-output (port->string ep))
-         (error
-          (with-output-string
-            (displayln (format "Failed to execute ~a with no arguments!" FILENAME))
-            (displayln (format "The exit code was ~a." exit-code))
-            (cond [(string=? "" error-output)
-                   (displayln "No error output was received.")]
-                  [else
-                   (displayln "The error output was:")
-                   (displayln error-output)]))))
-       (port->bytes op))]
-  [else
-   (error "WTF? exec this")])
+       (define success? #f)
+       (define output
+         (parameterize ([current-input-port (open-input-bytes #"")])
+           (with-output-to-string
+             (lambda ()
+               (set! success? (system* FILENAME))))))
+       (unless success?
+         (error (format "Failed to execute ~a with no arguments!" FILENAME)))
+       output)]
+  [(_ FILENAME "[" ARGS ... "]")
+   #'(begin
+       (unless (file-exists? FILENAME)
+         (error (format "No such file: ~a" FILENAME)))
+       (define success? #f)
+       (define output
+         (parameterize ([current-input-port (open-input-bytes #"")])
+           (with-output-to-string
+             (lambda ()
+               (set! success? (system* FILENAME ARGS ...))))))
+       (unless success?
+         (error (format "Failed to execute ~a with no arguments!" FILENAME)))
+       output)]
+  [(_ FILENAME (normal-identifier ID))
+   #'(begin
+       (unless (file-exists? FILENAME)
+         (error (format "No such file: ~a" FILENAME)))
+       (unless (list? (normal-identifier ID))
+         (error (format "We need a list, but ~a isn't one." (render (normal-identifier ID)))))
+       (unless (andmap string? (normal-identifier ID))
+         (error (format "We need a list of strings, but ~a isn't one." (render (normal-identifier ID)))))
+       (define success? #f)
+       (define output
+         (parameterize ([current-input-port (open-input-bytes #"")])
+           (with-output-to-string
+             (lambda ()
+               (set! success? (apply system* FILENAME (normal-identifier ID)))))))
+       (unless success?
+         (error (format "Failed to execute ~a with no arguments!" FILENAME)))
+       output)])
+
+(define-macro (exec-arg-item ITEM)
+  #'ITEM)
 
 (define-macro-cases check-environment-variables
   ; the first two cases are the nut of the whole thing; everything else is just

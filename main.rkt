@@ -31,7 +31,9 @@
          header-presence
          response-head-id
          sequence-predicate
-         echo)
+         echo
+         exec
+         exec-arg-item)
 
 (require (file "expander.rkt"))
 
@@ -81,6 +83,13 @@
                       (lambda (in)
                         (parse full-path (tokenize in)))))
                   (expand-imports next-parse-tree next-dir)]
+                 [(eq? 'exec (syntax->datum (stx-car stx)))
+                  (define datum (syntax->datum stx))
+                  (define full-path (build-path cwd
+                                                (syntax->datum (car (stx-cdr stx)))))
+                  (datum->syntax #f (append (list (car datum)
+                                                  (path->string full-path))
+                                            (cddr datum)))]
                  [else
                   stx])]
           [else
