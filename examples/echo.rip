@@ -2,11 +2,9 @@
 
 %base := http://localhost:12345
 
-GET /users/~mflatt
+GET /users/mflatt
 
 echo # show the whole response
-
-GET /users/~jay
 
 echo /name # echo a JSON Pointer
 
