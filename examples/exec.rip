@@ -18,7 +18,7 @@ exec password.sh with arguments [ $a, $b ]
 
 /timestamp exists and is a non empty string
 
-/password exists and is a non empty
+/password exists and is a non empty string
 
 $args := [ $a, $b ]
 
