@@ -453,19 +453,6 @@
     [(_ i:id)
      #'(~a #\$ (symbol->string (syntax-e #'i)))])])
 
-#;
-(define-syntax (render stx)
-  (syntax-parse stx
-    [(_ (expression e))
-     #'(render e)]
-    [(_ l:string)
-     #'l]
-    [(_ n:number)
-     #'n]
-    [(_ i:id)
-     (define s (symbol->string (syntax-e #'i)))
-     #`(render #,s)]))
-
 (define-syntax (unset stx)
   (syntax-parse stx
     [(_ header:string)
