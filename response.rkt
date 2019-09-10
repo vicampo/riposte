@@ -35,7 +35,9 @@
     (define/public (body-is-string?)
       (string? (bytes->string body/raw)))
     (define/public (body-bytes-length)
-      (bytes-length body/raw))))
+      (bytes-length body/raw))
+    (define/public (get-body/raw)
+      body/raw)))
 
 (define (response? x)
   (and (object? x)
