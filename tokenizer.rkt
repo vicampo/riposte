@@ -1259,7 +1259,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
     [(list-rest #\: #\= _)
      (define end-position (add-position start (take chars 2)))
      (lexer-result end-position
-                   (list (position-token (token (string->symbol ":="))
+                   (list (position-token (token (string->symbol ":=") ":=")
                                          start
                                          end-position))
                    (drop chars 2))]
@@ -1726,7 +1726,7 @@ RIPOSTE
                       (position 16 2 0)
                       (position 18 2 2))
                      (position-token
-                      (token-struct ':= #f #f #f #f #f #f)
+                      (token-struct ':= ":=" #f #f #f #f #f)
                       (position 19 2 3)
                       (position 21 2 5))
                      (position-token
