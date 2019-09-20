@@ -1738,104 +1738,104 @@ RIPOSTE
   (check-tokenize
    "$a := { \"foo\": true, \"bar\": $bar } $b := false"
    (list
-    (position-token
-     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-     (position 1 1 0)
-     (position 3 1 2))
-    (position-token
-     (token-struct ':= #f #f #f #f #f #f)
-     (position 4 1 3)
-     (position 6 1 5))
-    (position-token
-     (token-struct '|{| #f #f #f #f #f #f)
-     (position 7 1 6)
-     (position 8 1 7))
-    (position-token
-     (token-struct 'JSON-STRING "foo" #f #f #f #f #f)
-     (position 9 1 8)
-     (position 13 1 12))
-    (position-token
-     (token-struct ': #f #f #f #f #f #f)
-     (position 13 1 12)
-     (position 14 1 13))
-    (position-token
-     (token-struct 'true "true" #f #f #f #f #f)
-     (position 15 1 14)
-     (position 19 1 18))
-    (position-token
-     (token-struct '|,| #f #f #f #f #f #f)
-     (position 19 1 18)
-     (position 20 1 19))
-    (position-token
-     (token-struct 'JSON-STRING "bar" #f #f #f #f #f)
-     (position 21 1 20)
-     (position 25 1 24))
-    (position-token
-     (token-struct ': #f #f #f #f #f #f)
-     (position 25 1 24)
-     (position 26 1 25))
-    (position-token
-     (token-struct 'IDENTIFIER "bar" #f #f #f #f #f)
-     (position 27 1 26)
-     (position 31 1 30))
-    (position-token
-     (token-struct '|}| #f #f #f #f #f #f)
-     (position 32 1 31)
-     (position 33 1 32))
-    (position-token
-     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
-     (position 34 1 33)
-     (position 36 1 35))
-    (position-token
-     (token-struct ':= #f #f #f #f #f #f)
-     (position 37 1 36)
-     (position 39 1 38))
-    (position-token
-     (token-struct 'false "false" #f #f #f #f #f)
-     (position 40 1 39)
-     (position 45 1 44)))))
+   (position-token
+    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 3 1 2))
+   (position-token
+    (token-struct ':= ":=" #f #f #f #f #f)
+    (position 4 1 3)
+    (position 6 1 5))
+   (position-token
+    (token-struct '|{| #f #f #f #f #f #f)
+    (position 7 1 6)
+    (position 8 1 7))
+   (position-token
+    (token-struct 'JSON-STRING "foo" #f #f #f #f #f)
+    (position 9 1 8)
+    (position 13 1 12))
+   (position-token
+    (token-struct ': ":" #f #f #f #f #f)
+    (position 13 1 12)
+    (position 14 1 13))
+   (position-token
+    (token-struct 'true "true" #f #f #f #f #f)
+    (position 15 1 14)
+    (position 19 1 18))
+   (position-token
+    (token-struct '|,| "," #f #f #f #f #f)
+    (position 19 1 18)
+    (position 20 1 19))
+   (position-token
+    (token-struct 'JSON-STRING "bar" #f #f #f #f #f)
+    (position 21 1 20)
+    (position 25 1 24))
+   (position-token
+    (token-struct ': ":" #f #f #f #f #f)
+    (position 25 1 24)
+    (position 26 1 25))
+   (position-token
+    (token-struct 'IDENTIFIER "bar" #f #f #f #f #f)
+    (position 27 1 26)
+    (position 31 1 30))
+   (position-token
+    (token-struct '|}| "}" #f #f #f #f #f)
+    (position 32 1 31)
+    (position 33 1 32))
+   (position-token
+    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+    (position 34 1 33)
+    (position 36 1 35))
+   (position-token
+    (token-struct ':= ":=" #f #f #f #f #f)
+    (position 37 1 36)
+    (position 39 1 38))
+   (position-token
+    (token-struct 'false "false" #f #f #f #f #f)
+    (position 40 1 39)
+    (position 45 1 44)))))
 
 (module+ test
   (check-tokenize
    "$a := [ 4 ]"
    (list
-    (position-token
-     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-     (position 1 1 0)
-     (position 3 1 2))
-    (position-token
-     (token-struct ':= #f #f #f #f #f #f)
-     (position 4 1 3)
-     (position 6 1 5))
-    (position-token
-     (token-struct '|[| #f #f #f #f #f #f)
-     (position 7 1 6)
-     (position 8 1 7))
-    (position-token
-     (token-struct 'NUMBER 4 #f #f #f #f #f)
-     (position 9 1 8)
-     (position 10 1 9))
-    (position-token
-     (token-struct '|]| #f #f #f #f #f #f)
-     (position 11 1 10)
-     (position 12 1 11)))))
+   (position-token
+    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 3 1 2))
+   (position-token
+    (token-struct ':= ":=" #f #f #f #f #f)
+    (position 4 1 3)
+    (position 6 1 5))
+   (position-token
+    (token-struct '|[| "[" #f #f #f #f #f)
+    (position 7 1 6)
+    (position 8 1 7))
+   (position-token
+    (token-struct 'NUMBER 4 #f #f #f #f #f)
+    (position 9 1 8)
+    (position 10 1 9))
+   (position-token
+    (token-struct '|]| "]" #f #f #f #f #f)
+    (position 11 1 10)
+    (position 12 1 11)))))
 
 (module+ test
   (check-tokenize
    "%base := http://foo.example.com"
    (list
-    (position-token
-     (token-struct 'PARAMETER "base" #f #f #f #f #f)
-     (position 1 1 0)
-     (position 6 1 5))
-    (position-token
-     (token-struct ':= #f #f #f #f #f #f)
-     (position 7 1 6)
-     (position 9 1 8))
-    (position-token
-     (token-struct 'URI-TEMPLATE-LITERAL "http://foo.example.com" #f #f #f #f #f)
-     (position 10 1 9)
-     (position 32 1 31)))))
+   (position-token
+    (token-struct 'PARAMETER "base" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 6 1 5))
+   (position-token
+    (token-struct ':= #f #f #f #f #f #f)
+    (position 7 1 6)
+    (position 9 1 8))
+   (position-token
+    (token-struct 'URI-TEMPLATE-LITERAL "http://foo.example.com" #f #f #f #f #f)
+    (position 10 1 9)
+    (position 32 1 31)))))
 
 (module+ test
   (check-tokenize
@@ -1846,7 +1846,7 @@ RIPOSTE
      (position 1 1 0)
      (position 9 1 8))
     (position-token
-     (token-struct ':= #f #f #f #f #f #f)
+     (token-struct ':= ":=" #f #f #f #f #f)
      (position 10 1 9)
      (position 12 1 11))
     (position-token
@@ -1980,7 +1980,7 @@ RIPOSTE
      (position 1 1 0)
      (position 5 1 4))
     (position-token
-     (token-struct ':= #f #f #f #f #f #f)
+     (token-struct ':= ":=" #f #f #f #f #f)
      (position 6 1 5)
      (position 8 1 7))
     (position-token
@@ -2300,50 +2300,50 @@ RIPOSTE
   (check-tokenize
    "GET /foo does not satisfy schema { \"type\": \"array\" }"
    (list
-    (position-token
-     (token-struct 'HTTP-METHOD "GET" #f #f #f #f #f)
-     (position 1 1 0)
-     (position 4 1 3))
-    (position-token
-     (token-struct 'URI-TEMPLATE-LITERAL "/foo" #f #f #f #f #f)
-     (position 5 1 4)
-     (position 9 1 8))
-    (position-token
-     (token-struct 'does "does" #f #f #f #f #f)
-     (position 10 1 9)
-     (position 14 1 13))
-    (position-token
-     (token-struct 'not "not" #f #f #f #f #f)
-     (position 15 1 14)
-     (position 18 1 17))
-    (position-token
-     (token-struct 'satisfy "satisfy" #f #f #f #f #f)
-     (position 19 1 18)
-     (position 26 1 25))
-    (position-token
-     (token-struct 'schema "schema" #f #f #f #f #f)
-     (position 27 1 26)
-     (position 33 1 32))
-    (position-token
-     (token-struct '|{| #f #f #f #f #f #f)
-     (position 34 1 33)
-     (position 35 1 34))
-    (position-token
-     (token-struct 'JSON-STRING "type" #f #f #f #f #f)
-     (position 36 1 35)
-     (position 41 1 40))
-    (position-token
-     (token-struct ': #f #f #f #f #f #f)
-     (position 41 1 40)
-     (position 42 1 41))
-    (position-token
-     (token-struct 'JSON-STRING "array" #f #f #f #f #f)
-     (position 43 1 42)
-     (position 49 1 48))
-    (position-token
-     (token-struct '|}| #f #f #f #f #f #f)
-     (position 50 1 49)
-     (position 51 1 50)))))
+   (position-token
+    (token-struct 'HTTP-METHOD "GET" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 4 1 3))
+   (position-token
+    (token-struct 'URI-TEMPLATE-LITERAL "/foo" #f #f #f #f #f)
+    (position 5 1 4)
+    (position 9 1 8))
+   (position-token
+    (token-struct 'does "does" #f #f #f #f #f)
+    (position 10 1 9)
+    (position 14 1 13))
+   (position-token
+    (token-struct 'not "not" #f #f #f #f #f)
+    (position 15 1 14)
+    (position 18 1 17))
+   (position-token
+    (token-struct 'satisfy "satisfy" #f #f #f #f #f)
+    (position 19 1 18)
+    (position 26 1 25))
+   (position-token
+    (token-struct 'schema "schema" #f #f #f #f #f)
+    (position 27 1 26)
+    (position 33 1 32))
+   (position-token
+    (token-struct '|{| #f #f #f #f #f #f)
+    (position 34 1 33)
+    (position 35 1 34))
+   (position-token
+    (token-struct 'JSON-STRING "type" #f #f #f #f #f)
+    (position 36 1 35)
+    (position 41 1 40))
+   (position-token
+    (token-struct ': ":" #f #f #f #f #f)
+    (position 41 1 40)
+    (position 42 1 41))
+   (position-token
+    (token-struct 'JSON-STRING "array" #f #f #f #f #f)
+    (position 43 1 42)
+    (position 49 1 48))
+   (position-token
+    (token-struct '|}| "}" #f #f #f #f #f)
+    (position 50 1 49)
+    (position 51 1 50)))))
 
 (module+ test
   (check-tokenize
@@ -2354,7 +2354,7 @@ RIPOSTE
      (position 1 1 0)
      (position 3 1 2))
     (position-token
-     (token-struct ':= #f #f #f #f #f #f)
+     (token-struct ':= ":=" #f #f #f #f #f)
      (position 4 1 3)
      (position 6 1 5))
     (position-token
@@ -2374,50 +2374,50 @@ RIPOSTE
   (check-tokenize
    "POST { \"sum\": $a } to /jay responds with 201"
    (list
-    (position-token
-     (token-struct 'HTTP-METHOD "POST" #f #f #f #f #f)
-     (position 1 1 0)
-     (position 5 1 4))
-    (position-token
-     (token-struct '|{| #f #f #f #f #f #f)
-     (position 6 1 5)
-     (position 7 1 6))
-    (position-token
-     (token-struct 'JSON-STRING "sum" #f #f #f #f #f)
-     (position 8 1 7)
-     (position 12 1 11))
-    (position-token
-     (token-struct ': #f #f #f #f #f #f)
-     (position 12 1 11)
-     (position 13 1 12))
-    (position-token
-     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-     (position 14 1 13)
-     (position 16 1 15))
-    (position-token
-     (token-struct '|}| #f #f #f #f #f #f)
-     (position 17 1 16)
-     (position 18 1 17))
-    (position-token
-     (token-struct 'to "to" #f #f #f #f #f)
-     (position 19 1 18)
-     (position 21 1 20))
-    (position-token
-     (token-struct 'URI-TEMPLATE-LITERAL "/jay" #f #f #f #f #f)
-     (position 22 1 21)
-     (position 26 1 25))
-    (position-token
-     (token-struct 'responds #f #f #f #f #f #f)
-     (position 27 1 26)
-     (position 35 1 34))
-    (position-token
-     (token-struct 'with #f #f #f #f #f #f)
-     (position 36 1 35)
-     (position 40 1 39))
-    (position-token
-     (token-struct 'HTTP-STATUS-CODE "201" #f #f #f #f #f)
-     (position 41 1 40)
-     (position 44 1 43)))))
+   (position-token
+    (token-struct 'HTTP-METHOD "POST" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 5 1 4))
+   (position-token
+    (token-struct '|{| #f #f #f #f #f #f)
+    (position 6 1 5)
+    (position 7 1 6))
+   (position-token
+    (token-struct 'JSON-STRING "sum" #f #f #f #f #f)
+    (position 8 1 7)
+    (position 12 1 11))
+   (position-token
+    (token-struct ': ":" #f #f #f #f #f)
+    (position 12 1 11)
+    (position 13 1 12))
+   (position-token
+    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+    (position 14 1 13)
+    (position 16 1 15))
+   (position-token
+    (token-struct '|}| "}" #f #f #f #f #f)
+    (position 17 1 16)
+    (position 18 1 17))
+   (position-token
+    (token-struct 'to "to" #f #f #f #f #f)
+    (position 19 1 18)
+    (position 21 1 20))
+   (position-token
+    (token-struct 'URI-TEMPLATE-LITERAL "/jay" #f #f #f #f #f)
+    (position 22 1 21)
+    (position 26 1 25))
+   (position-token
+    (token-struct 'responds #f #f #f #f #f #f)
+    (position 27 1 26)
+    (position 35 1 34))
+   (position-token
+    (token-struct 'with #f #f #f #f #f #f)
+    (position 36 1 35)
+    (position 40 1 39))
+   (position-token
+    (token-struct 'HTTP-STATUS-CODE "201" #f #f #f #f #f)
+    (position 41 1 40)
+    (position 44 1 43)))))
 
 (module+ test
   (check-tokenize
@@ -2428,7 +2428,7 @@ RIPOSTE
      (position 1 1 0)
      (position 3 1 2))
     (position-token
-     (token-struct ':= #f #f #f #f #f #f)
+     (token-struct ':= ":=" #f #f #f #f #f)
      (position 4 1 3)
      (position 6 1 5))
     (position-token
@@ -2445,88 +2445,91 @@ RIPOSTE
      (position 14 1 13)))))
 
 (module+ test
-  (check-tokenize "exec foo.sh"
-                  (list
-                   (position-token
-                    (token-struct 'import #f #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 12 1 11)))))
+  (check-tokenize
+   "exec foo.sh"
+   (list
+   (position-token
+    (token-struct 'exec "exec" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 5 1 4))
+   (position-token
+    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
+    (position 6 1 5)
+    (position 12 1 11)))))
 
 (module+ test
-  (check-tokenize "exec foo.sh with arguments [ \"--quiet\" ]"
-                  (list
-                   (position-token
-                    (token-struct 'import #f #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 12 1 11))
-                   (position-token
-                    (token-struct 'with "with" #f #f #f #f #f)
-                    (position 13 1 12)
-                    (position 17 1 16))
-                   (position-token
-                    (token-struct 'arguments "arguments" #f #f #f #f #f)
-                    (position 18 1 17)
-                    (position 27 1 26))
-                   (position-token
-                    (token-struct '|[| #f #f #f #f #f #f)
-                    (position 28 1 27)
-                    (position 29 1 28))
-                   (position-token
-                    (token-struct 'JSON-STRING "--quiet" #f #f #f #f #f)
-                    (position 30 1 29)
-                    (position 38 1 37))
-                   (position-token
-                    (token-struct '|]| #f #f #f #f #f #f)
-                    (position 39 1 38)
-                    (position 40 1 39)))))
+  (check-tokenize
+   "exec foo.sh with arguments [ \"--quiet\" ]"
+   (list
+   (position-token
+    (token-struct 'exec "exec" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 5 1 4))
+   (position-token
+    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
+    (position 6 1 5)
+    (position 12 1 11))
+   (position-token
+    (token-struct 'with "with" #f #f #f #f #f)
+    (position 13 1 12)
+    (position 17 1 16))
+   (position-token
+    (token-struct 'arguments "arguments" #f #f #f #f #f)
+    (position 18 1 17)
+    (position 27 1 26))
+   (position-token
+    (token-struct '|[| "[" #f #f #f #f #f)
+    (position 28 1 27)
+    (position 29 1 28))
+   (position-token
+    (token-struct 'JSON-STRING "--quiet" #f #f #f #f #f)
+    (position 30 1 29)
+    (position 38 1 37))
+   (position-token
+    (token-struct '|]| "]" #f #f #f #f #f)
+    (position 39 1 38)
+    (position 40 1 39)))))
 
 (module+ test
-  (check-tokenize "exec foo.sh with arguments [ $a, $b ]"
-                  (list
-                   (position-token
-                    (token-struct 'import #f #f #f #f #f #f)
-                    (position 1 1 0)
-                    (position 5 1 4))
-                   (position-token
-                    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
-                    (position 6 1 5)
-                    (position 12 1 11))
-                   (position-token
-                    (token-struct 'with "with" #f #f #f #f #f)
-                    (position 13 1 12)
-                    (position 17 1 16))
-                   (position-token
-                    (token-struct 'arguments "arguments" #f #f #f #f #f)
-                    (position 18 1 17)
-                    (position 27 1 26))
-                   (position-token
-                    (token-struct '|[| #f #f #f #f #f #f)
-                    (position 28 1 27)
-                    (position 29 1 28))
-                   (position-token
-                    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
-                    (position 30 1 29)
-                    (position 32 1 31))
-                   (position-token
-                    (token-struct '|,| #f #f #f #f #f #f)
-                    (position 32 1 31)
-                    (position 33 1 32))
-                   (position-token
-                    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
-                    (position 34 1 33)
-                    (position 36 1 35))
-                   (position-token
-                    (token-struct '|]| #f #f #f #f #f #f)
-                    (position 37 1 36)
-                    (position 38 1 37)))))
+  (check-tokenize
+   "exec foo.sh with arguments [ $a, $b ]"
+   (list
+   (position-token
+    (token-struct 'exec "exec" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 5 1 4))
+   (position-token
+    (token-struct 'FILENAME "foo.sh" #f #f #f #f #f)
+    (position 6 1 5)
+    (position 12 1 11))
+   (position-token
+    (token-struct 'with "with" #f #f #f #f #f)
+    (position 13 1 12)
+    (position 17 1 16))
+   (position-token
+    (token-struct 'arguments "arguments" #f #f #f #f #f)
+    (position 18 1 17)
+    (position 27 1 26))
+   (position-token
+    (token-struct '|[| "[" #f #f #f #f #f)
+    (position 28 1 27)
+    (position 29 1 28))
+   (position-token
+    (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+    (position 30 1 29)
+    (position 32 1 31))
+   (position-token
+    (token-struct '|,| "," #f #f #f #f #f)
+    (position 32 1 31)
+    (position 33 1 32))
+   (position-token
+    (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+    (position 34 1 33)
+    (position 36 1 35))
+   (position-token
+    (token-struct '|]| "]" #f #f #f #f #f)
+    (position 37 1 36)
+    (position 38 1 37)))))
 
 (module+ main
 
