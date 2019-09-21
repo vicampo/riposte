@@ -392,7 +392,7 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                   [tokens (cons template/token (lexer-result-tokens more/result))])]
     [(cons #\} _)
      (define new-position (add-position start #\}))
-     (define t (position-token (token "}")
+     (define t (position-token (token (string->symbol "}") "}")
                                start
                                new-position))
      (lexer-result new-position
