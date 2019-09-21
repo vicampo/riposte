@@ -34,6 +34,22 @@ page](https://github.com/vicampo/riposte/issues).
 
 ## [0.11.0] - 2019-09-06
 
+### Added
+
+- Checking that the [entire response body is equal to something](https://github.com/vicampo/riposte/issues/6).
+- Support for executing external programs. Two forms are
+  supported: `exec foo.sh` (just execute the script); `$a :=
+  exec foo.sh` (execute the script and parse the standard
+  output as JSON, saving the result into a variable. These
+  two forms execute the external program with no
+  arguments. To add arguments, use the new `with
+  arguments`. Example: `exec foo.sh with arguments [
+  "--json", $b ]`. The bit after the `with arguments` should
+  be a JSON array, written with square brackets, as here, or
+  like this: `exec foo.sh with arguments $args`, where
+  `$args` refers to a JSON array. The elements of the array
+  should all be strings.
+
 ### Removed
 
 - Support for "plain" Riposte scripts. Riposte scripts now need to
