@@ -104,10 +104,11 @@ parameter-assignment: PARAMETER /":=" (uri-template | expression)
 header-assignment: REQUEST-HEADER-IDENTIFIER /":=" expression
 
 command:
-    HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with ]
-  | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] (responds-with | satisfies) [ /"and" emptiness ]
- | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] responds-with /"and" (satisfies | emptiness)
-| HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" emptiness
+    HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with | equals ]
+  | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] (responds-with | satisfies | equals) [ /"and" emptiness ]
+  | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] (responds-with | satisfies) [ /"and" equals ]
+ | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] responds-with /"and" (equals | satisfies | emptiness)
+| HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] responds-with /"and" satisfies /"and" (equals | emptiness)
 
 @payload: id
   | json-expression
@@ -121,6 +122,8 @@ positive-satisfies: /"satisfies" /"schema" schema-ref
 negative-satisfies: /"does" /"not" /"satisfy" /"schema" schema-ref
 
 emptiness: "is" [ "non" ] "empty"
+
+equals: /"equals" (id | json-expression)
 
 responds-with: /"responds" /"with" HTTP-STATUS-CODE
 

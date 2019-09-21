@@ -1,0 +1,11 @@
+#lang riposte
+
+%base := http://localhost:12345
+
+GET foo/bar equals { "hey": false }
+
+$expectedResponse := { "hey": false }
+
+GET foo/bar equals $expectedResponse
+
+GET foo/bar responds with 2XX and equals $expectedResponse

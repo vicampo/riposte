@@ -164,10 +164,21 @@
 (define-macro-cases command
   [(_ METHOD URI)
    #'(cmd METHOD URI)]
+  [(_ METHOD URI (equals THING))
+   #'(begin
+       (cmd METHOD URI)
+       (unless (equal-jsexprs? THING (last-response->jsexpr))
+         (error "Last response does not equal ~a" (json-pretty-print THING))))]
   [(_ METHOD URI (responds-with CODE))
    #'(begin
        (cmd METHOD URI)
        (response-code-matches? CODE))]
+  [(_ METHOD URI (responds-with CODE) (equals THING))
+   #'(begin
+       (cmd METHOD URI)
+       (response-code-matches? CODE)
+       (unless (equal-jsexprs? THING (last-response->jsexpr))
+         (error "Last response does not equal ~a" (json-pretty-print THING))))]
   [(_ METHOD PAYLOAD URI (responds-with CODE))
    #'(begin
        (cmd/payload METHOD URI PAYLOAD)
@@ -181,6 +192,17 @@
            (error (format "Value for property \"~a\" is not a string: ~a" k v))))
        (cmd/payload METHOD URI PAYLOAD #:headers HEADERS)
        (response-code-matches? CODE))]
+  [(_ METHOD PAYLOAD URI (with-headers HEADERS) (responds-with CODE) (equals THING))
+   #'(begin
+       (unless (json-object? HEADERS)
+         (error (format "Headers is not a JSON object! ~a" (pretty-print HEADERS))))
+       (for ([(k v) (in-hash HEADERS)])
+         (unless (string? v)
+           (error (format "Value for property \"~a\" is not a string: ~a" k v))))
+       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS)
+       (response-code-matches? CODE)
+       (unless (equal-jsexprs? THING (last-response->jsexpr))
+         (error "Last response does not equal ~a" (json-pretty-print THING))))]
   [(_ METHOD PAYLOAD URI (positive-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -742,7 +764,27 @@
        (check-environment-variables PAYLOAD)
        (check-environment-variables URI)
        (check-environment-variables SCHEMA))]
+  [(_ (command METHOD URI (equals THING)))
+   #'(begin
+       (check-environment-variables URI)
+       (check-environment-variables THING))]
+  [(_ (command METHOD PAYLOAD URI (equals THING)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables URI)
+       (check-environment-variables THING))]
+  [(_ (command METHOD URI (responds-with CODE) (equals THING)))
+   #'(begin
+       (check-environment-variables URI)
+       (check-environment-variables THING))]
+  [(_ (command METHOD PAYLOAD URI (responds-with CODE) (equals THING)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables URI)
+       (check-environment-variables THING))]
 
+  [(_ (responds-with CODE))
+   #'(void)]
   [(_ (schema-ref S))
    #'(check-environment-variables S)]
   [(_ (schema-ref "in" FILE))

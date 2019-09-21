@@ -1608,6 +1608,12 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list #\e #\q #\u #\a #\l #\s)
+         (list-rest #\e #\q #\u #\a #\l #\s _))
+     (define result (consume-keyword "equals" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(or (list #\n #\u #\m #\b #\e #\r)
          (list-rest #\n #\u #\m #\b #\e #\r _))
      (define result (consume-keyword "number" chars start))
@@ -2518,6 +2524,43 @@ RIPOSTE
     (token-struct '|]| "]" #f #f #f #f #f)
     (position 37 1 36)
     (position 38 1 37)))))
+
+(module+ test
+  (check-tokenize
+   "GET /foo/bar equals { \"wow!\": false }"
+   (list
+   (position-token
+    (token-struct 'HTTP-METHOD "GET" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 4 1 3))
+   (position-token
+    (token-struct 'URI-TEMPLATE-LITERAL "/foo/bar" #f #f #f #f #f)
+    (position 5 1 4)
+    (position 13 1 12))
+   (position-token
+    (token-struct 'equals "equals" #f #f #f #f #f)
+    (position 14 1 13)
+    (position 20 1 19))
+   (position-token
+    (token-struct '|{| "{" #f #f #f #f #f)
+    (position 21 1 20)
+    (position 22 1 21))
+   (position-token
+    (token-struct 'JSON-STRING "wow!" #f #f #f #f #f)
+    (position 23 1 22)
+    (position 28 1 27))
+   (position-token
+    (token-struct ': ":" #f #f #f #f #f)
+    (position 28 1 27)
+    (position 29 1 28))
+   (position-token
+    (token-struct 'false "false" #f #f #f #f #f)
+    (position 30 1 29)
+    (position 35 1 34))
+   (position-token
+    (token-struct '|}| "}" #f #f #f #f #f)
+    (position 36 1 35)
+    (position 37 1 36)))))
 
 (module+ main
 
