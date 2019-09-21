@@ -68,6 +68,11 @@
     [(? header? h)
      (regexp-match? content-type-regexp (header-value h))]))
 
+(define (bytes->string bs)
+  (with-handlers ([exn:fail:contract? (const #f)])
+    (begin0
+        (bytes->string/utf-8 bs))))
+
 (define (run servlet #:port [port 12345])
   (serve/servlet servlet
                  #:port port
@@ -81,6 +86,12 @@
                           (log-error "Unexpected non-contract error: ~a" (exn-message err))
                           (void))])
     (bytes->jsexpr (request-post-data/raw req))))
+
+(define (get-request-header req id)
+  (match (headers-assq* id (request-headers/raw req))
+    [#f #f]
+    [(? header? h)
+     (header-value h)]))
 
 (provide/contract
  [response/jsexpr
@@ -102,4 +113,6 @@
     #:headers (listof header?))
    . ->* . response?)]
  [not-found (request? . -> . response?)]
- [not-allowed (request? . -> . response?)])
+ [not-allowed (request? . -> . response?)]
+ [get-request-header (request? bytes? . -> . (or/c false/c bytes?))]
+ [bytes->string (bytes? . -> . (or/c false/c string?))])
