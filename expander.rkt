@@ -168,7 +168,7 @@
    #'(begin
        (cmd METHOD URI)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
-         (error "Last response does not equal ~a" (json-pretty-print THING))))]
+         (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
   [(_ METHOD URI (responds-with CODE))
    #'(begin
        (cmd METHOD URI)
@@ -178,11 +178,17 @@
        (cmd METHOD URI)
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
-         (error "Last response does not equal ~a" (json-pretty-print THING))))]
+         (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
   [(_ METHOD PAYLOAD URI (responds-with CODE))
    #'(begin
        (cmd/payload METHOD URI PAYLOAD)
        (response-code-matches? CODE))]
+  [(_ METHOD PAYLOAD URI (responds-with CODE) (equals THING))
+   #'(begin
+       (cmd/payload METHOD URI PAYLOAD)
+       (response-code-matches? CODE)
+       (unless (equal-jsexprs? THING (last-response->jsexpr))
+         (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
   [(_ METHOD PAYLOAD URI (with-headers HEADERS) (responds-with CODE))
    #'(begin
        (unless (json-object? HEADERS)
@@ -202,7 +208,7 @@
        (cmd/payload METHOD URI PAYLOAD #:headers HEADERS)
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
-         (error "Last response does not equal ~a" (json-pretty-print THING))))]
+         (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
   [(_ METHOD PAYLOAD URI (positive-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -781,6 +787,12 @@
    #'(begin
        (check-environment-variables PAYLOAD)
        (check-environment-variables URI)
+       (check-environment-variables THING))]
+  [(_ (command METHOD PAYLOAD URI (with-headers HEADS) (responds-with CODE) (equals THING)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables URI)
+       (check-environment-variables HEADS)
        (check-environment-variables THING))]
 
   [(_ (responds-with CODE))
