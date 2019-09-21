@@ -1,5 +1,7 @@
 #lang riposte
 
+# See https://github.com/vicampo/riposte/issues/7
+
 $a := 17.5
 $b := 17.501
 
