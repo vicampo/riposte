@@ -571,20 +571,19 @@
                         (render rhs)
                         (json-pretty-print rhs))))]))
 
-(define-syntax (inequality stx)
-  (syntax-parse stx
-    [(_ e1 "<" e2)
-     #'(unless (< e1 e2)
-         (error (format "~a is not less than ~a!" (render e1) (render e2))))]
-    [(_ e1 "<=" e2)
-     #'(unless (<= e1 e2)
-         (error (format "~a is not less than or equal to ~a!" (render e1) (render e2))))]
-    [(_ e1 ">" e2)
-     #'(unless (> e1 e2)
-         (error (format "~a is not greater than ~a!" (render e1) (render e2))))]
-    [(_ e1 ">=" e2)
-     #'(unless (> e1 e2)
-         (error (format "~a is not greater or equal to ~a!" (render e1) (render e2))))]))
+(define-macro-cases inequality
+  [(_ E1 "<" E2)
+   #'(unless (< E1 E2)
+       (error (format "~a is not less than ~a!" (render E1) (render E2))))]
+  [(_ E1 "<=" E2)
+   #'(unless (<= E1 E2)
+       (error (format "~a is not less than or equal to ~a!" (render E1) (render E2))))]
+  [(_ E1 ">" E2)
+   #'(unless (> E1 E2)
+       (error (format "~a is not greater than ~a!" (render E1) (render E2))))]
+  [(_ E1 ">=" E2)
+   #'(unless (> E1 E2)
+       (error (format "~a is not greater or equal to ~a!" (render E1) (render E2))))])
 
 (define-syntax (header-presence stx)
   (syntax-parse stx
