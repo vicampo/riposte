@@ -1,0 +1,16 @@
+#lang riposte
+
+# See https://github.com/vicampo/riposte/issues/2
+
+# We used to expose an internal hash table reference error.
+#
+# We now say:
+#
+# Previous response does not have header "Does-Not-Exist".
+
+%base := http://localhost:12345
+
+GET foo/bar
+
+Server^ = "Racket" # header present
+Does-Not-Exist^ = 5.98 # header definitely missing
