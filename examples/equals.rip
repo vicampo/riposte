@@ -8,4 +8,14 @@ $expectedResponse := { "hey": false }
 
 GET foo/bar equals $expectedResponse
 
-GET foo/bar responds with 2XX and equals $expectedResponse
+POST {} to foo/bar responds with 2XX and equals { "hey": false, "body": {} }
+
+POST { "oh!": "no?" }
+  to foo/bar
+  with headers { "Accept": "text/plain" }
+  responds with 2XX
+  and equals {
+    "hey": true,
+    "body": { "oh!": "no!" },
+    "content-type": "text/plain"
+  }
