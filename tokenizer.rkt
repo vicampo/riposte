@@ -63,33 +63,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 
 |#
 
-(define expecting-uri? #f)
-(define parsed-base-url-parameter? #f)
-
-(define/contract (char-length c)
-  ((or/c char? (listof (or/c char? eof-object?))) . -> . exact-nonnegative-integer?)
-  (match c
-    [(? char?)
-     (char-utf-8-length c)]
-    [(list)
-     0]
-    [(cons (? char? c) more)
-     (+ (char-utf-8-length c)
-        (char-length more))]
-    [(cons (? eof-object? x) more)
-     0]))
-
-(define/contract (peek-chars num-to-peek)
-  (exact-integer? . -> . (listof (or/c char? eof-object?)))
-  (define (peek-me num-to-peek already-peeked)
-    (cond [(<= num-to-peek 0)
-           already-peeked]
-          [else
-           (peek-me (sub1 num-to-peek)
-                    (cons (peek-char (current-input-port) (char-length already-peeked))
-                          already-peeked))]))
-  (reverse (peek-me num-to-peek (list))))
-
 (define/contract (import-filename chars start)
   ((listof char?) position? . -> . lexer-result?)
   (match chars
