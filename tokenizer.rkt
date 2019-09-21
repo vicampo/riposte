@@ -33,9 +33,22 @@
 
 (module+ test
   (require rackunit
-           syntax/parse/define)
-  (define-simple-macro (check-tokenize s result)
-    (check-equal? (tokenize s) result)))
+           syntax/parse/define
+           syntax/parse)
+  (require (for-syntax racket/base
+                       syntax/location))
+  (define-syntax (check-tokenize stx)
+    (syntax-parse stx
+      [(_ program result)
+       #`(with-check-info*
+           (list (make-check-location
+                  (list #,(syntax-source-file-name #'program)
+                        #,(syntax-line #'program)
+                        #,(syntax-column #'program)
+                        #f
+                        #f)))
+           (lambda ()
+             (check-equal? (tokenize program) result)))])))
 
 (define (header-char? x)
   (define i (char->integer x))
@@ -366,8 +379,10 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                    (list)
                    (list))]
     [(cons (or #\{ #\? #\* #\,) _)
+     (define c (car chars))
      (define new-position (add-position start (car chars)))
-     (define template/token (position-token (token (~a (car chars)))
+     (define template/token (position-token (token (string->symbol (~a c))
+                                                   (~a c))
                                             start
                                             new-position))
      (define more/result (uri-template:template (cdr chars)
@@ -705,7 +720,7 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
                       (add-position start (car chars)))]
     [(cons #\{ _)
      (define new-position (add-position start (car chars)))
-     (define opening-token (position-token (token "{")
+     (define opening-token (position-token (token (string->symbol "{") "{")
                                            start
                                            new-position))
      (define items/result (lex-json-object-items (cdr chars)
@@ -1747,7 +1762,7 @@ RIPOSTE
     (position 4 1 3)
     (position 6 1 5))
    (position-token
-    (token-struct '|{| #f #f #f #f #f #f)
+    (token-struct '|{| "{" #f #f #f #f #f)
     (position 7 1 6)
     (position 8 1 7))
    (position-token
@@ -2325,7 +2340,7 @@ RIPOSTE
     (position 27 1 26)
     (position 33 1 32))
    (position-token
-    (token-struct '|{| #f #f #f #f #f #f)
+    (token-struct '|{| "{" #f #f #f #f #f)
     (position 34 1 33)
     (position 35 1 34))
    (position-token
@@ -2379,7 +2394,7 @@ RIPOSTE
     (position 1 1 0)
     (position 5 1 4))
    (position-token
-    (token-struct '|{| #f #f #f #f #f #f)
+    (token-struct '|{| "{" #f #f #f #f #f)
     (position 6 1 5)
     (position 7 1 6))
    (position-token
