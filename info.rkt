@@ -18,7 +18,6 @@
     "argo"
     "dotenv"
     "json-pointer"
-    "ejs"
     "misc1"))
 
 (define build-deps
