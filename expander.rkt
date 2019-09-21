@@ -470,8 +470,8 @@
      #'(json-pointer-value jp (last-response->jsexpr))]))
 
 (define-macro-cases render
-  [(_ (expression e))
-   #'(render e)]
+  [(_ (expression E))
+   #'(render E)]
   [(_ (normal-identifier ID))
    #'(~a #\$ (syntax-e #'ID))]
   [(_ (response-head-id ID))
