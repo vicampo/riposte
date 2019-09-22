@@ -1,17 +1,17 @@
 Riposte—Scripting Language for JSON-based HTTP APIs
 ==========
 
-Riposte is a scripting language for evaluating JSON-bearing HTTP responses. The intended use case is a JSON-based HTTP API. It comes with a commandline tool, `riposte`, which executes Riposte scripts. Using Riposte, one writes a sequence of commands—which amount to HTTP requests—and assertions, which require that the response meets certain conditions.
+Riposte is a language for testing JSON-bearing HTTP APIs. It comes with a commandline tool, `riposte`, which executes Riposte scripts. Using Riposte, one writes a sequence of commands—which amount to HTTP requests—and assertions, which require that the response meets certain conditions.
 
 Examples:
 
     # set a header, to be added to all requests going forward
-	# the # character is the to-end-of-line comment character
+    # the # character is the to-end-of-line comment character
 
     ^Content-Type := "application/json"
 
-	# set a base URL; we will merge all URIs going forward
-	# with this
+    # set a base URL; we will merge all URIs going forward
+    # with this
     %base := https://api.mydomain.test/v1/
 
     $uuid := @UUID # @ is how you access environment variables
@@ -26,7 +26,11 @@ Normal variables (here, `$uuid`) have the `$` sigil in front of them. There are 
 
 Riposte builds on URI Template to express URIs. Here, we plug in the value of the `uuid` variable, which came from the environment. The `2XX` means: we expect a 200-class response. The precise response code doesn't matter.
 
-Riposte supports `GET`, `HEAD`, `POST`, `PATCH` and `DELETE` as HTTP request methods.
+Riposte supports arbitrary HTTP commands, including the usual suspects (`GET`, `HEAD`, `POST`, `OPTIONS`, `PATCH` and `DELETE`). Just put HTTP methods in uppercase. Example use of a non-standard HTTP method:
+
+    CANCEL order/1 responds with 201
+
+Let's keep going:
 
     # ----------------------------------------------------------------------
     # Now add something to the cart:
@@ -61,16 +65,16 @@ Here's another Riposte script that logs in to an API by `POST`ing credentials (a
         "password": @PASSWORD
     }
 
-    POST $loginPayload auth/login responds with 2XX
+    POST $loginPayload to auth/login responds with 2XX
 
     ^Apikey := /key # extract a value from the response body
-	# and use it as the value of an HTTP header, going forward
+    # and use it as the value of an HTTP header, going forward
 
 Welcome to Riposte.
 
 ## Approach to testing ##
 
-Riposte is intended to be a **language for tests**. As such, it has no concept of branching (“if-then-else”). The idea is that a Riposte script consists of a series of assertions, all of which must succeed. If, during evaluation, a command or assertion fails, evaluation will be aborted. There's no fallback.
+Riposte is intended to be a language for tests. As such, it has no concept of branching (“if-then-else”). The idea is that a Riposte script consists of a series of assertions, all of which must succeed. If, during evaluation, a command or assertion fails, evaluation will be aborted. There's no fallback.
 
 **Clarification** The word “Riposte” might refer to the language, to the commandline program `riposte`, or to the intended semantics of the Riposte language, which is implemented in the `riposte` program. So when we say things like "Riposte allows this", "Riposte bails out", or "call Riposte this way", we have one of these possible meanings in mind. The context of the statement should make it clear how to disambiguate; if it is not clear what is meant, please file a bug ticket that asks for clarification.)
 
@@ -103,8 +107,10 @@ Do this:
 Use a shebang. Start your Riposte script like this:
 
      #!/usr/local/bin/riposte
-	 #
-	 GET whatever responds with 2XX
+     #
+     # lang riposte
+     #
+     GET whatever responds with 2XX
 
 Make sure your Riposte script is executable. Then—assuming that Riposte really is at `/usr/local/bin/riposte`—the following should suffice:
 
