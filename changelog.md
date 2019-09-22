@@ -32,6 +32,12 @@ page](https://github.com/vicampo/riposte/issues).
         without cookie "session" responds with 2XX`.
    - A REPL.
 
+## [0.11.1] - 2019-09-21
+
+### Changed
+
+- Added tests to ensure that parsing floating-point numbers works as intended. See the corresponding [GitHub issue](https://github.com/vicampo/riposte/issues/7).
+
 ## [0.11.0] - 2019-09-06
 
 ### Added
