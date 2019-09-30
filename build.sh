@@ -14,7 +14,7 @@ find . -mindepth 1 -maxdepth 1 -name '*.rkt' -exec cp {} "${build_dir}" ';'
 
 cd "${build_dir}"
 
-raco exe --vv ++lang riposte ++lang racket/base ++lang brag riposte.rkt
+raco exe ++lang riposte ++lang brag ++lib racket ++lang racket/base riposte.rkt
 
 mkdir dist
 
