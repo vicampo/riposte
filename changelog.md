@@ -32,6 +32,13 @@ page](https://github.com/vicampo/riposte/issues).
         without cookie "session" responds with 2XX`.
    - A REPL.
 
+## [0.12.0] - 2019-09-30
+
+### Added
+
+- A REPL (read-evaluated-print loop). Just invoke Riposte
+  with no arguments, and you're good to go.
+
 ## [0.11.1] - 2019-09-21
 
 ### Changed
