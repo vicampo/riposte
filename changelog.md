@@ -32,6 +32,13 @@ page](https://github.com/vicampo/riposte/issues).
         without cookie "session" responds with 2XX`.
    - A REPL.
 
+## [0.12.1] - 2019-09-30
+
+### Fixed
+
+- Documentation: Links to example Riposte scripts in
+  `scribblings` subdirectory should now work.
+
 ## [0.12.0] - 2019-09-30
 
 ### Added
