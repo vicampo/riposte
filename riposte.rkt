@@ -2,13 +2,21 @@
 
 (require (for-syntax racket/base)
          racket/cmdline
+         racket/match
          racket/pretty
          racket/format
+         (only-in racket/list
+                  empty?)
+         (only-in racket/port
+                  open-output-nowhere)
          racket/string
          dotenv
+         misc1/syntax
          (file "util.rkt")
          (only-in (file "./version.rkt")
                   riposte-version)
+         (prefix-in riposte: (file "reader.rkt"))
+         riposte
          racket/contract)
 
 (define/contract opt-version
@@ -47,6 +55,11 @@
       (error "Cannot read environment file ~a" (path->string p))
       (exit 1))))
 
+(define (run-repl)
+  (current-read-interaction riposte:read-syntax-for-repl)
+  (namespace-require 'riposte/expander)
+  (read-eval-print-loop))
+
 (module+ main
 
   (define file-to-process
@@ -61,26 +74,30 @@
      [("--env") f
                 "Specify an environment file to use (can be specified multiple times)"
                 (opt-dotenvs (cons f (opt-dotenvs)))]
-     #:args (args)
+     #:args args
      args))
 
   (when (opt-version)
     (displayln (format "~a" riposte-version))
     (exit 0))
 
-  (unless (file-exists? file-to-process)
-    (displayln (format "No such file: ~a" file-to-process)
-               (current-error-port))
-    (exit 1))
+  (match file-to-process
+    [(list)
+     (run-repl)]
+    [(list filename)
+     (unless (file-exists? filename)
+       (displayln (format "No such file: ~a" filename)
+                  (current-error-port))
+       (exit 1))
 
-  (run! (check-dotenvs (opt-dotenvs)))
+     (run! (check-dotenvs (opt-dotenvs)))
 
-  (run! (dotenv-load! (opt-dotenvs)))
+     (run! (dotenv-load! (opt-dotenvs)))
 
-  (with-handlers ([exn? (lambda (err)
-                          (displayln (string-trim (exn-message err))
-                                     (current-error-port))
-                          (exit 1))])
-    (dynamic-require (string->path file-to-process)
-                     (cond [(opt-lint) (void)]
-                           [else #f]))))
+     (with-handlers ([exn? (lambda (err)
+                             (displayln (string-trim (exn-message err))
+                                        (current-error-port))
+                             (exit 1))])
+       (dynamic-require (string->path filename)
+                        (cond [(opt-lint) (void)]
+                              [else #f])))]))

@@ -181,4 +181,4 @@ response-head-id: RESPONSE-HEADER-IDENTIFIER
 
 parameter-identifier: PARAMETER-IDENTIFIER
 
-riposte-repl: normal-identifier | command | assignment
+@riposte-repl: program-step | id

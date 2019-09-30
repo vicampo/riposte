@@ -4,8 +4,10 @@
          #%app
          #%top
          #%datum
+         #%top-interaction
          riposte-program
          expression
+         program-step
          normal-identifier
          env-identifier
          command
@@ -33,7 +35,8 @@
          sequence-predicate
          echo
          exec
-         exec-arg-item)
+         exec-arg-item
+         riposte-repl)
 
 (require (for-syntax racket/base
                      racket/match
@@ -892,3 +895,9 @@
       #'(void)]
      [else
       (error (format "We are really down on our luck here with ~a" caller-stx))])])
+
+(define-macro (riposte-repl FORM)
+  #'FORM)
+
+(define-macro (program-step S)
+  #'S)
