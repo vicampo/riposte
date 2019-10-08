@@ -1,1 +1,12 @@
-examples/login.rip
+#lang riposte
+
+import parameters.rip
+
+$payload := {
+  "username": @USERNAME with fallback "jesse",
+  "password": @PASSWORD with fallback "password"
+}
+
+POST $payload to login responds with 200
+
+^APIKey := /apikey
