@@ -32,6 +32,12 @@ page](https://github.com/vicampo/riposte/issues).
         without cookie "session" responds with 2XX`.
    - A REPL.
 
+## [0.12.3] - 2019-10-12
+
+### Fixed
+
+- Tried to fix the same documentation problem that 0.12.2 was trying to fix.
+
 ## [0.12.2] - 2019-10-08
 
 ### Fixed
