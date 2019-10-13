@@ -1,0 +1,16 @@
+#lang riposte
+
+%base := http://localhost:12345
+
+$payload := { "a": ["b", "c"] }
+
+POST $payload to api/flub
+  responds with 400
+
+POST $payload to api/flub
+  with headers { "Accept-Language": "jp" }
+  responds with 200
+
+POST $payload to api/flub
+  with headers { "Accept-Language": "en" }
+  responds with 402

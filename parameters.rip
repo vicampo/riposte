@@ -1,0 +1,3 @@
+#lang riposte
+
+%base := https://example.com/jazzy
