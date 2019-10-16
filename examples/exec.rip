@@ -16,6 +16,8 @@ $b := "--password"
 
 exec password.sh with arguments [ $a, $b ]
 
+echo
+
 /timestamp exists and is a non empty string
 
 /password exists and is a non empty string

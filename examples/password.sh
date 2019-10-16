@@ -37,12 +37,12 @@ fi
 
 if [ "${opt_password}" = "y" ]; then
     if [ "${opt_timestamp}" = "y" ]; then
-	echo $(printf '{"username":"%s","password":"%s","now":"%s"}' "${who}" "${secret_password}" "${now}")
+	echo $(printf '{"username":"%s","password":"%s","timestamp":"%s"}' "${who}" "${secret_password}" "${now}")
     else
 	echo $(printf '{"username":"%s","password":"%s"}' "${who}" "${secret_password}")
     fi
 elif [ "${opt_timestamp}" = "y" ]; then
-    echo $(printf '{"username":"%s","now":"%s"}' "${who}" "${now}")
+    echo $(printf '{"username":"%s","timestamp":"%s"}' "${who}" "${now}")
 else
     echo $(printf '{"username":"%s"}' "${who}")
 fi
