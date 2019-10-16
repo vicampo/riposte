@@ -13,7 +13,8 @@
          json-pointer-exists?
          json-pointer-does-not-exist?
          fetch-response-header
-         response-header-exists?)
+         response-header-exists?
+         get-last-response-body/raw)
 
 (require (for-syntax racket/base
                      syntax/parse
@@ -154,25 +155,34 @@
 
 (define/contract
   last-response
-  (or/c false/c response?)
-  #f)
+  (box/c (or/c false/c response? bytes?))
+  (box #f))
 
 (define/contract (response-received?)
   (-> boolean?)
-  (response? last-response))
+  (not (eq? #f (unbox last-response))))
 
 (define/contract (response-has-body?)
   (-> boolean?)
-  (cond [(response-received?)
-         (send last-response has-body?)]
-        [else
-         #f]))
+  (match (unbox last-response)
+    [#f
+     #f]
+    [(? bytes?)
+     #t]
+    [(? response? r)
+     (send r has-body?)]))
 
 (define/contract (response-well-formed?)
   (-> boolean?)
-  (cond [(response-has-body?)
-         (send last-response body-is-well-formed?)]
-        [else #f]))
+  (match (unbox last-response)
+    [#f
+     #f]
+    [(? bytes? b)
+     (with-handlers ([exn:fail:contract? (const #f)])
+       (bytes->jsexpr b)
+       #t)]
+    [(? response? r)
+     (send r body-is-well-formed?)]))
 
 (define/contract (last-response->jsexpr)
   (-> jsexpr?)
@@ -183,7 +193,13 @@
         [(not (response-well-formed?))
          (error "Previous response has a malformed body.")]
         [else
-         (send last-response as-jsexpr)]))
+         (match (unbox last-response)
+           [#f
+            (error "Strange: We've say we've received a response, but we don't have it. Please file a bug.")]
+           [(? bytes? b)
+            (bytes->jsexpr b)]
+           [(? response? r)
+            (send r as-jsexpr)])]))
 
 (define (fetch-json-pointer-value jp)
   (cond [(not (response-received?))
@@ -194,7 +210,7 @@
          (error (format "Previous response has a malformed body; cannot evaluate JSON Pointer \"~a\"." jp))]
         [else
          (with-handlers ([exn:fail? (const (void))])
-           (json-pointer-value jp (send last-response as-jsexpr)))]))
+           (json-pointer-value jp (last-response->jsexpr)))]))
 
 (define (json-pointer-exists? jp)
   (not (void? (fetch-json-pointer-value jp))))
@@ -207,7 +223,7 @@
         [(not (response-well-formed?))
          (error (format "Previous response has a malformed body; cannot evaluate JSON Pointer \"~a\"." jp))]
         [else
-         (define js (send last-response as-jsexpr))
+         (define js (last-response->jsexpr))
          (cond [(or (json-object? js)
                     (json-array? js))
                 (define val
@@ -230,14 +246,25 @@
 
 (define/contract (update-last-response! code headers body)
   ((integer-in 100 599) (and/c immutable? (hash/c symbol? string?)) bytes? . -> . void)
-  (set! last-response
-        (make-response code headers body)))
+  (set-box! last-response
+            (make-response code headers body)))
 
 (define (get-response-headers)
-  (cond [(response-received?)
-         (send last-response get-headers)]
-        [else
-         (error "Cannot fetch response headers because we haven't received a response yet!")]))
+  (match (unbox last-response)
+    [#f
+     (error "Cannot fetch response headers because we haven't received a response yet!")]
+    [(? bytes? b)
+     (error "Cannot fetch response headers because we just executed an external program.")]
+    [(? response? r)
+     (send last-response get-headers)]))
+
+(define (get-last-response-body/raw)
+  (match (unbox last-response)
+    [#f #f]
+    [(? bytes? b)
+     b]
+    [(? response? r)
+     (send r get-body/raw)]))
 
 (define (fetch-response-header name)
   (define headers (get-response-headers))

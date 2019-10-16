@@ -635,7 +635,7 @@
        (unless (response-received?)
          (error "No response has been received yet! Cannot echo."))
        (define body (with-handlers ([exn:fail:contract? (const "# (response body is invalid UTF-8!)")])
-                      (bytes->string/utf-8 (send last-response get-body/raw))))
+                      (bytes->string/utf-8 (get-last-response-body/raw))))
        (displayln (comment-out-lines body)))]
   [(_ (json-pointer JP))
    #'(begin
@@ -663,12 +663,12 @@
        (define success? #f)
        (define output
          (parameterize ([current-input-port (open-input-bytes #"")])
-           (with-output-to-string
+           (with-output-to-bytes
              (lambda ()
                (set! success? (system* FILENAME))))))
        (unless success?
          (error (format "Failed to execute ~a with no arguments!" FILENAME)))
-       output)]
+       (set-box! last-response output))]
   [(_ FILENAME "[" ARGS ... "]")
    #'(begin
        (unless (file-exists? FILENAME)
@@ -676,12 +676,12 @@
        (define success? #f)
        (define output
          (parameterize ([current-input-port (open-input-bytes #"")])
-           (with-output-to-string
+           (with-output-to-bytes
              (lambda ()
                (set! success? (system* FILENAME ARGS ...))))))
        (unless success?
          (error (format "Failed to execute ~a with no arguments!" FILENAME)))
-       output)]
+       (set-box! last-response output))]
   [(_ FILENAME (normal-identifier ID))
    #'(begin
        (unless (file-exists? FILENAME)
@@ -693,12 +693,12 @@
        (define success? #f)
        (define output
          (parameterize ([current-input-port (open-input-bytes #"")])
-           (with-output-to-string
+           (with-output-to-bytes
              (lambda ()
                (set! success? (apply system* FILENAME (normal-identifier ID)))))))
        (unless success?
          (error (format "Failed to execute ~a with no arguments!" FILENAME)))
-       output)])
+       (set-box! last-response output))])
 
 (define-macro (exec-arg-item ITEM)
   #'ITEM)
