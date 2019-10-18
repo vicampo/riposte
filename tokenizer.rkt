@@ -471,10 +471,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                    (list string/token)
                    remaining-chars)]))
 
-(module+ test
-  #;(json-string (string->list "\"hi\""))
-  )
-
 (define/contract (read-integer-chars cs)
   ((listof char?) . -> . (listof char?))
   (match cs
@@ -523,15 +519,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                    (list number/token)
                    (drop chars (length digits)))]))
 
-#;
-(define/contract (eat-whitespace)
-  (-> void)
-  (define c (peek-char))
-  (when (and (char? c)
-             (char-whitespace? c))
-    (read-char)
-    (eat-whitespace)))
-
 (define/contract (eat-whitespace chars start)
   ((listof char?) position? . -> . lexer-result?)
   (define (consume cs)
@@ -548,25 +535,6 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
   (lexer-result new-position
                 (list)
                 remaining-chars))
-
-#|
-
-Three kinds of commands:
-
-METHOD URI-TEMPLATE [ more stuff ]
-
-METHOD $identifier URI-TEMPLATE [ more stuff ]
-
-METHOD null URI-TEMPLATE [ more stuff ]
-
-METHOD true URI-TEMPLATE [ more stuff ]
-
-METHOD false URI-TEMPLATE [ more stuff ]
-
-METHOD "string" URI-TEMPLATE [ more stuff ]
-
-
-|#
 
 (define/contract (lex-json-array-items chars start)
   ((listof char?) position? . -> . lexer-result?)
@@ -918,119 +886,6 @@ METHOD "string" URI-TEMPLATE [ more stuff ]
      (lexer-result (lexer-result-end-position after-method/result)
                    (cons method/token (lexer-result-tokens after-method/result))
                    (lexer-result-characters after-method/result))]))
-
-#;
-(module+ test
-  (let ([result (http-method (string->list "POST $foo to bar") (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))
-                   (position-token '(identifier . "foo") (position 6 1 5) (position 10 1 9))
-                   (position-token 'to (position 11 1 10) (position 13 1 12))
-                   (position-token
-                    '(uri-template-text . "bar")
-                    (position 14 1 13)
-                    (position 17 1 16)))))
-  (let ([result (http-method (string->list "GET bar") (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "GET") (position 1 1 0) (position 4 1 3))
-                   (position-token
-                    '(uri-template-text . "bar")
-                    (position 5 1 4)
-                    (position 8 1 7)))))
-  (let* ([program "POST { \"hi\": \"there\" } to whatever"]
-         [result (http-method (string->list program) (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))
-                   (position-token '|{| (position 6 1 5) (position 7 1 6))
-                   (position-token '(json-string . "hi") (position 8 1 7) (position 11 1 10))
-                   (position-token ': (position 11 1 10) (position 12 1 11))
-                   (position-token
-                    '(json-string . "there")
-                    (position 13 1 12)
-                    (position 19 1 18))
-                   (position-token '|}| (position 20 1 19) (position 21 1 20))
-                   (position-token 'to (position 22 1 21) (position 24 1 23))
-                   (position-token
-                    '(uri-template-text . "whatever")
-                    (position 25 1 24)
-                    (position 33 1 32)))))
-  (let* ([program "POST [ 1, 2, 3 ] to whatever"]
-         [result (http-method (string->list program) (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))
-                   (position-token '|[| (position 6 1 5) (position 7 1 6))
-                   (position-token '(number . 1) (position 8 1 7) (position 9 1 8))
-                   (position-token '|,| (position 9 1 8) (position 10 1 9))
-                   (position-token '(number . 2) (position 11 1 10) (position 12 1 11))
-                   (position-token '|,| (position 12 1 11) (position 13 1 12))
-                   (position-token '(number . 3) (position 14 1 13) (position 15 1 14))
-                   (position-token '|]| (position 16 1 15) (position 17 1 16))
-                   (position-token 'to (position 18 1 17) (position 20 1 19))
-                   (position-token
-                    '(uri-template-text . "whatever")
-                    (position 21 1 20)
-                    (position 29 1 28)))))
-  (let* ([program "POST null to whatever"]
-         [result (http-method (string->list program) (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))
-                   (position-token 'json-null (position 6 1 5) (position 10 1 9))
-                   (position-token 'to (position 11 1 10) (position 13 1 12))
-                   (position-token
-                    '(uri-template-text . "whatever")
-                    (position 14 1 13)
-                    (position 22 1 21)))))
-  #;
-  (let* ([program "POST false to whatever"]
-         [result (http-method (string->list program) (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))
-                   (position-token 'json-false (position 6 1 5) (position 11 1 10))
-                   (position-token 'to (position 12 1 11) (position 14 1 13))
-                   (position-token
-                    '(uri-template-text . "whatever")
-                    (position 15 1 14)
-                    (position 23 1 22)))))
-  #;
-  (let* ([program "POST true to whatever"]
-         [result (http-method (string->list program) (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))
-                   (position-token 'json-true (position 6 1 5) (position 10 1 9))
-                   (position-token 'to (position 11 1 10) (position 13 1 12))
-                   (position-token
-                    '(uri-template-text . "whatever")
-                    (position 14 1 13)
-                    (position 22 1 21)))))
-  #;
-  (let* ([program "POST \"hi\" to whatever"]
-         [result (http-method (string->list program) (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "POST") (position 1 1 0) (position 5 1 4))
-                   (position-token '(json-string . "hi") (position 6 1 5) (position 9 1 8))
-                   (position-token 'to (position 10 1 9) (position 12 1 11))
-                   (position-token
-                    '(uri-template-text . "whatever")
-                    (position 13 1 12)
-                    (position 21 1 20)))))
-  #;
-  (let* ([program "GET null"]
-         [result (http-method (string->list program) (position 1 1 0))])
-    (check-equal? (lexer-result-tokens result)
-                  (list
-                   (position-token '(http-method . "GET") (position 1 1 0) (position 4 1 3))
-                   (position-token
-                    '(uri-template-text . "null")
-                    (position 5 1 4)
-                    (position 9 1 8))))))
 
 (define/contract (responds:responds chars start)
   ((listof char?) position? . -> . lexer-result?)
