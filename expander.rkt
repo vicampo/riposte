@@ -29,6 +29,7 @@
          schema-ref
          jp-existence
          equality
+         disequality
          inequality
          header-presence
          response-head-id
@@ -577,6 +578,16 @@
                         (render rhs)
                         (json-pretty-print rhs))))]))
 
+(define-syntax (disequality stx)
+  (syntax-parse stx
+    [(_ lhs rhs)
+     #`(when (equal-jsexprs? lhs rhs)
+         (error (format "Equation is true: ~a is ~a and ~a is ~a."
+                        (render lhs)
+                        (json-pretty-print lhs)
+                        (render rhs)
+                        (json-pretty-print rhs))))]))
+
 (define-macro-cases inequality
   [(_ E1 "<" E2)
    #'(unless (< E1 E2)
@@ -882,6 +893,10 @@
   [(_ (has-type E "is" "not" "an" ADJECTIVE WHATEVER))
    #'(check-environment-variables E)]
   [(_ (equality LHS RHS))
+   #'(begin
+       (check-environment-variables LHS)
+       (check-environment-variables RHS))]
+  [(_ (disequality LHS RHS))
    #'(begin
        (check-environment-variables LHS)
        (check-environment-variables RHS))]
