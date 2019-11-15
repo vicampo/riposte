@@ -36,7 +36,8 @@
          echo
          exec
          exec-arg-item
-         riposte-repl)
+         riposte-repl
+         bang)
 
 (require (for-syntax racket/base
                      racket/match
@@ -481,6 +482,8 @@
    #'(~a (syntax-e #'ID) #\^)]
   [(_ (json-pointer JP))
    #'JP]
+  [(_ (bang B))
+   #'(string->immutable-string (make-string B #\!))]
   [else
    (syntax-parse caller-stx
     [(_ l:string)
@@ -668,7 +671,7 @@
                (set! success? (system* FILENAME))))))
        (unless success?
          (error (format "Failed to execute ~a with no arguments!" FILENAME)))
-       (set-box! last-response output))]
+       (update-last-response! #f #f output))]
   [(_ FILENAME "[" ARGS ... "]")
    #'(begin
        (unless (file-exists? FILENAME)
@@ -681,7 +684,7 @@
                (set! success? (system* FILENAME ARGS ...))))))
        (unless success?
          (error (format "Failed to execute ~a with no arguments!" FILENAME)))
-       (set-box! last-response output))]
+       (update-last-response! #f #f output))]
   [(_ FILENAME (normal-identifier ID))
    #'(begin
        (unless (file-exists? FILENAME)
@@ -698,10 +701,25 @@
                (set! success? (apply system* FILENAME (normal-identifier ID)))))))
        (unless success?
          (error (format "Failed to execute ~a with no arguments!" FILENAME)))
-       (set-box! last-response output))])
+       (update-last-response! #f #f output))])
 
 (define-macro (exec-arg-item ITEM)
   #'ITEM)
+
+(define-syntax (bang stx)
+  (syntax-parse stx
+    [(_ n:integer)
+     #'(let ([num-received (count-received-responses)])
+         (when (< num-received n)
+           (error (format "We have received ~a responses, so we cannot look at response number ~a" num-received n)))
+         (let ([received (list-ref (unbox responses) (sub1 n))])
+           (match (list-ref (unbox responses) (sub1 n))
+             [(? bytes? b)
+              (bytes->jsexpr b)]
+             [(? object? o)
+              (send o as-jsexpr)])))]))
+
+(provide bang)
 
 (define-macro-cases check-environment-variables
   ; the first two cases are the nut of the whole thing; everything else is just
@@ -887,6 +905,8 @@
        (check-environment-variables (exec FILE "[" ARGS ... "]")))]
   [(_ (exec-arg-item I))
    #'(check-environment-variables I)]
+  [(_ (bang B))
+   #'(void)]
   [else
    (syntax-parse caller-stx
      [(_ s:string)

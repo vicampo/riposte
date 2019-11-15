@@ -6,11 +6,14 @@
          response-code-matches?
          response-received?
          last-response
+         update-last-response!
+         responses
          param-base-url
          param-timeout
          last-response->jsexpr
          fetch-json-pointer-value
          json-pointer-exists?
+         count-received-responses
          json-pointer-does-not-exist?
          fetch-response-header
          response-header-exists?
@@ -23,6 +26,7 @@
          racket/dict
          racket/match
          racket/hash
+         racket/list
          net/url
          http/request
          http/head
@@ -127,13 +131,14 @@
   (unless (response-received?)
     (error "No response has been received yet, so we cannot check whether response code matches \"~a\"."
            code))
+  (define received-code (send (last-response) get-code))
   (define matches?
-    (response-code-matches-pattern? (format "~a" (send last-response get-code))
+    (response-code-matches-pattern? (format "~a" received-code)
                                     code))
   (unless matches?
     (error
      (format "The received response has code ~a, but we expected ~a."
-             (send last-response get-code)
+             received-code
              code))))
 
 ; string? string? (#f hash? symbol? string?) -> (list/c exact-integer? (and/c immutable? (hash/c symbol? string?)) bytes?)
@@ -154,19 +159,30 @@
                         read-entity/bytes+response-code)))
 
 (define/contract
-  last-response
-  (box/c (or/c false/c response? bytes?))
-  (box #f))
+  (last-response)
+  (-> (or/c false/c response? bytes?))
+  (match (responses)
+    [(list r1 r2 ...)
+     r2]
+    [else #f]))
+
+(define/contract
+  responses
+  (box/c (listof (or/c response? bytes?)))
+  (box (list)))
+
+(define/contract (count-received-responses)
+  (-> exact-nonnegative-integer?)
+  (length (unbox responses)))
 
 (define/contract (response-received?)
   (-> boolean?)
-  (not (eq? #f (unbox last-response))))
+  (not (empty? (unbox responses))))
 
 (define/contract (response-has-body?)
   (-> boolean?)
-  (match (unbox last-response)
-    [#f
-     #f]
+  (match (last-response)
+    [#f #f]
     [(? bytes?)
      #t]
     [(? response? r)
@@ -174,9 +190,8 @@
 
 (define/contract (response-well-formed?)
   (-> boolean?)
-  (match (unbox last-response)
-    [#f
-     #f]
+  (match (last-response)
+    [#f #f]
     [(? bytes? b)
      (with-handlers ([exn:fail:contract? (const #f)])
        (bytes->jsexpr b)
@@ -193,9 +208,9 @@
         [(not (response-well-formed?))
          (error "Previous response has a malformed body.")]
         [else
-         (match (unbox last-response)
+         (match (last-response)
            [#f
-            (error "Strange: We've say we've received a response, but we don't have it. Please file a bug.")]
+            (error "Strange: We say we've received a response, but we don't have it. Please file a bug.")]
            [(? bytes? b)
             (bytes->jsexpr b)]
            [(? response? r)
@@ -245,21 +260,26 @@
                   (error msg)])]))
 
 (define/contract (update-last-response! code headers body)
-  ((integer-in 100 599) (and/c immutable? (hash/c symbol? string?)) bytes? . -> . void)
-  (set-box! last-response
-            (make-response code headers body)))
+  ((or/c false/c (integer-in 100 599))
+   (or/c false/c
+         (and/c immutable? (hash/c symbol? string?)))
+   bytes?
+   . -> . void)
+  (set-box! responses
+            (cons (make-response code headers body)
+                  (unbox responses))))
 
 (define (get-response-headers)
-  (match (unbox last-response)
+  (match (last-response)
     [#f
      (error "Cannot fetch response headers because we haven't received a response yet!")]
     [(? bytes? b)
      (error "Cannot fetch response headers because we just executed an external program.")]
     [(? response? r)
-     (send last-response get-headers)]))
+     (send r get-headers)]))
 
 (define (get-last-response-body/raw)
-  (match (unbox last-response)
+  (match (last-response)
     [#f #f]
     [(? bytes? b)
      b]
