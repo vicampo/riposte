@@ -135,8 +135,11 @@ schema-ref: id
 expression: json-pointer
   | json-expression
   | id
+  | bang
   | head-id
   | expression ("*" | "+" | "-") expression
+
+bang: BANG
 
 json-pointer: JSON-POINTER | (JSON-POINTER "relative" "to" normal-identifier)
 
