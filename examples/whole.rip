@@ -1,0 +1,15 @@
+#lang riposte
+
+%base := http://localhost:12345
+
+GET foo
+
+$a := !
+
+GET bar
+
+$b := !!
+
+$a = $b
+
+! != !!
