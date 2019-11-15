@@ -2443,7 +2443,7 @@ RIPOSTE
    "! != !!"
    (list
     (position-token
-     (token-struct 'bang 1 #f #f #f #f #f)
+     (token-struct 'BANG 1 #f #f #f #f #f)
      (position 1 1 0)
      (position 2 1 1))
     (position-token
@@ -2451,7 +2451,7 @@ RIPOSTE
      (position 3 1 2)
      (position 5 1 4))
     (position-token
-     (token-struct 'bang 2 #f #f #f #f #f)
+     (token-struct 'BANG 2 #f #f #f #f #f)
      (position 6 1 5)
      (position 8 1 7)))))
 
@@ -2460,7 +2460,7 @@ RIPOSTE
    "!!! = !!!!"
    (list
     (position-token
-     (token-struct 'bang 3 #f #f #f #f #f)
+     (token-struct 'BANG 3 #f #f #f #f #f)
      (position 1 1 0)
      (position 4 1 3))
     (position-token
@@ -2468,7 +2468,7 @@ RIPOSTE
      (position 5 1 4)
      (position 6 1 5))
     (position-token
-     (token-struct 'bang 4 #f #f #f #f #f)
+     (token-struct 'BANG 4 #f #f #f #f #f)
      (position 7 1 6)
      (position 11 1 10)))))
 
