@@ -31,6 +31,13 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.14.0] - 2019-11-15
+
+### Added
+
+- Support for referring to the previous response and earlier responses. Use `!` to refer to the previous response, `!!` to refer to the one before that, and so on (`!!!`, ...).
+- Support for disequalities (`$a != $b`).
+
 ## [0.13.0]
 
 ### Added
