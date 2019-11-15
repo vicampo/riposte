@@ -36,7 +36,8 @@
          echo
          exec
          exec-arg-item
-         riposte-repl)
+         riposte-repl
+         bang)
 
 (require (file "expander.rkt"))
 
