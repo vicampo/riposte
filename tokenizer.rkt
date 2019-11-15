@@ -1096,6 +1096,21 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                              (add1 (position-col initial)))
                    (cdr char-or-chars))]))
 
+(define (bang-char? x)
+  (char=? x #\!))
+
+(define/contract (bang chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (define bang-chars (takef chars bang-char?))
+  (define num-chars (length bang-chars))
+  (define remainder (drop chars num-chars))
+  (define end-position (add-position start bang-chars))
+  (lexer-result end-position
+                (list (position-token (token 'BANG num-chars)
+                                      start
+                                      end-position))
+                remainder))
+
 (define/contract (assignment chars start)
   ((listof char?) position? . -> . lexer-result?)
   (match chars
@@ -1283,6 +1298,12 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                       (lexer-result-end-position result)))]
     [(list-rest #\: #\= _)
      (define result (assignment chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\! ..1)
+         (list-rest #\! ..1 (? char-whitespace?) _))
+     (define result (bang chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -2416,6 +2437,40 @@ RIPOSTE
     (token-struct '|}| "}" #f #f #f #f #f)
     (position 36 1 35)
     (position 37 1 36)))))
+
+(module+ test
+  (check-tokenize
+   "! != !!"
+   (list
+    (position-token
+     (token-struct 'bang 1 #f #f #f #f #f)
+     (position 1 1 0)
+     (position 2 1 1))
+    (position-token
+     (token-struct '!= "!=" #f #f #f #f #f)
+     (position 3 1 2)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'bang 2 #f #f #f #f #f)
+     (position 6 1 5)
+     (position 8 1 7)))))
+
+(module+ test
+  (check-tokenize
+   "!!! = !!!!"
+   (list
+    (position-token
+     (token-struct 'bang 3 #f #f #f #f #f)
+     (position 1 1 0)
+     (position 4 1 3))
+    (position-token
+     (token-struct '= "=" #f #f #f #f #f)
+     (position 5 1 4)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'bang 4 #f #f #f #f #f)
+     (position 7 1 6)
+     (position 11 1 10)))))
 
 (module+ main
 
