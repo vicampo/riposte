@@ -28,6 +28,7 @@
          schema-ref
          jp-existence
          equality
+         disequality
          inequality
          header-presence
          response-head-id
