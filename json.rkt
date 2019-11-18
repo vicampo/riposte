@@ -2,11 +2,11 @@
 
 (provide json-object?
          json-array?
-         equal-jsexprs?
          starts-with?
          ends-with?)
 
 (require racket/match
+         racket/contract
          (only-in racket/string
                   string-prefix?
                   string-suffix?)
@@ -14,6 +14,9 @@
                   empty?
                   list-prefix?)
          json)
+
+(provide/contract
+ [equal-jsexprs? (jsexpr? jsexpr? . -> . boolean?)])
 
 (module+ test
   (require rackunit))
