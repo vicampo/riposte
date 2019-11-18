@@ -1552,6 +1552,18 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list #\t #\i #\m #\e #\s)
+         (list-rest #\t #\i #\m #\e #\s _))
+     (define result (consume-keyword "times" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\o #\u #\t)
+         (list-rest #\o #\u #\t _))
+     (define result (consume-keyword "out" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons (? char? c) _)
      (error (format "Unexpected character (~a) encountered at the toplevel at line ~a column ~a. Bailing out."
                     c
@@ -2471,6 +2483,44 @@ RIPOSTE
      (token-struct 'BANG 4 #f #f #f #f #f)
      (position 7 1 6)
      (position 11 1 10)))))
+
+(module+ test
+  (check-tokenize
+   "%timeout := 15"
+   (list
+   (position-token
+    (token-struct 'PARAMETER "timeout" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 9 1 8))
+   (position-token
+    (token-struct ':= ":=" #f #f #f #f #f)
+    (position 10 1 9)
+    (position 12 1 11))
+   (position-token
+    (token-struct 'NUMBER 15 #f #f #f #f #f)
+    (position 13 1 12)
+    (position 15 1 14)))))
+
+(module+ test
+  (check-tokenize
+   "GET foo/bar times out"
+   (list
+    (position-token
+     (token-struct 'HTTP-METHOD "GET" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 4 1 3))
+    (position-token
+     (token-struct 'URI-TEMPLATE-LITERAL "foo/bar" #f #f #f #f #f)
+     (position 5 1 4)
+     (position 12 1 11))
+    (position-token
+     (token-struct 'times "times" #f #f #f #f #f)
+     (position 13 1 12)
+     (position 18 1 17))
+    (position-token
+     (token-struct 'out "out" #f #f #f #f #f)
+     (position 19 1 18)
+     (position 22 1 21)))))
 
 (module+ main
 
