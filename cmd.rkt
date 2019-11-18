@@ -129,17 +129,26 @@
 (define/contract (response-code-matches? code)
   (string? . -> . void)
   (unless (response-received?)
-    (error "No response has been received yet, so we cannot check whether response code matches \"~a\"."
-           code))
-  (define received-code (send (last-response) get-code))
-  (define matches?
-    (response-code-matches-pattern? (format "~a" received-code)
-                                    code))
-  (unless matches?
     (error
-     (format "The received response has code ~a, but we expected ~a."
-             received-code
-             code))))
+     (format
+      "No response has been received yet, so we cannot check whether response code matches \"~a\"."
+      code)))
+  (match (last-response)
+    [(? response? r)
+     (define received-code (send r get-code))
+     (define matches?
+       (response-code-matches-pattern? (format "~a" received-code)
+                                       code))
+     (unless matches?
+       (error
+        (format "The received response has code ~a, but we expected ~a."
+                received-code
+                code)))]
+    [#f
+     (error
+      (format
+       "No response code is available, so we cannot check whether response code matches \"~a\"."
+       code))]))
 
 ; string? string? (#f hash? symbol? string?) -> (list/c exact-integer? (and/c immutable? (hash/c symbol? string?)) bytes?)
 (define (request method url headers)
@@ -161,10 +170,15 @@
 (define/contract
   (last-response)
   (-> (or/c false/c response? bytes?))
-  (match (responses)
-    [(list r1 r2 ...)
-     r2]
-    [else #f]))
+  (match (unbox responses)
+    [(list)
+     #f]
+    [(list-rest (? bytes? b) _)
+     b]
+    [(list-rest (? response? r) _)
+     r]
+    [else
+     #f]))
 
 (define/contract
   responses
