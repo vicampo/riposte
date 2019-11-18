@@ -1,5 +1,29 @@
 #lang riposte
 
-%timeout := 5
+%base := http://localhost:12345
 
-GET http://localhost:12345/wat responds with 2XX
+%timeout := 30 # wait at most 30 seconds before bailing out
+
+GET sloooooooow times out
+
+POST { "destination": "disneyland" } to join-queue responds with 2XX
+
+! = { "ticket_for": "disneyland" } # got a ticket
+
+Location^ = "disneyland"
+
+POST { "destination": "mcdonalds" } to join-queue responds with 2XX
+
+! = { "ticket_for": "mcdonalds" } # got a ticket
+
+Location^ = "mcdonalds"
+
+# You need to wait a long time at Disneyland:
+
+%timeout := 5 # reduce timeout; getting a Disneyland ticket should take a while
+
+POST { "destination": "disneyland" } to join-queue times out
+
+! = { "ticket_for": "mcdonalds" } # ! refers to last successful response
+
+Location^ = "mcdonalds" # header hasn't changed
