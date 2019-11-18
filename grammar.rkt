@@ -104,7 +104,8 @@ parameter-assignment: PARAMETER /":=" (uri-template | expression)
 header-assignment: REQUEST-HEADER-IDENTIFIER /":=" expression
 
 command:
-    HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with | equals ]
+     HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] times-out
+  |  HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] [ emptiness | satisfies | responds-with | equals ]
   | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] (responds-with | satisfies | equals) [ /"and" emptiness ]
   | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] (responds-with | satisfies) [ /"and" equals ]
  | HTTP-METHOD [ payload /"to" ] uri-template [ with-headers ] responds-with /"and" (equals | satisfies | emptiness)
@@ -112,6 +113,8 @@ command:
 
 @payload: id
   | json-expression
+
+@times-out: "times" "out"
 
 with-headers: /"with" /"headers" ( normal-identifier | json-object )
 
