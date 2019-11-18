@@ -77,6 +77,9 @@
   (apply string-append
          (map comment-out-line lines)))
 
+(define param-timeout
+  (make-parameter 30))
+
 (define-syntax (riposte-program stx)
   (syntax-parse stx
     [(_ step ...)
@@ -166,6 +169,36 @@
              [(boolean? e1)
               (error (format "~a is a boolean; multiplication is not defined."))])]))
 
+(define-macro-cases render-items
+  [(_ (json-object-item K V) (json-object-item K1 V1) ...)
+   #'(string-append (render K)
+                    ":"
+                    (render V))])
+
+(define-macro-cases render
+  [(_ (expression E))
+   #'(render E)]
+  [(_ (normal-identifier ID))
+   #'(~a #\$ (syntax-e #'ID))]
+  [(_ (response-head-id ID))
+   #'(~a (syntax-e #'ID) #\^)]
+  [(_ (json-object ITEMS ...))
+   #'(string-append "{"
+                    (render-items ITEMS ...)
+                    "}")]
+  [(_ (json-pointer JP))
+   #'JP]
+  [(_ (bang B))
+   #'(string->immutable-string (make-string B #\!))]
+  [else
+   (syntax-parse caller-stx
+     [(_ l:string)
+      #'l]
+     [(_ n:number)
+      #'n]
+     [(_ i:id)
+      #'(~a #\$ (symbol->string (syntax-e #'i)))])])
+
 (define-macro-cases command
   [(_ METHOD URI)
    #'(cmd METHOD URI)]
@@ -178,6 +211,24 @@
    #'(begin
        (cmd METHOD URI)
        (response-code-matches? CODE))]
+  [(_ METHOD URI "times" "out")
+   #'(match (sync/timeout
+             (param-timeout)
+             (cmd METHOD URI))
+       [#f ; timed out, as desired
+        (void)]
+       [else
+        (error (format "Timeout failed! Response received under ~a seconds."
+                       (param-timeout)))])]
+  [(_ METHOD URI PAYLOAD "times" "out")
+   #'(match (sync/timeout
+             (param-timeout)
+             (cmd/payload METHOD URI PAYLOAD))
+       [#f ; timed out, as desired
+        (void)]
+       [else
+        (error (format "Timeout failed! Response received under ~a seconds."
+                       (param-timeout)))])]
   [(_ METHOD URI (responds-with CODE) (equals THING))
    #'(begin
        (cmd METHOD URI)
@@ -473,26 +524,6 @@
   (syntax-parse stx
     [(_ jp:string)
      #'(json-pointer-value jp (last-response->jsexpr))]))
-
-(define-macro-cases render
-  [(_ (expression E))
-   #'(render E)]
-  [(_ (normal-identifier ID))
-   #'(~a #\$ (syntax-e #'ID))]
-  [(_ (response-head-id ID))
-   #'(~a (syntax-e #'ID) #\^)]
-  [(_ (json-pointer JP))
-   #'JP]
-  [(_ (bang B))
-   #'(string->immutable-string (make-string B #\!))]
-  [else
-   (syntax-parse caller-stx
-    [(_ l:string)
-     #'l]
-    [(_ n:number)
-     #'n]
-    [(_ i:id)
-     #'(~a #\$ (symbol->string (syntax-e #'i)))])])
 
 (define-syntax (unset stx)
   (syntax-parse stx
@@ -825,7 +856,12 @@
        (check-environment-variables URI)
        (check-environment-variables HEADS)
        (check-environment-variables THING))]
-
+  [(_ (command METHOD URI "times" "out"))
+   #'(check-environment-variables URI)]
+  [(_ (command METHOD PAYLOAD URI "times" "out"))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables URI))]
   [(_ (responds-with CODE))
    #'(void)]
   [(_ (schema-ref S))
