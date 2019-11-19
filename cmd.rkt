@@ -1,8 +1,6 @@
 #lang racket/base
 
-(provide cmd
-         cmd/payload
-         request-headers
+(provide request-headers
          response-code-matches?
          response-received?
          last-response
@@ -19,10 +17,21 @@
          response-header-exists?
          get-last-response-body/raw)
 
+(require racket/contract)
+
+(provide/contract
+ [cmd/payload (->* (string? string? jsexpr?)
+                   (#:headers (hash/c symbol? string?)
+                    #:timeout (or/c false/c exact-nonnegative-integer?))
+                   void)]
+ [cmd (->* (string? string?)
+           (#:headers (hash/c symbol? string?)
+            #:timeout (or/c false/c exact-nonnegative-integer?))
+           void)])
+
 (require (for-syntax racket/base
                      syntax/parse
                      racket/syntax)
-         racket/contract
          racket/dict
          racket/match
          racket/hash
@@ -48,20 +57,40 @@
 
 (define param-timeout (make-parameter #f))
 
-; string? string? -> void
-(define (cmd method url)
+(define (cmd method
+             url
+             #:timeout [timeout #f]
+             #:headers [additional-headers (hash)])
+  (define headers (hash-union (make-immutable-hasheq
+                               (hash->list request-headers))
+                              additional-headers))
   (define final-url
     (cond [(url? (param-base-url))
            (url->string (combine-url/relative (param-base-url) url))]
           [else
            url]))
+  (log-error "timeout: ~a" timeout)
   (display (format "~a ~a" method final-url))
   (flush-output)
-  (define result (request method final-url request-headers))
-  (match result
-    [(list code headers body)
-     (displayln (format " responds with ~a" code))
-     (update-last-response! code headers body)]))
+  (match timeout
+    [#f
+     (match (request method final-url headers)
+       [(list code response-headers body)
+        (displayln (format " responds with ~a" code))
+        (update-last-response! code response-headers body)])]
+    [(? integer?)
+     (define c (make-channel))
+     (match (sync/timeout timeout
+                          (thread
+                           (lambda ()
+                             (match (request method final-url headers)
+                               [(list code response-headers body)
+                                (displayln (format " responds with ~a" code))
+                                (update-last-response! code response-headers body)]))))
+       [#f
+        (displayln " times out")]
+       [(? thread? t)
+        (thread-wait t)])]))
 
 (define/contract (request/payload method url headers payload)
   (string?
@@ -88,10 +117,11 @@
                          headers
                          read-entity/bytes+response-code)))
 
-(define/contract (cmd/payload method url payload #:headers [additional-headers (hash)])
-  (->* (string? string? jsexpr?)
-       (#:headers (hash/c symbol? string?))
-       void)
+(define (cmd/payload method
+                     url
+                     payload
+                     #:headers [additional-headers (hash)]
+                     #:timeout [timeout #f])
   (define headers (hash-union (make-immutable-hasheq (hash->list request-headers))
                               additional-headers))
   (define final-url
@@ -101,11 +131,26 @@
            url]))
   (display (format "~a ~a" method final-url))
   (flush-output)
-  (define result (request/payload method final-url headers payload))
-  (match result
-    [(list code response-headers body)
-     (displayln (format " responds with ~a" code))
-     (update-last-response! code response-headers body)]))
+  (match timeout
+    [#f
+     (match (request/payload method final-url headers payload)
+       [(list code response-headers body)
+        (displayln (format " responds with ~a" code))
+        (update-last-response! code response-headers body)])]
+    [(? integer?)
+     (define c (make-channel))
+     (match (sync/timeout
+             timeout
+             (thread
+              (lambda ()
+                (match (request/payload method final-url headers payload)
+                  [(list code response-headers body)
+                   (displayln (format " responds with ~a" code))
+                   (update-last-response! code response-headers body)]))))
+       [#f
+        (displayln " times out")]
+       [(? thread? t)
+        (thread-wait t)])]))
 
 (define/contract (response-code-matches-pattern? received-code expected-code)
   (string? string? . -> . boolean?)
