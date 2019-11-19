@@ -7,11 +7,10 @@
         'mcdonalds 1))
 
 (define (slow req)
-  (sleep 60)
+  (sleep 31)
   (response/empty))
 
 (define (join req)
-  (log-error "body: ~a" (request->jsexpr req))
   (match (request->jsexpr req)
     [(? hash? h)
      (match (hash-ref h 'destination #f)
