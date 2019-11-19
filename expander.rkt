@@ -201,47 +201,33 @@
 
 (define-macro-cases command
   [(_ METHOD URI)
-   #'(cmd METHOD URI)]
+   #'(cmd METHOD URI #:timeout (param-timeout))]
   [(_ METHOD URI (equals THING))
    #'(begin
-       (cmd METHOD URI)
+       (cmd METHOD URI #:timeout (param-timeout))
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
   [(_ METHOD URI (responds-with CODE))
    #'(begin
-       (cmd METHOD URI)
+       (cmd METHOD URI #:timeout (param-timeout))
        (response-code-matches? CODE))]
   [(_ METHOD URI "times" "out")
-   #'(match (sync/timeout
-             (param-timeout)
-             (cmd METHOD URI))
-       [#f ; timed out, as desired
-        (void)]
-       [else
-        (error (format "Timeout failed! Response received under ~a seconds."
-                       (param-timeout)))])]
-  [(_ METHOD URI PAYLOAD "times" "out")
-   #'(match (sync/timeout
-             (param-timeout)
-             (cmd/payload METHOD URI PAYLOAD))
-       [#f ; timed out, as desired
-        (void)]
-       [else
-        (error (format "Timeout failed! Response received under ~a seconds."
-                       (param-timeout)))])]
+   #'(cmd METHOD URI #:timeout (param-timeout))]
+  [(_ METHOD PAYLOAD URI "times" "out")
+   #'(cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))]
   [(_ METHOD URI (responds-with CODE) (equals THING))
    #'(begin
-       (cmd METHOD URI)
+       (cmd METHOD URI #:timeout (param-timeout))
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
   [(_ METHOD PAYLOAD URI (responds-with CODE))
    #'(begin
-       (cmd/payload METHOD URI PAYLOAD)
+       (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
        (response-code-matches? CODE))]
   [(_ METHOD PAYLOAD URI (responds-with CODE) (equals THING))
    #'(begin
-       (cmd/payload METHOD URI PAYLOAD)
+       (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
@@ -252,7 +238,7 @@
        (for ([(k v) (in-hash HEADERS)])
          (unless (string? v)
            (error (format "Value for property \"~a\" is not a string: ~a" k v))))
-       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS)
+       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS #:timeout (param-timeout))
        (response-code-matches? CODE))]
   [(_ METHOD PAYLOAD URI (with-headers HEADERS) (responds-with CODE) (equals THING))
    #'(begin
@@ -261,7 +247,7 @@
        (for ([(k v) (in-hash HEADERS)])
          (unless (string? v)
            (error (format "Value for property \"~a\" is not a string: ~a" k v))))
-       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS)
+       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS #:timeout (param-timeout))
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
@@ -271,7 +257,7 @@
          (error (format "1. Purported schema is not actually a JSON Schema:~a~a"
                         #\newline
                         (pretty-print SCHEMA))))
-       (cmd/payload METHOD URI PAYLOAD)
+       (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
        (unless (adheres-to-schema? (last-response->jsexpr) SCHEMA)
          (error "Response does not satisfy schema.")))]
   [(_ METHOD PAYLOAD URI (negative-satisfies SCHEMA))
@@ -280,7 +266,7 @@
          (error (format "2. Purported schema is not actually a JSON Schema:~a~a"
                         #\newline
                         (pretty-print SCHEMA))))
-       (cmd/payload METHOD URI PAYLOAD)
+       (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
        (when (adheres-to-schema? (last-response->jsexpr) SCHEMA)
          (error "Response does satisfy schema!")))]
   [(_ METHOD PAYLOAD URI (with-headers HEADERS) (positive-satisfies SCHEMA))
@@ -294,7 +280,7 @@
          (error (format "3. Purported schema is not actually a JSON Schema:~a~a"
                         #\newline
                         (json-pretty-print SCHEMA))))
-       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS)
+       (cmd/payload METHOD URI PAYLOAD #:headers HEADERS #:timeout (param-timeout))
        (unless (adheres-to-schema? (send last-response as-json) SCHEMA)
          (error "Response does not satisfy schema.")))])
 
