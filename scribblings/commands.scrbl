@@ -18,6 +18,16 @@ Those two parts are optional; you can check the response code without specifying
 Formally, a command has one of these these structures, depending on whether you want to check the response code and assert that the response satisfies a schema.
 
 @verbatim{
+HTTP-METHOD [ PAYLOAD "to" ] URI-TEMPLATE "times" "out"
+}
+
+This command submits an HTTP request and succeeds if the request times out. By default, Riposte does not time out waiting for a response. To control that, use the @tt{%timeout} parameter, like so:
+
+@verbatim{
+%timeout := 10 # wait at most 10 seconds for a response
+}
+
+@verbatim{
 HTTP-METHOD [ PAYLOAD "to" ] URI-TEMPLATE [ "with" "headers" HEADERS ]
 }
 
