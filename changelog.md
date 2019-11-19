@@ -31,6 +31,13 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.15.0] - 2019-11-19
+
+### Added
+
+- Support for timeouts. The `%timeout` parameter, if set, should be a positive integer. It represents the maximum number of seconds we'll wait when submitting requests. By default, the value is unset, which means that we will wait an unlimited amount of time waiting for a response.
+- New "times out" assertion to assert that a request times out. Example: `GET foo/bar times out`. Another example, with a payload: `POST $foo to bar/baz times out`. These commands succeed when the request times out (use the `%timeout` parameter).
+
 ## [0.14.0] - 2019-11-15
 
 ### Added
