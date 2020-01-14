@@ -19,8 +19,6 @@
          (file "util.rkt")
          (only-in (file "./parser.rkt")
                   is-well-formed?)
-         (only-in (file "./version.rkt")
-                  riposte-version)
          (prefix-in riposte: (file "reader.rkt"))
          riposte
          racket/contract)
@@ -84,7 +82,7 @@
      args))
 
   (when (opt-version)
-    (displayln (format "~a" riposte-version))
+    (displayln "0.16.0")
     (exit 0))
 
   (define (is-riposte-file? f)
