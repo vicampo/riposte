@@ -2,6 +2,7 @@
 
 (provide request-headers
          response-code-matches?
+         last-request-failed?
          response-received?
          last-response
          update-last-response!
@@ -17,7 +18,9 @@
          response-header-exists?
          get-last-response-body/raw)
 
-(require racket/contract)
+(require racket/contract
+         (only-in (file "util.rkt")
+                  comment-out-lines))
 
 (provide/contract
  [cmd/payload (->* (string? string? jsexpr?)
@@ -69,24 +72,31 @@
            (url->string (combine-url/relative (param-base-url) url))]
           [else
            url]))
-  (log-error "timeout: ~a" timeout)
   (display (format "~a ~a" method final-url))
   (flush-output)
   (match timeout
     [#f
-     (match (request method final-url headers)
-       [(list code response-headers body)
-        (displayln (format " responds with ~a" code))
-        (update-last-response! code response-headers body)])]
+     (with-handlers ([exn? (lambda (e)
+                             (displayln " fails")
+                             (displayln (comment-out-lines (exn-message e)))
+                             (update-last-response! #f #f #f))])
+       (match (request method final-url headers)
+         [(list code response-headers body)
+          (displayln (format " responds with ~a" code))
+          (update-last-response! code response-headers body)]))]
     [(? integer?)
      (define c (make-channel))
      (match (sync/timeout timeout
                           (thread
                            (lambda ()
-                             (match (request method final-url headers)
-                               [(list code response-headers body)
-                                (displayln (format " responds with ~a" code))
-                                (update-last-response! code response-headers body)]))))
+                             (with-handlers ([exn? (lambda (e)
+                                                     (displayln " fails")
+                                                     (displayln (comment-out-lines (exn-message e)))
+                                                     (update-last-response! #f #f #f))])
+                               (match (request method final-url headers)
+                                 [(list code response-headers body)
+                                  (displayln (format " responds with ~a" code))
+                                  (update-last-response! code response-headers body)])))))
        [#f
         (displayln " times out")]
        [(? thread? t)
@@ -197,20 +207,11 @@
 
 ; string? string? (#f hash? symbol? string?) -> (list/c exact-integer? (and/c immutable? (hash/c symbol? string?)) bytes?)
 (define (request method url headers)
-  (define (network-fail e)
-    (error (format "Failed to connect to ~a!" url)))
-  (define (died e)
-    (log-error "~a" (exn-message e))
-    (error (format "Something weird happened when sending a ~a request to ~a!"
-                   method
-                   url)))
-  (with-handlers ([exn:fail:network? network-fail]
-                  [exn? died])
-    (call/input-request "1.1"
-                        method
-                        url
-                        headers
-                        read-entity/bytes+response-code)))
+  (call/input-request "1.1"
+                      method
+                      url
+                      headers
+                      read-entity/bytes+response-code))
 
 (define/contract
   (last-response)
@@ -227,7 +228,7 @@
 
 (define/contract
   responses
-  (box/c (listof (or/c response? bytes?)))
+  (box/c (listof (or/c false/c response? bytes?)))
   (box (list)))
 
 (define/contract (count-received-responses)
@@ -236,7 +237,10 @@
 
 (define/contract (response-received?)
   (-> boolean?)
-  (not (empty? (unbox responses))))
+  (match (unbox responses)
+    [(list)      #f]
+    [(cons #f _) #f]
+    [else        #t]))
 
 (define/contract (response-has-body?)
   (-> boolean?)
@@ -322,11 +326,17 @@
   ((or/c false/c (integer-in 100 599))
    (or/c false/c
          (and/c immutable? (hash/c symbol? string?)))
-   bytes?
+   (or/c false/c
+         bytes?)
    . -> . void)
-  (set-box! responses
+  (match (list code headers body)
+    [(list #f #f #f)
+     (set-box! responses
+               (cons #f (unbox responses)))]
+    [else
+     (set-box! responses
             (cons (make-response code headers body)
-                  (unbox responses))))
+                  (unbox responses)))]))
 
 (define (get-response-headers)
   (match (last-response)
@@ -344,6 +354,11 @@
      b]
     [(? response? r)
      (send r get-body/raw)]))
+
+(define (last-request-failed?)
+  (match (unbox responses)
+    [(cons #f _) #t]
+    [else        #f]))
 
 (define (fetch-response-header name)
   (define headers (get-response-headers))
