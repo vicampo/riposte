@@ -67,15 +67,8 @@
          (file "parameters.rkt")
          (only-in (file "util.rkt")
                   file-content/bytes
-                  hash-remove*))
-
-(define (comment-out-line s)
-  (string-append "# " s))
-
-(define (comment-out-lines str)
-  (define lines (string-split str (~a #\newline)))
-  (apply string-append
-         (map comment-out-line lines)))
+                  hash-remove*
+                  comment-out-lines))
 
 (define param-timeout
   (make-parameter 30))

@@ -6,7 +6,8 @@
          bytes->string
          port->chars
          file-content/bytes
-         hash-remove*)
+         hash-remove*
+         comment-out-lines)
 
 (require racket/function
          racket/contract
@@ -14,7 +15,12 @@
          racket/match
          racket/port
          (only-in racket/list
-                  empty?)
+                  empty?
+                  add-between)
+         (only-in racket/string
+                  string-split)
+         (only-in racket/format
+                  ~a)
          brag/support
          (only-in json
                   jsexpr?)
@@ -100,3 +106,12 @@
     ['() h1]
     [(cons k ks)
      (hash-remove* (hash-remove h1 k) ks)]))
+
+(define (comment-out-line s)
+  (string-append "# " s))
+
+(define (comment-out-lines str)
+  (define nl (~a #\newline))
+  (define lines (string-split str nl))
+  (apply string-append
+         (add-between (map comment-out-line lines) nl)))
