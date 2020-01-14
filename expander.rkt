@@ -904,6 +904,8 @@
        (check-environment-variables E2))]
   [(_ (json-pointer JP))
    #'(void)]
+  [(_ (json-pointer JP "relative" "to" THING))
+   #'(check-environment-variables THING)]
   [(_ (normal-identifier ID))
    #'(void)]
   [(_ (header-presence HEAD ABSENT-OR-PRESENT))
