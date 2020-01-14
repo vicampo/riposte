@@ -377,7 +377,7 @@
 (define/contract
   default-request-headers
   (and/c immutable? (hash/c symbol? string?))
-  (hasheq 'User-Agent (format "Riposte (https://riposte.in)" riposte-version)))
+  (hasheq 'User-Agent "Riposte (https://riposte.in)"))
 
 (define/contract
   request-headers
