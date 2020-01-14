@@ -1,11 +1,26 @@
 #lang racket/base
 
+(provide is-well-formed?)
+
 (require racket/contract
          syntax/stx
          (only-in (file "./tokenizer.rkt")
                   tokenize)
          (only-in (file "./grammar.rkt")
                   parse))
+
+(define (is-well-formed? path)
+  (define-values (dir base is-directory?)
+    (split-path path))
+  (define (parse-it)
+    (syntax->datum
+     (parse path (tokenize (current-input-port)))))
+  (cond [(file-exists? path)
+         (with-handlers ([exn:fail? (lambda (e) #f)])
+           (begin0
+               (with-input-from-file path parse-it #:mode 'text)
+             #t))]
+        [else #f]))
 
 (define/contract (parse-file path)
   (path? . -> . list?)
