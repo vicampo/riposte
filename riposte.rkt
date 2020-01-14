@@ -2,6 +2,10 @@
 
 (require (for-syntax racket/base)
          racket/cmdline
+         (only-in racket/file
+                  find-files)
+         (only-in racket/path
+                  path-get-extension)
          racket/match
          racket/pretty
          racket/format
@@ -13,6 +17,8 @@
          dotenv
          misc1/syntax
          (file "util.rkt")
+         (only-in (file "./parser.rkt")
+                  is-well-formed?)
          (only-in (file "./version.rkt")
                   riposte-version)
          (prefix-in riposte: (file "reader.rkt"))
@@ -81,23 +87,47 @@
     (displayln (format "~a" riposte-version))
     (exit 0))
 
+  (define (is-riposte-file? f)
+    (cond [(file-exists? f)
+           (match (path-get-extension f)
+             [(? bytes? b)
+              (bytes=? #".rip" b)]
+             [else #f])]
+          [else #f]))
+
+  (define (show-error&die err)
+    (displayln (string-trim (exn-message err))
+               (current-error-port))
+    (exit 1))
+
+  (define (riposte-it f)
+    (cond [(is-well-formed? f)
+           (with-handlers ([exn? show-error&die])
+            (dynamic-require f
+                             (cond [(opt-lint) (void)]
+                                   [else #f])))]
+          [else
+           (displayln (format "Malformed Riposte file: ~a" (path->string f))
+                      (current-error-port))
+           (exit 1)]))
+
   (match file-to-process
     [(list)
      (run-repl)]
     [(list filename)
-     (unless (file-exists? filename)
-       (displayln (format "No such file: ~a" filename)
-                  (current-error-port))
-       (exit 1))
-
      (run! (check-dotenvs (opt-dotenvs)))
-
      (run! (dotenv-load! (opt-dotenvs)))
-
-     (with-handlers ([exn? (lambda (err)
-                             (displayln (string-trim (exn-message err))
-                                        (current-error-port))
-                             (exit 1))])
-       (dynamic-require (string->path filename)
-                        (cond [(opt-lint) (void)]
-                              [else #f])))]))
+     (cond [(directory-exists? filename)
+            (define files (find-files is-riposte-file? (string->path filename)))
+            (for [(f files)]
+              (riposte-it f))]
+           [(file-exists? filename)
+            (riposte-it (string->path filename))]
+           [else
+            (displayln (format "No such file: ~a" filename)
+                       (current-error-port))
+            (exit 1)])]
+    [else
+     (displayln (format "Cannot make sense of command line argument: ~a" (pretty-print file-to-process))
+                (current-error-port))
+     (exit 1)]))
