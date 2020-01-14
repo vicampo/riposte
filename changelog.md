@@ -31,6 +31,12 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.16.0] - 2020-01-14
+
+### Added
+
+- If riposte is given a directory as its sole argument, all Riposte files contained in that directory -- and in directories contained therein, etc. etc. -- will be executed.
+
 ## [0.15.0] - 2019-11-19
 
 ### Added
