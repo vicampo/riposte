@@ -194,33 +194,52 @@
 
 (define-macro-cases command
   [(_ METHOD URI)
-   #'(cmd METHOD URI #:timeout (param-timeout))]
+   #'(begin
+       (cmd METHOD URI #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1)))]
   [(_ METHOD URI (equals THING))
    #'(begin
        (cmd METHOD URI #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
   [(_ METHOD URI (responds-with CODE))
    #'(begin
        (cmd METHOD URI #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (response-code-matches? CODE))]
   [(_ METHOD URI "times" "out")
-   #'(cmd METHOD URI #:timeout (param-timeout))]
+   #'(begin
+       (cmd METHOD URI #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1)))]
   [(_ METHOD PAYLOAD URI "times" "out")
-   #'(cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))]
+   #'(begin
+       (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1)))]
   [(_ METHOD URI (responds-with CODE) (equals THING))
    #'(begin
        (cmd METHOD URI #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
   [(_ METHOD PAYLOAD URI (responds-with CODE))
    #'(begin
        (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (response-code-matches? CODE))]
   [(_ METHOD PAYLOAD URI (responds-with CODE) (equals THING))
    #'(begin
        (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
@@ -232,6 +251,8 @@
          (unless (string? v)
            (error (format "Value for property \"~a\" is not a string: ~a" k v))))
        (cmd/payload METHOD URI PAYLOAD #:headers HEADERS #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (response-code-matches? CODE))]
   [(_ METHOD PAYLOAD URI (with-headers HEADERS) (responds-with CODE) (equals THING))
    #'(begin
@@ -241,6 +262,8 @@
          (unless (string? v)
            (error (format "Value for property \"~a\" is not a string: ~a" k v))))
        (cmd/payload METHOD URI PAYLOAD #:headers HEADERS #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
@@ -251,6 +274,8 @@
                         #\newline
                         (pretty-print SCHEMA))))
        (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (unless (adheres-to-schema? (last-response->jsexpr) SCHEMA)
          (error "Response does not satisfy schema.")))]
   [(_ METHOD PAYLOAD URI (negative-satisfies SCHEMA))
@@ -260,6 +285,8 @@
                         #\newline
                         (pretty-print SCHEMA))))
        (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (when (adheres-to-schema? (last-response->jsexpr) SCHEMA)
          (error "Response does satisfy schema!")))]
   [(_ METHOD PAYLOAD URI (with-headers HEADERS) (positive-satisfies SCHEMA))
@@ -274,6 +301,8 @@
                         #\newline
                         (json-pretty-print SCHEMA))))
        (cmd/payload METHOD URI PAYLOAD #:headers HEADERS #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
        (unless (adheres-to-schema? (send last-response as-json) SCHEMA)
          (error "Response does not satisfy schema.")))])
 
