@@ -52,7 +52,6 @@
                   with-output-string)
          (only-in argo
                   json-pretty-print)
-         (file "version.rkt")
          (file "response.rkt")
          (file "json.rkt"))
 
