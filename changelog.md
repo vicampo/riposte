@@ -31,6 +31,12 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.16.2] - 2020-01-14
+
+### Fixed
+
+- Handle environment variable checks when dealing with relative JSON pointers
+
 ## [0.16.1] - 2020-01-14
 
 ### Changed
