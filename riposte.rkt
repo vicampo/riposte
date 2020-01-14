@@ -118,6 +118,7 @@
      (cond [(directory-exists? filename)
             (define files (find-files is-riposte-file? (string->path filename)))
             (for [(f files)]
+              (displayln (format "# ~a" (path->string f)))
               (riposte-it f))]
            [(file-exists? filename)
             (riposte-it (string->path filename))]
