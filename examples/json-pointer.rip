@@ -1,0 +1,19 @@
+#lang riposte
+
+%base := http://localhost:12345
+
+GET /foo responds with 200
+
+$items := /items
+
+$items is non empty
+
+$firstItem := /0 relative to $items
+
+$firstItem = "wow!"
+
+$secondItem := /more # still implicitly refers to response received from first request
+
+$secondItem = /more relative to ! # check that what the previous comment says is true
+
+"zow!" = /zoom relative to $secondItem
