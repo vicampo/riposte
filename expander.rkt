@@ -181,6 +181,10 @@
                     "}")]
   [(_ (json-pointer JP))
    #'JP]
+  [(_ (json-pointer JP "relative" "to" THING))
+   #'(string-append (render JP)
+                    " relative to "
+                    (render THING))]
   [(_ (bang B))
    #'(string->immutable-string (make-string B #\!))]
   [else
@@ -528,10 +532,11 @@
          (when (< expr 0)
            (error (format "~a is negative!" (render expr)))))]))
 
-(define-syntax (json-pointer stx)
-  (syntax-parse stx
-    [(_ jp:string)
-     #'(json-pointer-value jp (last-response->jsexpr))]))
+(define-macro-cases json-pointer
+  [(_ JP)
+   #'(json-pointer-value JP (last-response->jsexpr))]
+  [(_ JP "relative" "to" THING)
+   #'(json-pointer-value JP THING)])
 
 (define-syntax (unset stx)
   (syntax-parse stx
