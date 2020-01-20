@@ -4,7 +4,7 @@ set -exuo pipefail
 
 function removeRiposte()
 {
-    local shown=$(raco pkg show | grep ^riposte)
+    local shown=$(raco pkg show --all | grep riposte)
     if [ ! -z "${shown}" ]; then
 	raco pkg remove riposte
     fi
