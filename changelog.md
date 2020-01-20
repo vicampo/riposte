@@ -31,9 +31,16 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.16.4] - 2020-01-20
+
+### Fixed
+
+- Fix support for checking JSON Schemas combined with
+  checking HTTP response status code.
+
 ## [0.16.3] - 2020-01-16
 
-## Fixed
+### Fixed
 
 - Support for relative JSON Pointers (`/foo relative to $bar`) was incomplete; that should be fixed now.
 
