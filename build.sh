@@ -1,10 +1,18 @@
 #!/bin/bash
 
-set -exuo pipefail
+set -euo pipefail
 
-raco pkg remove riposte
+function removeRiposte()
+{
+    local shown=$(raco pkg show | grep ^riposte)
+    if [ ! -z "${shown}" ]; then
+	raco pkg remove riposte
+    fi
+}
 
-raco pkg install -n riposte
+removeRiposte
+
+raco pkg install --auto -n riposte
 
 cwd=$(pwd)
 
