@@ -16,9 +16,14 @@
          json-pointer-does-not-exist?
          fetch-response-header
          response-header-exists?
-         get-last-response-body/raw)
+         get-last-response-body/raw
+         check-adheres-to-schema!)
 
 (require racket/contract
+         (only-in racket/port
+                  call-with-output-string)
+         (only-in argo
+                  adheres-to-schema?)
          (only-in (file "util.rkt")
                   comment-out-lines))
 
@@ -180,6 +185,52 @@
                [else
                 #f])]))
 
+(define (render-last-response)
+  (match (last-response)
+    [(? response? r)
+     (call-with-output-string (lambda (p) (send r render p)))]
+    [else
+     (error "No HTTP response received; cannot render.")]))
+
+(define (check-adheres-to-schema! schema)
+  (cond [(not (response-received?))
+         (error "No response received; cannot convert it to JSON for checking JSON Schema conformance.")]
+        [(not (response-has-body?))
+         (error "Previous response has an empty body; cannot convert it to JSON for checking JSON Schema conformance.")]
+        [(not (response-well-formed?))
+         (error
+          (format "Previous response body is malformed JSON; cannot check it for JSON Schema conformance.~a~a"
+                  #\newline
+                  (comment-out-lines (render-last-response))))]
+        [else
+         (match (last-response)
+           [#f
+            (error
+             (comment-out-lines
+              "Strange: We say we've received a response, but we don't have it. Please file a bug."))]
+           [(? bytes? b)
+            (unless (adheres-to-schema? (bytes->jsexpr b) schema)
+              (error
+               (comment-out-lines
+                (format "# Response does not satisfy schema! Response was:~a~a~aSchema was:~a~a~a"
+                        #\newline
+                        (render-last-response)
+                        #\newline
+                        #\newline
+                        #\newline
+                        (json-pretty-print schema)))))]
+           [(? response? r)
+            (unless (adheres-to-schema? (send r as-jsexpr) schema)
+              (error
+               (comment-out-lines
+                (format "Response does not satisfy schema! Response was:~a~a~aSchema was:~a~a~a"
+                        #\newline
+                        (render-last-response)
+                        #\newline
+                        #\newline
+                        #\newline
+                        (json-pretty-print schema)))))])]))
+
 (define/contract (response-code-matches? code)
   (string? . -> . void)
   (unless (response-received?)
@@ -195,9 +246,12 @@
                                        code))
      (unless matches?
        (error
-        (format "The received response has code ~a, but we expected ~a."
-                received-code
-                code)))]
+        (comment-out-lines
+         (format "The received response has code ~a, but we expected ~a. Response was:~a~a"
+                 received-code
+                 code
+                 #\newline
+                 (comment-out-lines (render-last-response))))))]
     [#f
      (error
       (format
