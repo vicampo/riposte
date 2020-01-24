@@ -13,21 +13,6 @@
          racket/pretty
          racket/match)
 
-(define (check-environment-variables thing)
-  (match thing
-    [(list 'env-identifier (? string? id))
-     (match (getenv id)
-       [#f (error (format "Environment variable \"~a\" undefined." id))]
-       [else #t])]
-    [(or (? symbol?)
-         (? string?)
-         (? number?)
-         (? boolean?))
-     #t]
-    [(? list?)
-     (for ([x thing])
-       (check-environment-variables x))]))
-
 (define (expand-imports stx cwd)
   (cond [(stx-pair? stx)
          (cond [(eq? 'riposte-program (syntax->datum (stx-car stx)))
