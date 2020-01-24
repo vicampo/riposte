@@ -171,6 +171,12 @@
 (define-macro-cases render
   [(_ (expression E))
    #'(render E)]
+  [(_ (expression E1 "+" E2))
+   #'(string-append "(" (render E1) " + " (render E2) ")")]
+  [(_ (expression E1 "*" E2))
+   #'(string-append "(" (render E1) " * " (render E2) ")")]
+  [(_ (expression E1 "-" E2))
+   #'(string-append "(" (render E1) " - " (render E2) ")")]
   [(_ (normal-identifier ID))
    #'(~a #\$ (syntax-e #'ID))]
   [(_ (response-head-id ID))
