@@ -231,6 +231,45 @@
                         #\newline
                         (json-pretty-print schema)))))])]))
 
+(define (check-does-not-adhere-to-schema! schema)
+  (cond [(not (response-received?))
+         (error "No response received; cannot convert it to JSON for checking JSON Schema conformance.")]
+        [(not (response-has-body?))
+         (error "Previous response has an empty body; cannot convert it to JSON for checking JSON Schema conformance.")]
+        [(not (response-well-formed?))
+         (error
+          (format "Previous response body is malformed JSON; cannot check it for JSON Schema conformance.~a~a"
+                  #\newline
+                  (comment-out-lines (render-last-response))))]
+        [else
+         (match (last-response)
+           [#f
+            (error
+             (comment-out-lines
+              "Strange: We say we've received a response, but we don't have it. Please file a bug."))]
+           [(? bytes? b)
+            (when (adheres-to-schema? (bytes->jsexpr b) schema)
+              (error
+               (comment-out-lines
+                (format "# Response satisfies schema! Response was:~a~a~aSchema was:~a~a~a"
+                        #\newline
+                        (render-last-response)
+                        #\newline
+                        #\newline
+                        #\newline
+                        (json-pretty-print schema)))))]
+           [(? response? r)
+            (when (adheres-to-schema? (send r as-jsexpr) schema)
+              (error
+               (comment-out-lines
+                (format "Response satisfies schema! Response was:~a~a~aSchema was:~a~a~a"
+                        #\newline
+                        (render-last-response)
+                        #\newline
+                        #\newline
+                        #\newline
+                        (json-pretty-print schema)))))])]))
+
 (define/contract (response-code-matches? code)
   (string? . -> . void)
   (unless (response-received?)
