@@ -23,7 +23,6 @@
 (define build-deps
   '("scribble-lib"
     "rackunit-lib"
-    "racket-doc"
     "web-server-lib"
     "net-cookies-lib"
     "beautiful-racket-lib"))
