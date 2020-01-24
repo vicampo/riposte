@@ -882,6 +882,14 @@
    #'(check-environment-variables URI)]
   [(_ (command METHOD URI (responds-with CODE)))
    #'(check-environment-variables URI)]
+  [(_ (command METHOD URI (positive-satisfies SCHEMA)))
+   #'(begin
+       (check-environment-variables URI)
+       (check-environment-variables SCHEMA))]
+  [(_ (command METHOD URI (negative-satisfies SCHEMA)))
+   #'(begin
+       (check-environment-variables URI)
+       (check-environment-variables SCHEMA))]
   [(_ (command METHOD PAYLOAD URI (responds-with CODE)))
    #'(begin
        (check-environment-variables PAYLOAD)
