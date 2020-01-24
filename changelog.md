@@ -31,6 +31,14 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.17.0] - 2020-01-24
+
+### Added
+
+- When a response check fails (specifically, when a JSON
+  Schema check or HTTP response status code check fails),
+  the response gets pretty printed (if that's possible).
+
 ## [0.16.4] - 2020-01-20
 
 ### Fixed
