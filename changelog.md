@@ -31,6 +31,12 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.17.1] - 2020-01-24
+
+### Fixed
+
+- Removed double commenting-out in error cases (received response code does not match the expected one).
+
 ## [0.17.0] - 2020-01-24
 
 ### Added

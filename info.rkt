@@ -2,7 +2,7 @@
 
 (define collection "riposte")
 
-(define version "0.17.0")
+(define version "0.17.1")
 
 (define deps
   '("br-parser-tools-lib"
