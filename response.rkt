@@ -7,6 +7,8 @@
          racket/contract
          racket/function
          json
+         (only-in argo
+                  json-pretty-print)
          (only-in (file "util.rkt")
                   bytes->string))
 
@@ -37,7 +39,21 @@
     (define/public (body-bytes-length)
       (bytes-length body/raw))
     (define/public (get-body/raw)
-      body/raw)))
+      body/raw)
+    (define/public (render port)
+      (for ([h (hash-keys headers)])
+        (displayln (format "~a: ~a" h (hash-ref headers h))
+                   port))
+      (when (send this has-body?)
+        (define content
+          (cond [(send this body-is-well-formed?)
+                 (json-pretty-print (send this as-jsexpr))]
+                [(send this body-is-string?)
+                 (bytes->string body/raw)]
+                [else
+                 (format "(~d bytes of binary or malformed UTF-8 content)"
+                         (bytes-length body/raw))]))
+        (displayln content port)))))
 
 (define (response? x)
   (and (object? x)
