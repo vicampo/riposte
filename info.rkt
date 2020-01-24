@@ -28,7 +28,7 @@
     "net-cookies-lib"
     "beautiful-racket-lib"))
 
-(define pkg-desc "Riposte is a scripting language for testing JSON-based HTTP APIs.")
+(define pkg-desc "Scripting language for testing JSON-based HTTP APIs.")
 
 (define pkg-authors '("jesse@lisp.sh"))
 
