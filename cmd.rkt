@@ -137,6 +137,7 @@
                      #:headers [additional-headers (hash)]
                      #:timeout [timeout #f])
   (define headers (hash-union (make-immutable-hasheq (hash->list request-headers))
+                              (hasheq 'content-type "application/json;charset=utf-8")
                               additional-headers))
   (define final-url
     (cond [(url? (param-base-url))
