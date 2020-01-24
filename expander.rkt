@@ -280,8 +280,7 @@
        (cmd METHOD URI #:timeout (param-timeout))
        (when (last-request-failed?)
          (exit 1))
-       (unless (adheres-to-schema? (last-response->jsexpr) SCHEMA)
-         (error "Response does not satisfy schema.")))]
+       (check-adheres-to-schema! SCHEMA))]
   [(_ METHOD URI (responds-with CODE) (positive-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -292,8 +291,7 @@
        (when (last-request-failed?)
          (exit 1))
        (response-code-matches? CODE)
-       (unless (adheres-to-schema? (last-response->jsexpr) SCHEMA)
-         (error "Response does not satisfy schema.")))]
+       (check-adheres-to-schema! SCHEMA))]
   [(_ METHOD PAYLOAD URI (positive-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -303,8 +301,7 @@
        (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
        (when (last-request-failed?)
          (exit 1))
-       (unless (adheres-to-schema? (last-response->jsexpr) SCHEMA)
-         (error "Response does not satisfy schema.")))]
+       (check-adheres-to-schema! SCHEMA))]
   [(_ METHOD PAYLOAD URI (responds-with CODE) (positive-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -315,8 +312,7 @@
        (when (last-request-failed?)
          (exit 1))
        (response-code-matches? CODE)
-       (unless (adheres-to-schema? (last-response->jsexpr) SCHEMA)
-         (error "Response does not satisfy schema.")))]
+       (check-adheres-to-schema! SCHEMA))]
   [(_ METHOD URI (negative-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -326,8 +322,7 @@
        (cmd METHOD URI #:timeout (param-timeout))
        (when (last-request-failed?)
          (exit 1))
-       (when (adheres-to-schema? (last-response->jsexpr) SCHEMA)
-         (error "Response does satisfy schema!")))]
+       (check-does-not-adhere-to-schema! SCHEMA))]
   [(_ METHOD URI (responds-with CODE) (negative-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -338,8 +333,7 @@
        (when (last-request-failed?)
          (exit 1))
        (response-code-matches? CODE)
-       (when (adheres-to-schema? (last-response->jsexpr) SCHEMA)
-         (error "Response does satisfy schema!")))]
+       (check-does-not-adhere-to-schema! SCHEMA))]
   [(_ METHOD PAYLOAD URI (negative-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -349,8 +343,7 @@
        (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
        (when (last-request-failed?)
          (exit 1))
-       (when (adheres-to-schema? (last-response->jsexpr) SCHEMA)
-         (error "Response does satisfy schema!")))]
+       (check-does-not-adhere-to-schema! SCHEMA))]
   [(_ METHOD PAYLOAD URI (responds-with CODE) (negative-satisfies SCHEMA))
    #'(begin
        (unless (json-schema? SCHEMA)
@@ -361,8 +354,7 @@
        (when (last-request-failed?)
          (exit 1))
        (response-code-matches? CODE)
-       (when (adheres-to-schema? (last-response->jsexpr) SCHEMA)
-         (error "Response does satisfy schema!")))]
+       (check-does-not-adhere-to-schema! SCHEMA))]
   [(_ METHOD PAYLOAD URI (with-headers HEADERS) (positive-satisfies SCHEMA))
    #'(begin
        (unless (json-object? HEADERS)
@@ -377,8 +369,7 @@
        (cmd/payload METHOD URI PAYLOAD #:headers HEADERS #:timeout (param-timeout))
        (when (last-request-failed?)
          (exit 1))
-       (unless (adheres-to-schema? (send last-response as-json) SCHEMA)
-         (error "Response does not satisfy schema.")))])
+       (check-adheres-to-schema! SCHEMA))])
 
 (define-syntax (normal-identifier stx)
   (syntax-parse stx
