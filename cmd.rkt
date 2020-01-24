@@ -252,7 +252,7 @@
             (when (adheres-to-schema? (bytes->jsexpr b) schema)
               (error
                (comment-out-lines
-                (format "# Response satisfies schema! Response was:~a~a~aSchema was:~a~a~a"
+                (format "Response satisfies schema! Response was:~a~a~aSchema was:~a~a~a"
                         #\newline
                         (render-last-response)
                         #\newline
