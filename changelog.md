@@ -31,6 +31,14 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.17.2] - 2020-01-24
+
+### Fixed
+
+- Supply a fixed `Content-Type` header
+  (`application/json;charset=utf-8`) in requests when a payload is to
+  be sumibtted.
+
 ## [0.17.1] - 2020-01-24
 
 ### Fixed
