@@ -74,7 +74,7 @@ has-property: expression ("has" | "does" "not" "have") "property" expression
 
 jp-existence: JSON-POINTER
   ("exists" | ("does" "not" "exist"))
-  [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER | bang) ]
+  [ "relative" "to" (normal-identifier | HEADER-IDENTIFIER | bang | json-pointer) ]
   [ ("and" "is" jp-value-adjective) |  ("and" "is" ("a" | "an") jp-value-adjective json-type) ]
 
 @jp-value-adjective: [ "non" ] ("empty" | "negative" | "positive")
@@ -144,7 +144,8 @@ expression: json-pointer
 
 bang: BANG
 
-json-pointer: JSON-POINTER | (JSON-POINTER "relative" "to" (normal-identifier | HEADER-IDENTIFIER | bang))
+json-pointer: JSON-POINTER
+  | (JSON-POINTER "relative" "to" (normal-identifier | HEADER-IDENTIFIER | bang | json-pointer))
 
 reference-token: escaped-token | unescaped-token
 
