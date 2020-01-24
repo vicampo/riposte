@@ -199,9 +199,10 @@
          (error "Previous response has an empty body; cannot convert it to JSON for checking JSON Schema conformance.")]
         [(not (response-well-formed?))
          (error
-          (format "Previous response body is malformed JSON; cannot check it for JSON Schema conformance.~a~a"
-                  #\newline
-                  (comment-out-lines (render-last-response))))]
+          (comment-out-lines
+           (format "Previous response body is malformed JSON; cannot check it for JSON Schema conformance.~a~a"
+                   #\newline
+                   (render-last-response))))]
         [else
          (match (last-response)
            [#f
