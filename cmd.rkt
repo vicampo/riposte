@@ -291,7 +291,7 @@
                  received-code
                  code
                  #\newline
-                 (comment-out-lines (render-last-response))))))]
+                 (render-last-response)))))]
     [#f
      (error
       (format
