@@ -22,6 +22,7 @@
          json-object-item
          json-array
          json-array-item
+         json-null
          json-boolean
          has-type
          json-pointer
@@ -45,7 +46,8 @@
                      syntax/parse
                      syntax/stx
                      racket/syntax)
-         json
+         (except-in json
+                    json-null)
          json-pointer
          argo
          net/url
@@ -617,6 +619,11 @@
     [(_ "false")
      #'#f]))
 
+(define-syntax (json-null stx)
+  (syntax-parse stx
+    [(_ "null")
+     #''null]))
+
 (define-macro-cases schema-ref
   [(_ "in" PATH)
    #'(begin
@@ -877,6 +884,8 @@
   [(_ (json-object-item KEY VALUE))
    #'(check-environment-variables VALUE)]
   [(_ (json-boolean B))
+   #'(void)]
+  [(_ (json-null B))
    #'(void)]
   [(_ (parameter-assignment PARAM VAL))
    #'(check-environment-variables VAL)]

@@ -17,6 +17,7 @@
          json-array
          json-array-item
          json-boolean
+         json-null
          command
          uri-template
          uri-template-expression
