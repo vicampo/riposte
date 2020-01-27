@@ -145,7 +145,7 @@ expression: json-pointer
 bang: BANG
 
 json-pointer: JSON-POINTER
-  | (JSON-POINTER "relative" "to" (normal-identifier | HEADER-IDENTIFIER | bang | json-pointer))
+  | (JSON-POINTER "relative" "to" expression)
 
 reference-token: escaped-token | unescaped-token
 
