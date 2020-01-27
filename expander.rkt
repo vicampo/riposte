@@ -882,7 +882,9 @@
        (check-environment-variables ITEM)
        (check-environment-variables (json-object ITEMS ...)))]
   [(_ (json-object-item KEY VALUE))
-   #'(check-environment-variables VALUE)]
+   #'(begin
+       (check-environment-variables KEY)
+       (check-environment-variables VALUE))]
   [(_ (json-boolean B))
    #'(void)]
   [(_ (json-null B))
