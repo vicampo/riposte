@@ -31,6 +31,19 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.18.0] - 2020-01-24
+
+### Added
+
+- Command payloads will be printed.
+- Support for exploding strings: `$a exploded by "-"` evaluates, if
+  `$a` is a string, to an array of strings separated by `-`.
+
+### Fixed
+
+- Error when checking environment variables hiding in JSON null
+  expressions. (Of course, there aren't any.)
+
 ## [0.17.2] - 2020-01-24
 
 ### Fixed
