@@ -144,7 +144,7 @@
            (url->string (combine-url/relative (param-base-url) url))]
           [else
            url]))
-  (display (format "~a ~a" method final-url))
+  (display (format "~a ~a to ~a" method (json-pretty-print payload) final-url))
   (flush-output)
   (match timeout
     [#f
