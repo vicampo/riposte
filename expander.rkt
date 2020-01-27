@@ -203,7 +203,7 @@
   [else
    (syntax-parse caller-stx
      [(_ l:string)
-      #'l]
+      #'(string-append "\"" 'l "\"")]
      [(_ n:number)
       #'n]
      [(_ i:id)
