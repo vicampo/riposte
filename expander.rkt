@@ -608,9 +608,22 @@
 
 (define-macro-cases json-pointer
   [(_ JP)
-   #'(json-pointer-value JP (last-response->jsexpr))]
+   #'(let ([doc (last-response->jsexpr)])
+       (unless (string? JP)
+         (error (format "JSON Pointers should be strings. Given: ~a" JP)))
+       (unless (json-pointer-refers? JP doc)
+         (error (format "JSON Pointer \"~a\" does not refer to anything in the last response.")))
+       (json-pointer-value JP doc))]
   [(_ JP "relative" "to" THING)
-   #'(json-pointer-value JP THING)])
+   #'(let ([doc THING])
+       (unless (string? JP)
+         (error (format "JSON Pointers should be strings. Given: ~a" JP)))
+       (unless (or (json-array? doc)
+                   (json-object? doc))
+         (error (format "Cannot evaluate JSON Pointer ~a on a non-object, non-array: ~a" JP THING)))
+       (unless (json-pointer-refers? JP doc)
+         (error (format "JSON Pointer \"~a\" does not refer to anything in ~a" JP (render THING))))
+       (json-pointer-value JP doc))])
 
 (define-syntax (unset stx)
   (syntax-parse stx
