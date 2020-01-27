@@ -141,6 +141,8 @@ expression: json-pointer
   | bang
   | head-id
   | expression ("*" | "+" | "-") expression
+  | explode-expression
+  | /"(" expression /")"
 
 bang: BANG
 
@@ -189,3 +191,5 @@ response-head-id: RESPONSE-HEADER-IDENTIFIER
 parameter-identifier: PARAMETER-IDENTIFIER
 
 @riposte-repl: program-step | id
+
+explode-expression: expression /"exploded" /"with" JSON-STRING

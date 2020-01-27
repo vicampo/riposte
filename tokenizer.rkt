@@ -1531,6 +1531,12 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list #\e #\x #\p #\l #\o #\d #\e #\d)
+         (list-rest #\e #\x #\p #\l #\o #\d #\e #\d _))
+     (define result (consume-keyword "exploded" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(list-rest #\w #\i #\t #\h _)
      (define result (consume-keyword "with" chars start))
      (append (lexer-result-tokens result)
@@ -1852,6 +1858,52 @@ RIPOSTE
      (token-struct 'integer "integer" #f #f #f #f #f)
      (position 18 1 17)
      (position 25 1 24)))))
+
+(module+ test
+  (check-tokenize
+   "/-2 is negative"
+   (list
+    (position-token
+     (token-struct 'JSON-POINTER "/-2" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 4 1 3))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 5 1 4)
+     (position 7 1 6))
+    (position-token
+     (token-struct 'negative "negative" #f #f #f #f #f)
+     (position 8 1 7)
+     (position 16 1 15)))))
+
+(module+ test
+  (check-tokenize
+   "(-2) is negative"
+   (list
+    (position-token
+     (token-struct '|(| "(" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 2 1 1))
+    (position-token
+     (token-struct '- "-" #f #f #f #f #f)
+     (position 2 1 1)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'NUMBER 2 #f #f #f #f #f)
+     (position 3 1 2)
+     (position 4 1 3))
+    (position-token
+     (token-struct '|)| ")" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'is "is" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'negative "negative" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 17 1 16)))))
 
 (module+ test
   (check-tokenize
@@ -2521,6 +2573,35 @@ RIPOSTE
      (token-struct 'out "out" #f #f #f #f #f)
      (position 19 1 18)
      (position 22 1 21)))))
+
+(module+ test
+  (check-tokenize
+   "$a := $b exploded with \"+\""
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct ':= ":=" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8))
+    (position-token
+     (token-struct 'exploded "exploded" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 18 1 17))
+    (position-token
+     (token-struct 'with "with" #f #f #f #f #f)
+     (position 19 1 18)
+     (position 23 1 22))
+    (position-token
+     (token-struct 'JSON-STRING "+" #f #f #f #f #f)
+     (position 24 1 23)
+     (position 26 1 25)))))
 
 (module+ main
 

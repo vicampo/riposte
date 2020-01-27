@@ -38,7 +38,8 @@
          exec
          exec-arg-item
          riposte-repl
-         bang)
+         bang
+         explode-expression)
 
 (require (file "expander.rkt"))
 

@@ -39,7 +39,8 @@
          exec
          exec-arg-item
          riposte-repl
-         bang)
+         bang
+         explode-expression)
 
 (require (for-syntax racket/base
                      racket/match
@@ -195,6 +196,10 @@
                     (render THING))]
   [(_ (bang B))
    #'(string->immutable-string (make-string B #\!))]
+  [(_ (explode-expression E S))
+   #'(string-append (render E)
+                    " exploded with "
+                    (render S))]
   [else
    (syntax-parse caller-stx
      [(_ l:string)
@@ -850,6 +855,14 @@
 
 (provide bang)
 
+(define-macro (explode-expression E S)
+  #'(begin
+      (unless (string? E)
+        (error "~a is not a string; cannot explode it." E))
+      (unless (string? S)
+        (error "~a is not a string; cannot explode by it." S))
+      (string-split E S)))
+
 (define-macro-cases check-environment-variables
   ; the first two cases are the nut of the whole thing; everything else is just
   ; breaking the program up, recursively hunting for references to environment
@@ -1069,6 +1082,10 @@
    #'(check-environment-variables I)]
   [(_ (bang B))
    #'(void)]
+  [(_ (explode-expression E S))
+   #'(begin
+       (check-environment-variables E)
+       (check-environment-variables S))]
   [else
    (syntax-parse caller-stx
      [(_ s:string)
