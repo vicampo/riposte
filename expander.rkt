@@ -40,7 +40,8 @@
          exec-arg-item
          riposte-repl
          bang
-         explode-expression)
+         explode-expression
+         snooze)
 
 (require (for-syntax racket/base
                      racket/match
@@ -53,6 +54,7 @@
          argo
          net/url
          racket/format
+         racket/math
          racket/function
          racket/pretty
          racket/port
@@ -1099,6 +1101,8 @@
    #'(begin
        (check-environment-variables E)
        (check-environment-variables S))]
+  [(_ (snooze N UNIT))
+   #'(check-environment-variables N)]
   [else
    (syntax-parse caller-stx
      [(_ s:string)
@@ -1113,3 +1117,25 @@
 
 (define-macro (program-step S)
   #'S)
+
+(define-macro-cases snooze
+  [(_ N "minute")
+   #'(begin
+       (unless (positive-integer? N)
+         (error (format "To sleep, we need a positive integer, but ~a isn't one." (render N))))
+       (sleep (* 60 N)))]
+  [(_ N "minutes")
+   #'(begin
+       (unless (positive-integer? N)
+         (error (format "To sleep, we need a positive integer, but ~a isn't one." (render N))))
+       (sleep (* 60 N)))]
+  [(_ N "second")
+   #'(begin
+       (unless (positive-integer? N)
+         (error (format "To sleep, we need a positive integer, but ~a isn't one." (render N))))
+       (sleep N))]
+  [(_ N "seconds")
+   #'(begin
+       (unless (positive-integer? N)
+         (error (format "To sleep, we need a positive integer, but ~a isn't one." (render N))))
+       (sleep N))])

@@ -8,6 +8,7 @@ riposte-program : (program-step | import)*
   | exec
   | assertion
   | unset
+  | snooze
 
 import: /"import" FILENAME
 
@@ -161,10 +162,6 @@ unescaped-token: (letter | UNDERSCORE | digit) *
 
 json-boolean : "true" | "false"
 
-json-float : json-integer+ "." json-integer+
-
-json-integer : digit +
-
 json-null : "null"
 
 json-array : /"[" [ json-array-item (/"," json-array-item)* ] /"]"
@@ -193,3 +190,5 @@ parameter-identifier: PARAMETER-IDENTIFIER
 @riposte-repl: program-step | id
 
 explode-expression: expression /"exploded" /"with" JSON-STRING
+
+snooze: /"sleep" NUMBER ("second" | "seconds" | "minute" | "minutes")

@@ -39,7 +39,8 @@
          exec-arg-item
          riposte-repl
          bang
-         explode-expression)
+         explode-expression
+         snooze)
 
 (require (file "expander.rkt"))
 

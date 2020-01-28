@@ -1570,6 +1570,36 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list #\s #\l #\e #\e #\p)
+         (list-rest #\s #\l #\e #\e #\p _))
+     (define result (consume-keyword "sleep" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\s #\e #\c #\o #\n #\d #\s)
+         (list-rest #\s #\e #\c #\o #\n #\d #\s _))
+     (define result (consume-keyword "seconds" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\s #\e #\c #\o #\n #\d)
+         (list-rest #\s #\e #\c #\o #\n #\d _))
+     (define result (consume-keyword "second" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\m #\i #\n #\u #\t #\e)
+         (list-rest #\m #\i #\n #\u #\t #\e _))
+     (define result (consume-keyword "minute" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\m #\i #\n #\u #\t #\e #\s)
+         (list-rest #\m #\i #\n #\u #\t #\e #\s _))
+     (define result (consume-keyword "minutes" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons (? char? c) _)
      (error (format "Unexpected character (~a) encountered at the toplevel at line ~a column ~a. Bailing out."
                     c
@@ -1904,6 +1934,33 @@ RIPOSTE
      (token-struct 'negative "negative" #f #f #f #f #f)
      (position 9 1 8)
      (position 17 1 16)))))
+
+(module+ test
+  (check-tokenize
+   "sleep 5 seconds"
+   (list
+    (position-token
+     (token-struct 'sleep "sleep" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'NUMBER 5 #f #f #f #f #f)
+     (position 7 1 6)
+     (position 8 1 7))
+    (position-token
+     (token-struct 'seconds "seconds" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 16 1 15)))))
+
+(module+ test
+  (check-tokenize
+   "sleep 1 minute"
+   (list)))
+
+(module+ test
+  (check-tokenize
+   "sleep 5.5 minutes"
+   (list)))
 
 (module+ test
   (check-tokenize

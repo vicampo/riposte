@@ -31,6 +31,15 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.19.0] - 2020-01-24
+
+### Added
+
+- You can now sleep with Riposte: `sleep 5 seconds`, `sleep 1
+  minute`. Give a positive integer and a unit (`seconds` and `minutes`
+  are supported). `second` and `minute` are also OK (they are synonyms
+  of their plural forms).
+
 ## [0.18.0] - 2020-01-24
 
 ### Added
