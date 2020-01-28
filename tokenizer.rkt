@@ -144,7 +144,7 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 (define/contract (char-identifier? x)
   (char? . -> . boolean?)
   (match x
-    [(or (? char-alphabetic?) #\_ #\-)
+    [(or (? char-alphabetic?) (? char-numeric?) #\_ #\-)
      #t]
     [else
      #f]))
