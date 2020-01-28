@@ -31,6 +31,12 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.19.1] - 2020-01-28
+
+### Fixed
+
+- Numbers are now allowed in identifiers.
+
 ## [0.19.0] - 2020-01-24
 
 ### Added
