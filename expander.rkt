@@ -192,6 +192,8 @@
    #'(string-append "{"
                     (render-items ITEMS ...)
                     "}")]
+  [(_ (json-boolean B))
+   #'B]
   [(_ (json-pointer JP))
    #'JP]
   [(_ (json-pointer JP "relative" "to" THING))
