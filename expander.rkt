@@ -253,6 +253,11 @@
        (response-code-matches? CODE)
        (unless (equal-jsexprs? THING (last-response->jsexpr))
          (error (format "Last response does not equal ~a" (json-pretty-print THING)))))]
+  [(_ METHOD PAYLOAD URI)
+   #'(begin
+       (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1)))]
   [(_ METHOD PAYLOAD URI (responds-with CODE))
    #'(begin
        (cmd/payload METHOD URI PAYLOAD #:timeout (param-timeout))
@@ -958,6 +963,11 @@
    #'(begin
        (check-environment-variables URI)
        (check-environment-variables SCHEMA))]
+  [(_ (command METHOD PAYLOAD URI))
+   #'(begin
+       (check-environment-variables METHOD)
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables URI))]
   [(_ (command METHOD PAYLOAD URI (responds-with CODE)))
    #'(begin
        (check-environment-variables PAYLOAD)
