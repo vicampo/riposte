@@ -31,7 +31,14 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
-## [0.12.2] - 2020-02-05
+## [0.19.3] - 2020-02-05
+
+### Fixed
+
+- Lexing negative numbers used to be broken. Example: given "-12", we
+  would incorrectly generate two tokens: "-" and "12".
+
+## [0.19.2] - 2020-02-05
 
 ### Added
 
