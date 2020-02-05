@@ -18,6 +18,7 @@
          misc1/syntax
          (file "util.rkt")
          (only-in (file "./parser.rkt")
+                  parse-file
                   is-well-formed?)
          (prefix-in riposte: (file "reader.rkt"))
          riposte
@@ -105,8 +106,10 @@
                              (cond [(opt-lint) (void)]
                                    [else #f])))]
           [else
-           (displayln (format "Malformed Riposte file: ~a" (path->string f))
-                      (current-error-port))
+           (with-handlers ([exn? show-error&die])
+             (displayln (format "Malformed Riposte file: ~a" (path->string f))
+                        (current-error-port))
+             (parse-file f))
            (exit 1)]))
 
   (match file-to-process
