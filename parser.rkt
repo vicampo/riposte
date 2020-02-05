@@ -1,6 +1,7 @@
 #lang racket/base
 
-(provide is-well-formed?)
+(provide is-well-formed?
+         parse-file)
 
 (require racket/contract
          syntax/stx
