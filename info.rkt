@@ -10,6 +10,7 @@
     "net-cookies-lib"
     "web-server-lib"
     "base"
+    "racket-doc"
     "brag-lib"
     "br-parser-tools-lib"
     "beautiful-racket-lib"
