@@ -31,6 +31,13 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.12.2] - 2020-02-05
+
+### Added
+
+- If a Riposte file is malformed, show the parse error (i.e., the line
+  & column where parsing went awry).
+
 ## [0.19.1] - 2020-01-28
 
 ### Fixed
