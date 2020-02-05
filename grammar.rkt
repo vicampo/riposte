@@ -38,7 +38,7 @@ echo: /"echo" [ json-pointer | normal-identifier | head-id ]
 
 unset: /"unset" REQUEST-HEADER-IDENTIFIER
 
-@assertion : equality | disequality | inequality | predication
+@assertion : equality | disequality | inequality | predication | matches
 
 equality : expression /"=" expression
 
@@ -53,6 +53,8 @@ inequality : expression ("<" | ">" | "<=" | ">=") expression
   | header-presence
   | jp-existence
   | sequence-predicate
+
+matches: expression /"matches" json-object
 
 has-type: expression "is" [ "non" ] adjective
   | expression "is" [ "not" ] ( "a" | "an" ) [ [ "non" ] adjective ] json-type

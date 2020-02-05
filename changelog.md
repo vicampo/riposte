@@ -31,6 +31,12 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.20.0] - 2020-02-05
+
+### Added
+
+- Simple matching support against JSON arrays: check that a value is a JSON array with keys in a subset of those of a given match JSON object. Example: `$a matches { "foo": true, "bar": "baz" }` passes if the value of `$a` is a JSON object with two properties, `"foo"` and `"bar"`, and the values of those properties are, respectively, equal to `true` and `"baz"`. It is allowed that the value of `$a` contains additional properties. (What we're talking about here is, essentially, a compact notation for a certain class of JSON Schemas.)
+
 ## [0.19.3] - 2020-02-05
 
 ### Fixed

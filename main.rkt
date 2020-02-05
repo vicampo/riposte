@@ -40,7 +40,8 @@
          riposte-repl
          bang
          explode-expression
-         snooze)
+         snooze
+         matches)
 
 (require (file "expander.rkt"))
 

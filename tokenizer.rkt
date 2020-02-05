@@ -1271,6 +1271,12 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(or (list #\m #\a #\t #\c #\h #\e #\s)
+         (list-rest #\m #\a #\t #\c #\h #\e #\s (? char-whitespace?) _))
+     (define result (consume-keyword "matches" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
     [(cons #\# _)
      (define result (comment chars start))
      (append (lexer-result-tokens result)
@@ -2698,6 +2704,39 @@ RIPOSTE
      (token-struct 'NUMBER -6 #f #f #f #f #f)
      (position 8 1 7)
      (position 10 1 9)))))
+
+(module+ test
+  (check-tokenize
+   "$a matches { \"foo\": $bar }"
+   (list
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'matches "matches" #f #f #f #f #f)
+     (position 4 1 3)
+     (position 11 1 10))
+    (position-token
+     (token-struct '|{| "{" #f #f #f #f #f)
+     (position 12 1 11)
+     (position 13 1 12))
+    (position-token
+     (token-struct 'JSON-STRING "foo" #f #f #f #f #f)
+     (position 14 1 13)
+     (position 18 1 17))
+    (position-token
+     (token-struct ': ":" #f #f #f #f #f)
+     (position 18 1 17)
+     (position 19 1 18))
+    (position-token
+     (token-struct 'IDENTIFIER "bar" #f #f #f #f #f)
+     (position 20 1 19)
+     (position 24 1 23))
+    (position-token
+     (token-struct '|}| "}" #f #f #f #f #f)
+     (position 25 1 24)
+     (position 26 1 25)))))
 
 (module+ main
 

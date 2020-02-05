@@ -41,7 +41,8 @@
          riposte-repl
          bang
          explode-expression
-         snooze)
+         snooze
+         matches)
 
 (require (for-syntax racket/base
                      racket/match
@@ -882,6 +883,24 @@
         (error "~a is not a string; cannot explode by it." S))
       (string-split E S)))
 
+(define-macro (matches S M)
+  #'(begin
+      (unless (hash? S)
+        (error (format "To match ~a, we need an array."
+                       (render S))))
+      (unless (hash? M)
+        (error (format "To match ~a, we need an array, but ~a isn't one."
+                       (render S)
+                       (render M))))
+      (for ([k (hash-keys M)])
+        (unless (hash-has-key? S k)
+          (error (format "Property \"~a\" missing from ~a." k (render S))))
+        (unless (equal-jsexprs? (hash-ref S k) (hash-ref M k))
+          (error (format "~a and ~a disagree on the value of property \"~a\"."
+                         (render S)
+                         (render M)
+                         k))))))
+
 (define-macro-cases check-environment-variables
   ; the first two cases are the nut of the whole thing; everything else is just
   ; breaking the program up, recursively hunting for references to environment
@@ -1109,6 +1128,10 @@
    #'(check-environment-variables N)]
   [(_ (unset H))
    #'(check-environment-variables H)]
+  [(_ (matches S M))
+   #'(begin
+       (check-environment-variables S)
+       (check-environment-variables M))]
   [else
    (syntax-parse caller-stx
      [(_ s:string)
