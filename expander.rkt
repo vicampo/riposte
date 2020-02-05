@@ -1105,6 +1105,8 @@
        (check-environment-variables S))]
   [(_ (snooze N UNIT))
    #'(check-environment-variables N)]
+  [(_ (unset H))
+   #'(check-environment-variables H)]
   [else
    (syntax-parse caller-stx
      [(_ s:string)
