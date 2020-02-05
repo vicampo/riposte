@@ -117,10 +117,10 @@
   (define (network-fail e)
     (error (format "Failed to connect to ~a!" url)))
   (define (died e)
-    (log-error "~a" (exn-message e))
-    (error (format "Something weird happened when sending a ~a request to ~a!"
+    (error (format "Something weird happened when sending a ~a request to ~a! The error was: ~a"
                    method
-                   url)))
+                   url
+                   (exn-message e))))
   (with-handlers ([exn:fail:network? network-fail]
                   [exn? died])
     (call/output-request "1.1"
@@ -148,20 +148,28 @@
   (flush-output)
   (match timeout
     [#f
-     (match (request/payload method final-url headers payload)
-       [(list code response-headers body)
-        (displayln (format " responds with ~a" code))
-        (update-last-response! code response-headers body)])]
+     (with-handlers ([exn? (lambda (e)
+                             (displayln " fails")
+                             (displayln (comment-out-lines (exn-message e)))
+                             (update-last-response! #f #f #f))])
+       (match (request/payload method final-url headers payload)
+         [(list code response-headers body)
+          (displayln (format " responds with ~a" code))
+          (update-last-response! code response-headers body)]))]
     [(? integer?)
      (define c (make-channel))
      (match (sync/timeout
              timeout
              (thread
               (lambda ()
-                (match (request/payload method final-url headers payload)
-                  [(list code response-headers body)
-                   (displayln (format " responds with ~a" code))
-                   (update-last-response! code response-headers body)]))))
+                (with-handlers ([exn? (lambda (e)
+                                        (displayln " fails")
+                                        (displayln (comment-out-lines (exn-message e)))
+                                        (update-last-response! #f #f #f))])
+                  (match (request/payload method final-url headers payload)
+                    [(list code response-headers body)
+                     (displayln (format " responds with ~a" code))
+                     (update-last-response! code response-headers body)])))))
        [#f
         (displayln " times out")]
        [(? thread? t)
@@ -301,11 +309,22 @@
 
 ; string? string? (#f hash? symbol? string?) -> (list/c exact-integer? (and/c immutable? (hash/c symbol? string?)) bytes?)
 (define (request method url headers)
-  (call/input-request "1.1"
-                      method
-                      url
-                      headers
-                      read-entity/bytes+response-code))
+  (define (network-fail e)
+    (displayln " fails")
+    (error (format "Failed to connect to ~a!" url)))
+  (define (died e)
+    (displayln " fails")
+    (error (format "Something weird happened when sending a ~a request to ~a! The error was: ~a"
+                   method
+                   url
+                   (exn-message e))))
+  (with-handlers ([exn:fail:network? network-fail]
+                  [exn? died])
+    (call/input-request "1.1"
+                        method
+                        url
+                        headers
+                        read-entity/bytes+response-code)))
 
 (define/contract
   (last-response)
