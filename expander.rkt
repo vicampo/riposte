@@ -184,6 +184,8 @@
    #'(string-append "(" (render E1) " - " (render E2) ")")]
   [(_ (normal-identifier ID))
    #'(~a #\$ (syntax-e #'ID))]
+  [(_ (env-identifier ID))
+   #'(string-append "@" (render ID))]
   [(_ (response-head-id ID))
    #'(~a (syntax-e #'ID) #\^)]
   [(_ (json-object ITEMS ...))
