@@ -474,19 +474,28 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
 (define/contract (read-integer-chars cs)
   ((listof char?) . -> . (listof char?))
   (match cs
-    [(list)
-     (list)]
     [(cons (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) _)
      (cons (car cs)
            (read-integer-chars (cdr cs)))]
     [else
      (list)]))
 
+(define/contract (read-number-chars cs)
+  ((listof char?) . -> . (listof char?))
+  (match cs
+    [(or (list #\- (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) ..1)
+         (list-rest #\- (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) ..1 _))
+     (cons #\- (read-integer-chars (cdr cs)))]
+    [(cons (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) _)
+     (read-integer-chars cs)]
+    [else
+     (list)]))
+
 (define/contract (number chars start)
   ((listof char?) position? . -> . lexer-result?)
-  (define digits (read-integer-chars chars))
+  (define digits (read-number-chars chars))
   (when (empty? chars)
-    (error "Failed to read any integer characters!"))
+    (error "Failed to read any number characters!"))
   (define remaining-chars (drop chars (length digits)))
   (define end-position (add-position start digits))
   (match remaining-chars
@@ -704,6 +713,10 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
      (consume-keyword "true" chars start)]
     [(list-rest #\f #\a #\l #\s #\e _)
      (consume-keyword "false" chars start)]
+    [(list #\- (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) ..1)
+     (number chars start)]
+    [(list-rest #\- (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) ..1 _)
+     (number chars start)]
     [(cons (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) _)
      (number chars start)]
     [else
@@ -1273,6 +1286,12 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                       new-position))]
     [(cons #\/ _)
      (define result (json-pointer chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\- (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) ..1)
+         (list-rest #\- (or #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9) ..1 _))
+     (define result (number chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -1915,12 +1934,8 @@ RIPOSTE
      (position 1 1 0)
      (position 2 1 1))
     (position-token
-     (token-struct '- "-" #f #f #f #f #f)
+     (token-struct 'NUMBER -2 #f #f #f #f #f)
      (position 2 1 1)
-     (position 3 1 2))
-    (position-token
-     (token-struct 'NUMBER 2 #f #f #f #f #f)
-     (position 3 1 2)
      (position 4 1 3))
     (position-token
      (token-struct '|)| ")" #f #f #f #f #f)
@@ -1955,12 +1970,19 @@ RIPOSTE
 (module+ test
   (check-tokenize
    "sleep 1 minute"
-   (list)))
-
-(module+ test
-  (check-tokenize
-   "sleep 5.5 minutes"
-   (list)))
+   (list
+   (position-token
+    (token-struct 'sleep "sleep" #f #f #f #f #f)
+    (position 1 1 0)
+    (position 6 1 5))
+   (position-token
+    (token-struct 'NUMBER 1 #f #f #f #f #f)
+    (position 7 1 6)
+    (position 8 1 7))
+   (position-token
+    (token-struct 'minute "minute" #f #f #f #f #f)
+    (position 9 1 8)
+    (position 15 1 14)))))
 
 (module+ test
   (check-tokenize
@@ -2659,6 +2681,23 @@ RIPOSTE
      (token-struct 'JSON-STRING "+" #f #f #f #f #f)
      (position 24 1 23)
      (position 26 1 25)))))
+
+(module+ test
+  (check-tokenize
+   "/foo = -6"
+   (list
+    (position-token
+     (token-struct 'JSON-POINTER "/foo" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 5 1 4))
+    (position-token
+     (token-struct '= "=" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 7 1 6))
+    (position-token
+     (token-struct 'NUMBER -6 #f #f #f #f #f)
+     (position 8 1 7)
+     (position 10 1 9)))))
 
 (module+ main
 
