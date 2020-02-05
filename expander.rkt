@@ -616,7 +616,7 @@
        (unless (string? JP)
          (error (format "JSON Pointers should be strings. Given: ~a" JP)))
        (unless (json-pointer-refers? JP doc)
-         (error (format "JSON Pointer \"~a\" does not refer to anything in the last response.")))
+         (error (format "JSON Pointer \"~a\" does not refer to anything in the last response." JP)))
        (json-pointer-value JP doc))]
   [(_ JP "relative" "to" THING)
    #'(let ([doc THING])
