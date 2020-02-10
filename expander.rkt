@@ -101,7 +101,7 @@
              [(hash? e1)
               (unless (hash? e2)
                 (error (format "~a works out to be an object, but ~a is not an object. Addition is not defined in this case." (render e1) (render e2))))
-              (hash-union e1 e2)]
+              (hash-union e1 e2 #:combine/key (lambda (k v1 v2) v2))]
              [(number? e1)
               (unless (number? e2)
                 (error (format "~a works out to be a number, but ~a is not a number. Addition is not defined in this case." (render e1) (render e2))))
