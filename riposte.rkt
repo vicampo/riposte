@@ -2,6 +2,8 @@
 
 (require (for-syntax racket/base)
          racket/cmdline
+         (only-in racket/function
+                  negate)
          (only-in racket/file
                   find-files)
          (only-in racket/path
@@ -120,6 +122,14 @@
      (run! (dotenv-load! (opt-dotenvs)))
      (cond [(directory-exists? filename)
             (define files (find-files is-riposte-file? (string->path filename)))
+            (define busted-files (filter (negate is-well-formed?) files))
+            (unless (empty? busted-files)
+              (displayln (format "The following Riposte files are malformed:")
+                         (current-error-port))
+              (for ([f busted-files])
+                (displayln (format "~a" (path->string f))
+                           (current-error-port)))
+              (exit 1))
             (for [(f files)]
               (displayln (format "# ~a" (path->string f)))
               (riposte-it f))]

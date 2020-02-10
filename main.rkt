@@ -41,7 +41,10 @@
          bang
          explode-expression
          snooze
-         matches)
+         matches
+         function-definition
+         function-call
+         return)
 
 (require (file "expander.rkt"))
 

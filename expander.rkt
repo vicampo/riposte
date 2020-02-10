@@ -42,7 +42,10 @@
          bang
          explode-expression
          snooze
-         matches)
+         matches
+         function-definition
+         function-call
+         return)
 
 (require (for-syntax racket/base
                      racket/match
@@ -454,20 +457,27 @@
     [(_ part ...)
      #'(string-append part ...)]))
 
-(define-syntax (uri-template-expression stx)
-  (syntax-parse stx
-    [(_ e)
-     #'e]))
+(define-macro-cases uri-template-expression
+  [(_ (uri-template-operator "?") L)
+   #'(string-append "?" L)]
+  [(_ L)
+   #'L])
 
 (define-syntax (uri-template-variable-list stx)
   (syntax-parse stx
     [(_ e ...)
      #'(apply string-append (map ~a (list e ...)))]))
 
-(define-syntax (uri-template-varspec stx)
-  (syntax-parse stx
-    [(_ ident:string)
-     (format-id stx "~a" (syntax->datum #'ident))]))
+(define-macro-cases uri-template-varspec
+  [(_ I)
+   (format-id #'I "~a" (syntax->datum #'I))]
+  [(_ I (uri-template-variable-modifier "*"))
+   (with-syntax ([h (format-id #'I "~a" (syntax->datum #'I))])
+     #'(apply string-append
+              (add-between (map (lambda (p)
+                                  (format "~a=~a" (car p) (cdr p)))
+                                (hash->list h))
+                           "&")))])
 
 (define-syntax (json-object stx)
   (syntax-parse stx
@@ -906,6 +916,22 @@
                          (render M)
                          k))))))
 
+(define-macro (function-definition F (function-definition-args A ...) S ...)
+  (with-syntax [(name (format-id #'F "~a" (syntax->datum #'F)))
+                (formals (stx-map (lambda (s)
+                                    (format-id s "~a" (syntax->datum s)))
+                                  #'(A ...)))]
+    #'(define name
+        (lambda formals
+          S ...))))
+
+(define-macro (function-call F ARGS ...)
+  (with-syntax ([func (format-id #'F "~a" (syntax->datum #'F))])
+    #'(apply func (list ARGS ...))))
+
+(define-macro (return E)
+  #'E)
+
 (define-macro-cases check-environment-variables
   ; the first two cases are the nut of the whole thing; everything else is just
   ; breaking the program up, recursively hunting for references to environment
@@ -1142,6 +1168,26 @@
    #'(begin
        (check-environment-variables S)
        (check-environment-variables M))]
+  [(_ (function-definition F ARGS S ...))
+   #'(begin
+       (check-environment-variables F)
+       (check-environment-variables ARGS)
+       (check-environment-variables (riposte-program S ...)))]
+  [(_ (function-definition-args A ...))
+   #'(check-environment-variables (riposte-program A ...))]
+  [(_ (function-call F ARG ARGS ...))
+   #'(begin
+       (check-environment-variables F)
+       (check-environment-variables ARG)
+       (check-environment-variables (function-call F ARGS ...)))]
+  [(_ (function-call F ARGS))
+   #'(begin
+       (check-environment-variables F)
+       (check-environment-variables ARGS))]
+  [(_ (function-call F))
+   #'(check-environment-variables F)]
+  [(_ (return E))
+   #'(check-environment-variables E)]
   [else
    (syntax-parse caller-stx
      [(_ s:string)

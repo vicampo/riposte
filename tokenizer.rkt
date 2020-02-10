@@ -900,6 +900,58 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
                    (cons method/token (lexer-result-tokens after-method/result))
                    (lexer-result-characters after-method/result))]))
 
+(define/contract (function-name chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(cons (? char-whitespace?) _)
+     (function-name (cdr chars)
+                    (add-position start (car chars)))]
+    [(list-rest (? char-identifier?) ..1 _)
+     (define function-chars (takef chars char-identifier?))
+     (define end-position (add-position start function-chars))
+     (define t (position-token (token 'FUNCTION-NAME (list->string function-chars))
+                               start
+                               end-position))
+     (lexer-result end-position
+                   (list t)
+                   (drop chars (length function-chars)))]))
+
+(define/contract (function chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(cons (? char-whitespace?) _)
+     (function (cdr chars)
+               (add-position start (car chars)))]
+    [(list #\f #\u #\n #\c #\t #\i #\o #\n)
+     (consume-keyword "function" chars start)]
+    [(list-rest #\f #\u #\n #\c #\t #\i #\o #\n (? char-whitespace?) _)
+     (define keyword-result (consume-keyword "function" chars start))
+     (define remaining-chars (lexer-result-characters keyword-result))
+     (define after-keyword-position (lexer-result-end-position keyword-result))
+     (define function-name-result (function-name remaining-chars after-keyword-position))
+     (lexer-result (lexer-result-end-position function-name-result)
+                   (append (lexer-result-tokens keyword-result)
+                           (lexer-result-tokens function-name-result))
+                   (lexer-result-characters function-name-result))]))
+
+(define/contract (call chars start)
+  ((listof char?) position? . -> . lexer-result?)
+  (match chars
+    [(cons (? char-whitespace?) _)
+     (function (cdr chars)
+               (add-position start (car chars)))]
+    [(list #\c #\a #\l #\l)
+     (consume-keyword "call" chars start)]
+    [(list-rest #\c #\a #\l #\l (? char-whitespace?) _)
+     (define keyword-result (consume-keyword "call" chars start))
+     (define remaining-chars (lexer-result-characters keyword-result))
+     (define after-keyword-position (lexer-result-end-position keyword-result))
+     (define function-name-result (function-name remaining-chars after-keyword-position))
+     (lexer-result (lexer-result-end-position function-name-result)
+                   (append (lexer-result-tokens keyword-result)
+                           (lexer-result-tokens function-name-result))
+                   (lexer-result-characters function-name-result))]))
+
 (define/contract (responds:responds chars start)
   ((listof char?) position? . -> . lexer-result?)
   (define keyword-length (string-length "responds"))
@@ -1240,11 +1292,19 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
-    [(cons #\$ more)
+    [(cons #\$ _)
      (define result (identifier chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
+    [(cons #\, _)
+     (define c (car chars))
+     (define new-position (add-position start c))
+     (define t (position-token (token (string->symbol (~a c)) c)
+                               start
+                               new-position))
+     (cons t (initial (cdr chars)
+                      new-position))]
     [(cons #\@ _)
      (define result (environment-identifier chars start))
      (append (lexer-result-tokens result)
@@ -1622,6 +1682,41 @@ Identifiers: $ followed by a sequence of letters, numbers, '_', and "-"
     [(or (list #\m #\i #\n #\u #\t #\e #\s)
          (list-rest #\m #\i #\n #\u #\t #\e #\s _))
      (define result (consume-keyword "minutes" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\f #\u #\n #\c #\t #\i #\o #\n)
+         (list-rest #\f #\u #\n #\c #\t #\i #\o #\n _))
+     (define result (function chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\b #\e #\g #\i #\n)
+         (list-rest #\b #\e #\g #\i #\n _))
+     (define result (consume-keyword "begin" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\e #\n #\d)
+         (list-rest #\e #\n #\d (not #\s) _))
+     (define result (consume-keyword "end" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\c #\a #\l #\l)
+         (list-rest #\c #\a #\l #\l _))
+     (define result (call chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(or (list #\r #\e #\t #\u #\r #\n)
+         (list-rest #\r #\e #\t #\u #\r #\n (? char-whitespace?) _))
+     (define result (consume-keyword "return" chars start))
+     (append (lexer-result-tokens result)
+             (initial (lexer-result-characters result)
+                      (lexer-result-end-position result)))]
+    [(list-rest (? char-identifier?) ..1 (? char-whitespace?) ... #\( _)
+     (define result (function-name chars start))
      (append (lexer-result-tokens result)
              (initial (lexer-result-characters result)
                       (lexer-result-end-position result)))]
@@ -2737,6 +2832,194 @@ RIPOSTE
      (token-struct '|}| "}" #f #f #f #f #f)
      (position 25 1 24)
      (position 26 1 25)))))
+
+(module+ test
+  (check-tokenize
+   "function foo($a, $b) := begin GET x responds with 2XX return /foo end"
+   (list
+    (position-token
+     (token-struct 'function "function" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 9 1 8))
+    (position-token
+     (token-struct 'FUNCTION-NAME "foo" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 13 1 12))
+    (position-token
+     (token-struct '|(| "(" #f #f #f #f #f)
+     (position 13 1 12)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 14 1 13)
+     (position 16 1 15))
+    (position-token
+     (token-struct '|,| #\, #f #f #f #f #f)
+     (position 16 1 15)
+     (position 17 1 16))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 18 1 17)
+     (position 20 1 19))
+    (position-token
+     (token-struct '|)| ")" #f #f #f #f #f)
+     (position 20 1 19)
+     (position 21 1 20))
+    (position-token
+     (token-struct ':= ":=" #f #f #f #f #f)
+     (position 22 1 21)
+     (position 24 1 23))
+    (position-token
+     (token-struct 'begin "begin" #f #f #f #f #f)
+     (position 25 1 24)
+     (position 30 1 29))
+    (position-token
+     (token-struct 'HTTP-METHOD "GET" #f #f #f #f #f)
+     (position 31 1 30)
+     (position 34 1 33))
+    (position-token
+     (token-struct 'URI-TEMPLATE-LITERAL "x" #f #f #f #f #f)
+     (position 35 1 34)
+     (position 36 1 35))
+    (position-token
+     (token-struct 'responds #f #f #f #f #f #f)
+     (position 37 1 36)
+     (position 45 1 44))
+    (position-token
+     (token-struct 'with #f #f #f #f #f #f)
+     (position 46 1 45)
+     (position 50 1 49))
+    (position-token
+     (token-struct 'HTTP-STATUS-CODE "2XX" #f #f #f #f #f)
+     (position 51 1 50)
+     (position 54 1 53))
+    (position-token
+     (token-struct 'return "return" #f #f #f #f #f)
+     (position 55 1 54)
+     (position 61 1 60))
+    (position-token
+     (token-struct 'JSON-POINTER "/foo" #f #f #f #f #f)
+     (position 62 1 61)
+     (position 66 1 65))
+    (position-token
+     (token-struct 'end "end" #f #f #f #f #f)
+     (position 67 1 66)
+     (position 70 1 69)))))
+
+(module+ test
+  (check-tokenize
+   "function foo($a, $b) := { \"foo\": true }"
+   (list
+    (position-token
+     (token-struct 'function "function" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 9 1 8))
+    (position-token
+     (token-struct 'FUNCTION-NAME "foo" #f #f #f #f #f)
+     (position 10 1 9)
+     (position 13 1 12))
+    (position-token
+     (token-struct '|(| "(" #f #f #f #f #f)
+     (position 13 1 12)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 14 1 13)
+     (position 16 1 15))
+    (position-token
+     (token-struct '|,| #\, #f #f #f #f #f)
+     (position 16 1 15)
+     (position 17 1 16))
+    (position-token
+     (token-struct 'IDENTIFIER "b" #f #f #f #f #f)
+     (position 18 1 17)
+     (position 20 1 19))
+    (position-token
+     (token-struct '|)| ")" #f #f #f #f #f)
+     (position 20 1 19)
+     (position 21 1 20))
+    (position-token
+     (token-struct ':= ":=" #f #f #f #f #f)
+     (position 22 1 21)
+     (position 24 1 23))
+    (position-token
+     (token-struct '|{| "{" #f #f #f #f #f)
+     (position 25 1 24)
+     (position 26 1 25))
+    (position-token
+     (token-struct 'JSON-STRING "foo" #f #f #f #f #f)
+     (position 27 1 26)
+     (position 31 1 30))
+    (position-token
+     (token-struct ': ":" #f #f #f #f #f)
+     (position 31 1 30)
+     (position 32 1 31))
+    (position-token
+     (token-struct 'true "true" #f #f #f #f #f)
+     (position 33 1 32)
+     (position 37 1 36))
+    (position-token
+     (token-struct '|}| "}" #f #f #f #f #f)
+     (position 38 1 37)
+     (position 39 1 38)))))
+
+(module+ test
+  (check-tokenize
+   "call f with [ $x ]"
+   (list
+    (position-token
+     (token-struct 'call "call" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 5 1 4))
+    (position-token
+     (token-struct 'FUNCTION-NAME "f" #f #f #f #f #f)
+     (position 6 1 5)
+     (position 7 1 6))
+    (position-token
+     (token-struct 'with "with" #f #f #f #f #f)
+     (position 8 1 7)
+     (position 12 1 11))
+    (position-token
+     (token-struct '|[| "[" #f #f #f #f #f)
+     (position 13 1 12)
+     (position 14 1 13))
+    (position-token
+     (token-struct 'IDENTIFIER "x" #f #f #f #f #f)
+     (position 15 1 14)
+     (position 17 1 16))
+    (position-token
+     (token-struct '|]| "]" #f #f #f #f #f)
+     (position 18 1 17)
+     (position 19 1 18)))))
+
+(module+ test
+  (check-tokenize
+   "f($a, 42)"
+   (list
+    (position-token
+     (token-struct 'FUNCTION-NAME "f" #f #f #f #f #f)
+     (position 1 1 0)
+     (position 2 1 1))
+    (position-token
+     (token-struct '|(| "(" #f #f #f #f #f)
+     (position 2 1 1)
+     (position 3 1 2))
+    (position-token
+     (token-struct 'IDENTIFIER "a" #f #f #f #f #f)
+     (position 3 1 2)
+     (position 5 1 4))
+    (position-token
+     (token-struct '|,| #\, #f #f #f #f #f)
+     (position 5 1 4)
+     (position 6 1 5))
+    (position-token
+     (token-struct 'NUMBER 42 #f #f #f #f #f)
+     (position 7 1 6)
+     (position 9 1 8))
+    (position-token
+     (token-struct '|)| ")" #f #f #f #f #f)
+     (position 9 1 8)
+     (position 10 1 9)))))
 
 (module+ main
 

@@ -9,6 +9,8 @@ riposte-program : (program-step | import)*
   | assertion
   | unset
   | snooze
+  | function-definition
+  | function-call
 
 import: /"import" FILENAME
 
@@ -143,9 +145,11 @@ expression: json-pointer
   | id
   | bang
   | head-id
+  | NUMBER
   | expression ("*" | "+" | "-") expression
   | explode-expression
   | /"(" expression /")"
+  | function-call
 
 bang: BANG
 
@@ -194,3 +198,13 @@ parameter-identifier: PARAMETER-IDENTIFIER
 explode-expression: expression /"exploded" /"with" JSON-STRING
 
 snooze: /"sleep" NUMBER ("second" | "seconds" | "minute" | "minutes")
+
+function-definition:
+  /"function" FUNCTION-NAME function-definition-args /":="
+  (json-expression | "begin" (program-step | return) * /"end")
+
+function-definition-args: /"(" IDENTIFIER [/"," IDENTIFIER] * /")"
+
+function-call: FUNCTION-NAME /"(" (expression [ /"," expression ] *) ? /")"
+
+return: /"return" expression
