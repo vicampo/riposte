@@ -31,6 +31,12 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.21.0] - 2020-02-10
+
+### Added
+
+- Initial support for function definitions and applications. Define functions like this: `function foo($x) := begin GET bar/baz responds with 2XX return !`. Another kind of function definition is to immediately return a (parameterized) JSON value, like this: `function foo($x) := { "baz": $x }`.
+
 ## [0.20.0] - 2020-02-05
 
 ### Added
