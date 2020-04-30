@@ -198,6 +198,8 @@
                     "}")]
   [(_ (json-boolean B))
    #'B]
+  [(_ (json-null N))
+   #"null"]
   [(_ (json-pointer JP))
    #'JP]
   [(_ (json-pointer JP "relative" "to" THING))
