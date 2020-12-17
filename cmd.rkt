@@ -134,7 +134,7 @@
 (define (cmd/payload method
                      url
                      payload
-                     #:headers [additional-headers (hash)]
+                     #:headers [additional-headers (hasheq)]
                      #:timeout [timeout #f])
   (define headers (hash-union (make-immutable-hasheq (hash->list request-headers))
                               (hasheq 'content-type "application/json;charset=utf-8")
