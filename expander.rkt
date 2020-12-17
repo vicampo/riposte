@@ -1131,9 +1131,13 @@
        (check-environment-variables E2))]
   [(_ (response-head-id H))
    #'(void)]
+  [(_ (has-type E "is" "empty"))
+   #'(check-environment-variables E)]
   [(_ (has-type E "is" "non" WHATEVER))
    #'(check-environment-variables E)]
   [(_ (has-type E "is" "a" WHATEVER))
+   #'(check-environment-variables E)]
+  [(_ (has-type E "is" "an" WHATEVER))
    #'(check-environment-variables E)]
   [(_ (has-type E "is" "a" ADJECTIVE WHATEVER))
    #'(check-environment-variables E)]
