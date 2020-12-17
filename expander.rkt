@@ -600,7 +600,7 @@
                 (error (format "\"~a\" is a non-empty object (is value is ~a)" (render expr) (json-pretty-print expr))))]
              [(number? expr)
               (error "\"~a\" refers to a number; it is neither empty nor non-empty." (render expr))]
-             [(boolean? v)
+             [(boolean? expr)
               (error "\"~a\" refers to a boolean; it is neither empty nor non-empty." (render expr))]
              [(eq? 'null expr)
               (error (format "~a refers to the null value, which is neither empty nor non-empty." (render expr)))])]
