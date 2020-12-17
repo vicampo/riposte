@@ -45,7 +45,8 @@
          matches
          function-definition
          function-call
-         return)
+         return
+         with-headers)
 
 (require (for-syntax racket/base
                      racket/match
@@ -227,6 +228,17 @@
        (cmd METHOD URI #:timeout (param-timeout))
        (when (last-request-failed?)
          (exit 1)))]
+  [(_ METHOD URI (with-headers HEADERS) (responds-with CODE))
+   #'(begin
+       (unless (json-object? HEADERS)
+         (error (format "Headers is not a JSON object! ~a" (pretty-print HEADERS))))
+       (for ([(k v) (in-hash HEADERS)])
+         (unless (string? v)
+           (error (format "Value for property \"~a\" is not a string: ~a" k v))))
+       (cmd METHOD URI #:headers HEADERS #:timeout (param-timeout))
+       (when (last-request-failed?)
+         (exit 1))
+       (response-code-matches? CODE))]
   [(_ METHOD URI (equals THING))
    #'(begin
        (cmd METHOD URI #:timeout (param-timeout))
@@ -934,6 +946,9 @@
 (define-macro (return E)
   #'E)
 
+(define-macro (with-headers H)
+  #'H)
+
 (define-macro-cases check-environment-variables
   ; the first two cases are the nut of the whole thing; everything else is just
   ; breaking the program up, recursively hunting for references to environment
@@ -977,8 +992,19 @@
    #'(check-environment-variables VAL)]
   [(_ (uri-template T ...))
    #'(void)]
+  [(_ (with-headers H))
+   #'(check-environment-variables H)]
 
   ; the command forms:
+  [(_ (command METHOD PAYLOAD URI (with-headers HEADERS) (responds-with CODE)))
+   #'(begin
+       (check-environment-variables PAYLOAD)
+       (check-environment-variables HEADERS)
+       (check-environment-variables URI))]
+  [(_ (command METHOD URI (with-headers HEADERS) (responds-with CODE)))
+   #'(begin
+       (check-environment-variables HEADERS)
+       (check-environment-variables URI))]
   [(_ (command METHOD URI))
    #'(check-environment-variables URI)]
   [(_ (command METHOD URI (responds-with CODE)))
@@ -1001,11 +1027,6 @@
        (check-environment-variables PAYLOAD)
        (check-environment-variables URI))]
   [(_ (command METHOD PAYLOAD URI (with-headers HEADERS)))
-   #'(begin
-       (check-environment-variables PAYLOAD)
-       (check-environment-variables HEADERS)
-       (check-environment-variables URI))]
-  [(_ (command METHOD PAYLOAD URI (with-headers HEADERS) (responds-with CODE)))
    #'(begin
        (check-environment-variables PAYLOAD)
        (check-environment-variables HEADERS)
