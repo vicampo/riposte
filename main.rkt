@@ -44,7 +44,8 @@
          matches
          function-definition
          function-call
-         return)
+         return
+         with-headers)
 
 (require (file "expander.rkt"))
 
