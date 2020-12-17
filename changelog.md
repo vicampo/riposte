@@ -31,6 +31,12 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.21.2] - 2020-12-17
+
+### Fixed
+
+- Handling requests with inline headers (like this: `GET foo with headers { "bar": "baz" }`) should now be supported.
+
 ## [0.21.1] - 2020-04-30
 
 ### Fixed
