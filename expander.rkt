@@ -193,10 +193,18 @@
    #'(string-append "@" (render ID))]
   [(_ (response-head-id ID))
    #'(~a (syntax-e #'ID) #\^)]
+  [(_ (json-object))
+   #'"{}"]
   [(_ (json-object ITEMS ...))
    #'(string-append "{"
                     (render-items ITEMS ...)
                     "}")]
+  [(_ (json-array))
+   #'"[]"]
+  [(_ (json-array ITEMS ...))
+   #'(string-append "["
+                    (render-items ITEMS ...)
+                    "]")]
   [(_ (json-boolean B))
    #'B]
   [(_ (json-null N))
