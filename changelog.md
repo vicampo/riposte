@@ -31,6 +31,12 @@ page](https://github.com/vicampo/riposte/issues).
         "session": "whatever" } responds with 2XX` and `GET /foo
         without cookie "session" responds with 2XX`.
 
+## [0.21.3] - 2021-02-11
+
+### Fixed
+
+- Rendering of null and empty JSON arrays & objects
+
 ## [0.21.2] - 2020-12-17
 
 ### Fixed
