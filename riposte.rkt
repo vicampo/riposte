@@ -85,7 +85,7 @@
      args))
 
   (when (opt-version)
-    (displayln "0.21.0")
+    (displayln "0.21.3")
     (exit 0))
 
   (define (is-riposte-file? f)
