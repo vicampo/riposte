@@ -176,7 +176,13 @@
   [(_ (json-object-item K V) (json-object-item K1 V1) ...)
    #'(string-append (render K)
                     ":"
-                    (render V))])
+                    (render V))]
+  [(_ (json-array-item V))
+   #'(render V)]
+  [(_ (json-array-item V) X ...)
+   #'(string-append (render V)
+                    ","
+                    (render-items X ...))])
 
 (define-macro-cases render
   [(_ (expression E))
