@@ -529,6 +529,12 @@
 
 (define-syntax (has-type stx)
   (syntax-parse stx
+    [(_ expr "is" "an" "array")
+     #'(unless (list? expr)
+         (error (format "~a is not an array" (render expr))))]
+    [(_ expr "is" "array")
+     #'(unless (list? expr)
+         (error (format "~a is not an array!" (render expr))))]
     [(_ expr "is" "a" "string")
      #'(unless (string? expr)
          (error (format "~a is not a string!" (render expr))))]
