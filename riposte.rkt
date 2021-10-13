@@ -23,7 +23,6 @@
                   parse-file
                   is-well-formed?)
          (prefix-in riposte: (file "reader.rkt"))
-         riposte
          racket/contract)
 
 (define/contract opt-version
@@ -85,7 +84,7 @@
      args))
 
   (when (opt-version)
-    (displayln "0.21.3")
+    (displayln "0.21.4")
     (exit 0))
 
   (define (is-riposte-file? f)
